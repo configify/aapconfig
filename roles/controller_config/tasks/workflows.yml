@@ -1,0 +1,42 @@
+- name: WORKFLOWS - Create or modify workflows
+  ansible.controller.workflow_job_template:
+    name: "{{ item.name }}"
+    description: "{{ item.descr }}"
+    organization: "{{ item.org }}"
+    inventory: "{{ item.inventory }}"
+    allow_simultaneous: "{{ item.allow_simultaneous }}"
+    ask_inventory_on_launch: "{{ item.ask_inventory_on_launch }}"
+    ask_labels_on_launch: "{{ item.ask_labels_on_launch }}"
+    ask_limit_on_launch: "{{ item.ask_limit_on_launch }}"
+    ask_scm_branch_on_launch: "{{ item.ask_scm_branch_on_launch }}"
+    ask_skip_tags_on_launch: "{{ item.ask_skip_tags_on_launch }}"
+    ask_tags_on_launch: "{{ item.ask_tags_on_launch }}"
+    ask_variables_on_launch: "{{ item.ask_variables_on_launch }}"
+    extra_vars: "{{ item.extra_vars }}"
+    job_tags: "{{ item.job_tags }}"
+    limit: "{{ item.limit }}"
+    scm_branch: "{{ item.scm_branch }}"
+    skip_tags: "{{ item.skip_tags }}"
+    survey_enabled: "{{ item.survey_enabled }}"
+    webhook_credential: "{{ item.webhook_credential }}"
+    webhook_service: "{{ omit if item.webhook_service == '' else item.webhook_service }}"
+    notification_templates_started: "{{ item.notifications_on_start }}"
+    notification_templates_success: "{{ item.notifications_on_success }}"
+    notification_templates_error: "{{ item.notifications_on_failure }}"
+    notification_templates_approvals: "{{ item.notifications_on_approval }}"
+    workflow_nodes: "{{ item.nodes }}"
+  loop: "{{ controller_objects_workflows | default([]) }}"
+  loop_control:
+    label: " | workflow: {{ item.name }}"
+  register: workflows_change_result
+  failed_when: >
+               (not ansible_check_mode and
+                workflows_change_result.msg is defined) or
+               (ansible_check_mode and
+                workflows_change_result.msg is defined and
+                'expected 1' not in workflows_change_result.msg)
+  changed_when: >
+                workflows_change_result.changed or
+                (ansible_check_mode and
+                 workflows_change_result.msg is defined and
+                 'expected 1' in workflows_change_result.msg)

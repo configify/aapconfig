@@ -1,0 +1,21 @@
+- name: SCHEDULES - Create or modify schedules
+  ansible.controller.schedule:
+    name: "{{ item.name }}"
+    description: "{{ item.descr }}"
+    unified_job_template: "{{ item.template }}"
+    rrule: "{{ item.rules }}"
+  loop: "{{ controller_objects_schedules | default([]) }}"
+  loop_control:
+    label: " | schedule: {{ item.name }}"
+  register: schedules_change_result
+  failed_when: >
+               (not ansible_check_mode and
+                schedules_change_result.exception is defined) or
+               (ansible_check_mode and
+                schedules_change_result.exception is defined and
+                'object is not subscriptable' not in schedules_change_result.exception)
+  changed_when: >
+                schedules_change_result.changed or
+                (ansible_check_mode and
+                 schedules_change_result.exception is defined and
+                 'object is not subscriptable' in schedules_change_result.exception)

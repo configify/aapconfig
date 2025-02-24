@@ -1,0 +1,293 @@
+- name: SETTINGS - CONFIGURATION
+  ansible.builtin.import_tasks: settings.yml
+  tags:
+    - controller_config_settings
+    - controller_config_all_apply
+
+- name: AUTHENTICATION - CLEANUP (2.4)
+  ansible.builtin.import_tasks: authentication_cleanup.yml
+  when: >
+        controller_ping.version is version_compare('4.6', '>=') and
+        controller_authentication is defined
+  tags:
+    - controller_config_authentication
+    - controller_config_authentication_cleanup
+    - controller_config_all_cleanup
+
+- name: WORKFLOWS - CLEANUP
+  ansible.builtin.import_tasks: workflows_cleanup.yml
+  when: controller_objects_workflows is defined
+  tags:
+    - controller_config_workflows
+    - controller_config_workflows_cleanup
+    - controller_config_all_cleanup
+
+- name: NOTIFICATIONS - CLEANUP
+  ansible.builtin.import_tasks: notifications_cleanup.yml
+  when: controller_objects_notification_profiles is defined
+  tags:
+    - controller_config_notifications
+    - controller_config_notifications_cleanup
+    - controller_config_all_cleanup
+
+- name: ROLES - CLEANUP (pre 2.5)
+  ansible.builtin.import_tasks: roles_cleanup.yml
+  when: >
+        controller_ping.version is version_compare('4.6', '<') and
+        (controller_objects_roles_organization is defined or
+         controller_objects_roles_instance_groups is defined or
+         controller_objects_roles_credential is defined or
+         controller_objects_roles_template is defined)
+  tags:
+    - controller_config_roles
+    - controller_config_roles_cleanup
+    - controller_config_all_cleanup
+
+- name: ROLES - CLEANUP (2.5)
+  ansible.builtin.import_tasks: roles_25_cleanup.yml
+  when: >
+        controller_ping.version is version_compare('4.6', '>=') and
+        (controller_objects_roles is defined or
+         gateway_objects_roles is defined)
+  tags:
+    - controller_config_roles
+    - controller_config_roles_cleanup
+    - controller_config_all_cleanup
+
+- name: SCHEDULES - CLEANUP
+  ansible.builtin.import_tasks: schedules_cleanup.yml
+  when: controller_objects_schedules is defined
+  tags:
+    - controller_config_schedules
+    - controller_config_schedules_cleanup
+    - controller_config_all_cleanup
+
+- name: TEMPLATES - CLEANUP
+  ansible.builtin.import_tasks: templates_cleanup.yml
+  when: controller_objects_templates is defined
+  tags:
+    - controller_config_templates
+    - controller_config_templates_cleanup
+    - controller_config_all_cleanup
+
+- name: INVENTORIES - CLEANUP
+  ansible.builtin.import_tasks: inventories_cleanup.yml
+  when: >
+        controller_objects_inventories_dynamic is defined or
+        controller_objects_inventories_static is defined or
+        controller_objects_inventories_constructed is defined or
+        controller_objects_inventories_smart is defined
+  tags:
+    - controller_config_inventories
+    - controller_config_inventories_cleanup
+    - controller_config_all_cleanup
+
+- name: PROJECTS - CLEANUP
+  ansible.builtin.import_tasks: projects_cleanup.yml
+  when: controller_objects_projects is defined
+  tags:
+    - controller_config_projects
+    - controller_config_projects_cleanup
+    - controller_config_all_cleanup
+
+- name: EXECUTION ENVIRONMENTS - CLEANUP
+  ansible.builtin.import_tasks: execution_environments_cleanup.yml
+  when: controller_objects_execution_environments is defined
+  tags:
+    - controller_config_ee
+    - controller_config_ee_cleanup
+    - controller_config_all_cleanup
+
+- name: TEAMS - CLEANUP
+  ansible.builtin.import_tasks: teams_cleanup.yml
+  when: controller_objects_teams is defined
+  tags:
+    - controller_config_teams
+    - controller_config_teams_cleanup
+    - controller_config_all_cleanup
+
+- name: ORGANIZATIONS - CLEANUP
+  ansible.builtin.import_tasks: organizations_cleanup.yml
+  when: controller_objects_organizations is defined
+  tags:
+    - controller_config_organizations
+    - controller_config_organizations_cleanup
+    - controller_config_all_cleanup
+
+- name: CREDENTIALS - CLEANUP
+  ansible.builtin.import_tasks: credentials_cleanup.yml
+  when: >
+        controller_objects_credentials_organizational is defined or
+        controller_objects_credentials_personal is defined
+  tags:
+    - controller_config_credentials
+    - controller_config_credentials_cleanup
+    - controller_config_all_cleanup
+
+- name: CREDENTIAL TYPES - CLEANUP
+  ansible.builtin.import_tasks: credential_types_cleanup.yml
+  when: controller_objects_credential_types is defined
+  tags:
+    - controller_config_credential_types
+    - controller_config_credential_types_cleanup
+    - controller_config_all_cleanup
+
+- name: INSTANCE GROUPS - CLEANUP
+  ansible.builtin.import_tasks: instance_groups_cleanup.yml
+  when: controller_objects_instance_groups is defined
+  tags:
+    - controller_config_instance_groups
+    - controller_config_instance_groups_cleanup
+    - controller_config_all_cleanup
+
+- name: USERS - CLEANUP
+  ansible.builtin.import_tasks: users_cleanup.yml
+  when: controller_objects_users is defined
+  tags:
+    - controller_config_users
+    - controller_config_users_cleanup
+    - controller_config_all_cleanup
+
+- name: USERS - CREATION/MODIFICATION
+  ansible.builtin.import_tasks: users.yml
+  when: controller_objects_users is defined
+  tags:
+    - controller_config_users
+    - controller_config_users_apply
+    - controller_config_all_apply
+
+- name: EXECUTION ENVIRONMENTS - CREATION/MODIFICATION
+  ansible.builtin.import_tasks: execution_environments.yml
+  when: controller_objects_execution_environments is defined
+  tags:
+    - controller_config_ee
+    - controller_config_ee_apply
+    - controller_config_all_apply
+
+- name: AUTHENTICATION - CREATION/MODIFICATION (2.5)
+  ansible.builtin.import_tasks: authentication.yml
+  when: >
+        controller_ping.version is version_compare('4.6', '>=') and
+        controller_authentication is defined
+  tags:
+    - controller_config_authentication
+    - controller_config_authentication_apply
+    - controller_config_all_apply
+
+- name: INSTANCE GROUPS - CREATION/MODIFICATION
+  ansible.builtin.import_tasks: instance_groups.yml
+  when: controller_objects_instance_groups is defined
+  tags:
+    - controller_config_instance_groups
+    - controller_config_instance_groups_apply
+    - controller_config_all_apply
+
+- name: CREDENTIAL TYPES - CREATION/MODIFICATION
+  ansible.builtin.import_tasks: credential_types.yml
+  when: controller_objects_credential_types is defined
+  tags:
+    - controller_config_credential_types
+    - controller_config_credential_types_apply
+    - controller_config_all_apply
+
+- name: CREDENTIALS - CREATION/MODIFICATION
+  ansible.builtin.import_tasks: credentials.yml
+  when: >
+        controller_objects_credentials_organizational is defined or
+        controller_objects_credentials_personal is defined
+  tags:
+    - controller_config_credentials
+    - controller_config_credentials_apply
+    - controller_config_all_apply
+
+- name: ORGANIZATIONS - CREATION/MODIFICATION
+  ansible.builtin.import_tasks: organizations.yml
+  when: controller_objects_organizations is defined
+  tags:
+    - controller_config_organizations
+    - controller_config_organizations_apply
+    - controller_config_all_apply
+
+- name: NOTIFICATIONS - CREATION/MODIFICATION
+  ansible.builtin.import_tasks: notifications.yml
+  when: controller_objects_notification_profiles is defined
+  tags:
+    - controller_config_notifications
+    - controller_config_notifications_apply
+    - controller_config_all_apply
+
+- name: TEAMS - CREATION/MODIFICATION
+  ansible.builtin.import_tasks: teams.yml
+  when: controller_objects_teams is defined
+  tags:
+    - controller_config_teams
+    - controller_config_teams_apply
+    - controller_config_all_apply
+
+- name: PROJECTS - CREATION/MODIFICATION
+  ansible.builtin.import_tasks: projects.yml
+  when: controller_objects_projects
+  tags:
+    - controller_config_projects
+    - controller_config_projects_apply
+    - controller_config_all_apply
+
+- name: INVENTORIES - CREATION/MODIFICATION
+  ansible.builtin.import_tasks: inventories.yml
+  when: >
+        controller_objects_inventories_dynamic is defined or
+        controller_objects_inventories_static is defined or
+        controller_objects_inventories_constructed is defined or
+        controller_objects_inventories_smart is defined
+  tags:
+    - controller_config_inventories
+    - controller_config_inventories_apply
+    - controller_config_all_apply
+
+- name: TEMPLATES - CREATION/MODIFICATION
+  ansible.builtin.import_tasks: templates.yml
+  when: controller_objects_templates is defined
+  tags:
+    - controller_config_templates
+    - controller_config_templates_apply
+    - controller_config_all_apply
+
+- name: ROLES - CREATION/MODIFICATION (pre 2.5)
+  ansible.builtin.import_tasks: roles.yml
+  when: >
+        controller_ping.version is version_compare('4.6', '<') and
+        (controller_objects_roles_organization is defined or
+         controller_objects_roles_instance_groups is defined or
+         controller_objects_roles_credential is defined or
+         controller_objects_roles_template is defined)
+  tags:
+    - controller_config_roles
+    - controller_config_roles_apply
+    - controller_config_all_apply
+
+- name: ROLES - CREATION/MODIFICATION (2.5)
+  ansible.builtin.import_tasks: roles_25.yml
+  when: >
+        controller_ping.version is version_compare('4.6', '>=') and
+        (controller_objects_roles is defined or
+         gateway_objects_roles is defined)
+  tags:
+    - controller_config_roles
+    - controller_config_roles_apply
+    - controller_config_all_apply
+
+- name: SCHEDULES - CREATION/MODIFICATION
+  ansible.builtin.import_tasks: schedules.yml
+  when: controller_objects_schedules is defined
+  tags:
+    - controller_config_schedules
+    - controller_config_schedules_apply
+    - controller_config_all_apply
+
+- name: WORKFLOWS - CREATION/MODIFICATION
+  ansible.builtin.import_tasks: workflows.yml
+  when: controller_objects_workflows is defined
+  tags:
+    - controller_config_workflows
+    - controller_config_workflows_apply
+    - controller_config_all_apply

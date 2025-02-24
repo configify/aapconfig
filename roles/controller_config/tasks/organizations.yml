@@ -1,0 +1,29 @@
+- name: ORGANIZATIONS - Create or modify organizations (2.5)
+  ansible.platform.organization:
+    name: "{{ item.name }}"
+    description: "{{ item.descr }}"
+  loop: "{{ controller_objects_organizations | default([]) }}"
+  loop_control:
+    label: " | organization: {{ item.name }}"
+  when: controller_ping.version is version_compare('4.6', '>=')
+
+- name: ORGANIZATIONS - Create (pre 2.5) or modify organizations
+  ansible.controller.organization:
+    name: "{{ item.name }}"
+    description: "{{ item.descr }}"
+    galaxy_credentials: "{{ item.creds }}"
+  loop: "{{ controller_objects_organizations | default([]) }}"
+  loop_control:
+    label: " | organization: {{ item.name }}"
+  register: orgs_change_result
+  failed_when: >
+               (not ansible_check_mode and
+                orgs_change_result.msg is defined) or
+               (ansible_check_mode and
+                orgs_change_result.msg is defined and
+                'expected 1' not in orgs_change_result.msg)
+  changed_when: >
+                orgs_change_result.changed or
+                (ansible_check_mode and
+                 orgs_change_result.msg is defined and
+                 'expected 1' in orgs_change_result.msg)

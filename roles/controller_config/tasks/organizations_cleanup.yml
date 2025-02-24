@@ -1,0 +1,42 @@
+- name: ORGANIZATIONS - Get all organizations from AAP
+  ansible.controller.export:
+    organizations: 'all'
+  register: aap_organizations
+
+- name: ORGANIZATIONS - Notify on rogue organizations
+  ansible.builtin.debug:
+    msg: "Shouldn't be there"
+  when: >
+        not delete_objects | default(false) | bool and
+        controller_objects_organizations | selectattr("name", "equalto", item.name) | length == 0 and
+        item.name != 'Default'
+  changed_when: true
+  loop: "{{ aap_organizations.assets.organizations }}"
+  loop_control:
+    label: " | organization: {{ item.name }}"
+
+- name: ORGANIZATIONS - Delete rogue organizations (pre 2.5)
+  ansible.controller.organization:
+    name: "{{ item.name }}"
+    state: absent
+  when: >
+        delete_objects | default(false) | bool and
+        controller_ping.version is version_compare('4.6', '<') and
+        controller_objects_organizations | selectattr("name", "equalto", item.name) | length == 0 and
+        item.name != 'Default'
+  loop: "{{ aap_organizations.assets.organizations }}"
+  loop_control:
+    label: " | organization: {{ item.name }}"
+
+- name: ORGANIZATIONS - Delete rogue organizations (2.5)
+  ansible.platform.organization:
+    name: "{{ item.name }}"
+    state: absent
+  when: >
+        delete_objects | default(false) | bool and
+        controller_ping.version is version_compare('4.6', '>=') and
+        controller_objects_organizations | selectattr("name", "equalto", item.name) | length == 0 and
+        item.name != 'Default'
+  loop: "{{ aap_organizations.assets.organizations }}"
+  loop_control:
+    label: " | organization: {{ item.name }}"

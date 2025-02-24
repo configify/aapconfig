@@ -1,0 +1,105 @@
+- name: COLLECTIONS - Cleanup
+  tags: hub_config_all_cleanup
+  when: hub_objects_collections is defined
+  block:
+
+    - name: COLLECTIONS - Get list of published collections
+      ansible.builtin.set_fact:
+        published_collections: "{{ query('infra.ah_configuration.ah_api', 'collections', return_all=true) }}"
+
+    - name: COLLECTIONS - Notify on rogue published collections
+      ansible.builtin.debug:
+        msg: "Shouldn't be there"
+      when: >
+            not delete_objects | default(false) | bool and
+            hub_objects_collections | selectattr("name", "equalto", item.name) | length == 0
+      changed_when: true
+      loop: "{{ published_collections[0] }}"
+      loop_control:
+        label: " | collection: {{ item.name }}"
+
+    - name: COLLECTIONS - Delete rogue published collections
+      infra.ah_configuration.ah_collection:
+        name: "{{ item.name }}"
+        namespace: "{{ item.namespace }}"
+        version: "{{ item.highest_version.version }}"
+        state: absent
+      when: >
+            delete_objects | default(false) | bool and
+            hub_objects_collections | selectattr("name", "equalto", item.name) | length == 0
+      changed_when: true
+      loop: "{{ published_collections[0] }}"
+      loop_control:
+        label: " | collection: {{ item.name }}"
+
+- name: COLLECTIONS - Get list of namespaces and all collections
+  ansible.builtin.set_fact:
+    all_name_spaces: "{{ query('infra.ah_configuration.ah_api', 'namespaces', return_all=true) }}"
+    published_collections: "{{ query('infra.ah_configuration.ah_api', 'collections', return_all=true) }}"
+    certified_collections: "{{ query('infra.ah_configuration.ah_api', 'collections', 'rh-certified', return_all=true) }}"
+    community_collections: "{{ query('infra.ah_configuration.ah_api', 'collections', 'community', return_all=true) }}"
+    validated_collections: "{{ query('infra.ah_configuration.ah_api', 'collections', 'validated', return_all=true) }}"
+  tags: hub_config_all_cleanup
+
+- name: COLLECTIONS - Create list of all collections
+  ansible.builtin.set_fact:
+    all_collections: "{{ published_collections[0] + certified_collections[0] + community_collections[0] + validated_collections[0] }}"
+  tags: hub_config_all_cleanup
+
+- name: COLLECTIONS - Notify on empty namespaces
+  ansible.builtin.debug:
+    msg: "Shouldn't be there"
+  when: >
+        not delete_objects | default(false) | bool and
+        all_collections | selectattr("namespace", "equalto", item.name) | length == 0
+  changed_when: true
+  loop: "{{ all_name_spaces[0] }}"
+  loop_control:
+    label: " | namespace: {{ item.name }}"
+  tags: hub_config_all_cleanup
+
+- name: COLLECTIONS - Delete empty namespaces
+  infra.ah_configuration.ah_namespace:
+    name: "{{ item.name }}"
+    state: absent
+  when: >
+        delete_objects | default(false) | bool and
+        all_collections | selectattr("namespace", "equalto", item.name) | length == 0
+  changed_when: true
+  loop: "{{ all_name_spaces[0] }}"
+  loop_control:
+    label: " | namespace: {{ item.name }}"
+  tags: hub_config_all_cleanup
+
+- name: COLLECTIONS - Create namespace and upload collections
+  tags: hub_config_all_apply
+  when: hub_objects_collections is defined
+  block:
+
+    - name: COLLECTIONS - Create namespaces for collections
+      infra.ah_configuration.ah_namespace:
+        name: "{{ item.namespace }}"
+      loop: "{{ hub_objects_collections }}"
+      loop_control:
+        label: " | collection: {{ item.name }} <- namespace: {{ item.namespace }}"
+
+    - name: COLLECTIONS - Upload collections to automation hub
+      infra.ah_configuration.ah_collection:
+        namespace: "{{ item.namespace }}"
+        name: "{{ item.name }}"
+        path: "/runner/project/collections_tarballs/{{ item.filename }}"
+      loop: "{{ hub_objects_collections }}"
+      loop_control:
+        label: " | file: {{ item.filename }}"
+      register: collection_upload_result
+      failed_when: >
+                   (not ansible_check_mode and
+                    collection_upload_result.msg is defined) or
+                   (ansible_check_mode and
+                    collection_upload_result.msg is defined and
+                    'Namespace in filename not found' not in collection_upload_result.msg)
+      changed_when: >
+                    collection_upload_result.changed or
+                    (ansible_check_mode and
+                     collection_upload_result.msg is defined and
+                     'Namespace in filename not found' in collection_upload_result.msg)

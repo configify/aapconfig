@@ -1,0 +1,211 @@
+- name: INVENTORIES - Get all inventories from AAP
+  ansible.builtin.set_fact:
+    aap_inventories: "{{ lookup('ansible.controller.controller_api', 'inventories', return_all=true, return_objects=false).results }}"
+
+- name: INVENTORIES - Notify on rogue static and dynamic inventories
+  ansible.builtin.debug:
+    msg: "Shouldn't be there"
+  when: >
+        not delete_objects | default(false) | bool and
+        (controller_objects_inventories_dynamic is defined or
+         controller_objects_inventories_static is defined) and
+        controller_objects_inventories_dynamic | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        controller_objects_inventories_static | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        item.kind | length == 0
+  changed_when: true
+  loop: "{{ aap_inventories }}"
+  loop_control:
+    label: " | inventory: {{ item.name }}"
+
+- name: INVENTORIES - Notify on rogue constructed inventories
+  ansible.builtin.debug:
+    msg: "Shouldn't be there"
+  when: >
+        not delete_objects | default(false) | bool and
+        controller_objects_inventories_constructed is defined and
+        controller_objects_inventories_constructed | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        item.kind == 'constructed'
+  changed_when: true
+  loop: "{{ aap_inventories }}"
+  loop_control:
+    label: " | inventory: {{ item.name }}"
+
+- name: INVENTORIES - Notify on rogue smart inventories
+  ansible.builtin.debug:
+    msg: "Shouldn't be there"
+  when: >
+        not delete_objects | default(false) | bool and
+        controller_objects_inventories_smart is defined and
+        controller_objects_inventories_smart | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        item.kind == 'smart'
+  changed_when: true
+  loop: "{{ aap_inventories }}"
+  loop_control:
+    label: " | inventory: {{ item.name }}"
+
+- name: INVENTORIES - Delete rogue static and dynamic inventories
+  ansible.controller.inventory:
+    name: "{{ item.name }}"
+    organization: "{{ item.summary_fields.organization.name }}"
+    state: absent
+  when: >
+        delete_objects | default(false) | bool and
+        (controller_objects_inventories_dynamic is defined or
+         controller_objects_inventories_static is defined) and
+        controller_objects_inventories_dynamic | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        controller_objects_inventories_static | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        item.kind | length == 0
+  loop: "{{ aap_inventories }}"
+  loop_control:
+    label: " | inventory: {{ item.name }}"
+
+- name: INVENTORIES - Delete rogue constructed inventories
+  ansible.controller.inventory:
+    name: "{{ item.name }}"
+    organization: "{{ item.summary_fields.organization.name }}"
+    state: absent
+  when: >
+        delete_objects | default(false) | bool and
+        controller_objects_inventories_constructed is defined and
+        controller_objects_inventories_constructed | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        item.kind == 'constructed'
+  loop: "{{ aap_inventories }}"
+  loop_control:
+    label: " | inventory: {{ item.name }}"
+
+- name: INVENTORIES - Delete rogue smart inventories
+  ansible.controller.inventory:
+    name: "{{ item.name }}"
+    organization: "{{ item.summary_fields.organization.name }}"
+    state: absent
+  when: >
+        delete_objects | default(false) | bool and
+        controller_objects_inventories_smart is defined and
+        controller_objects_inventories_smart | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        item.kind == 'smart'
+  loop: "{{ aap_inventories }}"
+  loop_control:
+    label: " | inventory: {{ item.name }}"
+
+- name: INVENTORIES - Dealing with dynamic inventories cleanup
+  when: controller_objects_inventories_dynamic is defined
+  block:
+
+    - name: INVENTORIES - Get all inventory sources from AAP
+      ansible.builtin.set_fact:
+        aap_inventory_sources: "{{ lookup('ansible.controller.controller_api', 'inventory_sources', return_objects=false, return_all=true).results }}"
+
+    - name: INVENTORIES - Get all defined inventory sources from CaaC
+      ansible.builtin.set_fact:
+        aap_inventory_sources_defined: "{{ controller_objects_inventories_dynamic | default([]) | map(attribute='sources') | flatten }}"
+
+    - name: INVENTORIES - Notify on rogue inventory sources
+      ansible.builtin.debug:
+        msg: "Shouldn't be there"
+      when: >
+            not delete_objects | default(false) | bool and
+            'Auto-created' not in item.name and
+            aap_inventory_sources_defined | selectattr("name", "equalto", item.name) | length == 0
+      changed_when: true
+      loop: "{{ aap_inventory_sources }}"
+      loop_control:
+        label: " | inventory source: {{ item.name }}"
+
+    - name: INVENTORIES - Delete rogue inventory sources
+      ansible.controller.inventory:
+        name: "{{ item.name }}"
+        organization: "{{ item.summary_fields.organization.name }}"
+        state: absent
+      when: >
+            delete_objects | default(false) | bool and
+            'Auto-created' not in item.name and
+            aap_inventory_sources_defined | selectattr("name", "equalto", item.name) | length == 0
+      loop: "{{ aap_inventory_sources }}"
+      loop_control:
+        label: " | inventory source: {{ item.name }}"
+
+- name: INVENTORIES - Dealing with static inventories cleanup
+  when: controller_objects_inventories_static is defined
+  block:
+
+    - name: INVENTORIES - Build list of rogue hosts
+      ansible.builtin.set_fact:
+        inventory_rogue_hosts: "{{ inventory_rogue_hosts | default([]) +
+                                   [{'inventory': item.name,
+                                     'hosts': lookup('ansible.controller.controller_api',
+                                                     'inventories/' + static_inventory_that_exists.id | string + '/hosts/',
+                                                     return_objects=false,
+                                                     return_all=true).results |
+                                              map(attribute='name') |
+                                              difference(item.hosts | map(attribute='name', default=[])) |
+                                              difference(item.groups | map(attribute='hosts', default=[]) | flatten | map(attribute='name', default=[]))}] }}"
+      when: static_inventory_that_exists | default([]) | length != 0
+      loop: "{{ controller_objects_inventories_static }}"
+      loop_control:
+        label: " | inventory: {{ item.name }}"
+      vars:
+        static_inventory_that_exists: "{{ aap_inventories | selectattr('name', 'equalto', item.name) | last }}"
+
+    - name: INVENTORIES - Notify on rogue hosts
+      ansible.builtin.debug:
+        msg: "Shouldn't be there"
+      changed_when: true
+      when: >
+            not delete_objects | default(false) | bool and
+            inventory_rogue_hosts and
+            item.1
+      loop: "{{ inventory_rogue_hosts | default([]) | subelements('hosts') }}"
+      loop_control:
+        label: " | inventory: {{ item.0.inventory }} ->
+                   host: {{ item.1 | default('[]') }}"
+
+    - name: INVENTORIES - Delete rogue hosts
+      ansible.controller.host:
+        name: "{{ item.1 }}"
+        inventory: "{{ item.0.inventory }}"
+        state: absent
+      when: >
+            delete_objects | default(false) | bool and
+            inventory_rogue_hosts and
+            item.1
+      loop: "{{ inventory_rogue_hosts | default([]) | subelements('hosts') }}"
+      loop_control:
+        label: " | inventory: {{ item.0.inventory }} ->
+                   host: {{ item.1 | default('[]') }}"
+
+    - name: INVENTORIES - Get all inventory groups from AAP
+      ansible.builtin.set_fact:
+        aap_inventory_groups: "{{ aap_inventory_groups | default([]) + [item] }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'groups', return_objects=false, return_all=true).results }}"
+      loop_control:
+        label: " | group: {{ item.name }}"
+      when: >
+            controller_objects_inventories_static is defined and
+            item.summary_fields.inventory.name in controller_objects_inventories_static | map(attribute='name')
+
+    - name: INVENTORIES - Build list of rogue groups
+      ansible.builtin.set_fact:
+        inventory_rogue_groups: "{{ aap_inventory_groups | default([]) |
+                                    map(attribute='name') |
+                                    difference(controller_objects_inventories_static | default([]) |
+                                    map(attribute='groups') | flatten |
+                                    map(attribute='name')) }}"
+
+    - name: INVENTORIES - Notify on rogue groups
+      ansible.builtin.debug:
+        msg: "Shouldn't be there"
+      changed_when: true
+      when: not delete_objects | default(false) | bool
+      loop: "{{ inventory_rogue_groups }}"
+      loop_control:
+        label: " | group: {{ item }}"
+
+    - name: INVENTORIES - Delete rogue groups
+      ansible.controller.group:
+        name: "{{ item }}"
+        inventory: "{{ (aap_inventory_groups | selectattr('name', 'equalto', item) | last).inventory }}"
+        state: absent
+      when: delete_objects | default(false) | bool
+      loop: "{{ inventory_rogue_groups }}"
+      loop_control:
+        label: " | group: {{ item }}"

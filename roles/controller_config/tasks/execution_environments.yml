@@ -1,0 +1,9 @@
+- name: EXECUTION ENVIRONMENTS - Create or modify execution environments
+  ansible.controller.execution_environment:
+    name: "{{ item.name }}"
+    description: "{{ item.descr }}"
+    image: "{{ item.image }}"
+    pull: "{{ item.pull }}"
+  loop: "{{ controller_objects_execution_environments | default([]) }}"
+  loop_control:
+    label: " | ee: {{ item.name }}"

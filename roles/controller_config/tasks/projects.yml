@@ -1,0 +1,31 @@
+- name: PROJECTS - Create or modify projects
+  ansible.controller.project:
+    name: "{{ item.name }}"
+    scm_type: "{{ item.type }}"
+    scm_branch: "{{ item.branch }}"
+    scm_clean: "{{ item.scm_clean }}"
+    scm_delete_on_update: "{{ item.scm_delete }}"
+    scm_update_on_launch: "{{ item.scm_update }}"
+    organization: "{{ item.org }}"
+    credential: "{{ item.cred | default(omit) }}"
+    scm_url: "{{ item.url }}"
+    wait: "{{ wait_project_sync | default(false) }}"
+  loop: "{{ controller_objects_projects | default([]) }}"
+  loop_control:
+    label: " | project: {{ item.name }}"
+  register: projects_change_result
+  failed_when: >
+               (not ansible_check_mode and
+                projects_change_result.msg is defined and
+                'Project update failed' not in projects_change_result.msg) or
+               (ansible_check_mode and
+                projects_change_result.msg is defined and
+                'expected 1' not in projects_change_result.msg and
+                'Project update failed' not in projects_change_result.msg)
+  changed_when: >
+                projects_change_result.changed or
+                (projects_change_result.msg is defined and
+                 'Project update failed' in projects_change_result.msg) or
+                (ansible_check_mode and
+                 projects_change_result.msg is defined and
+                 'expected 1' in projects_change_result.msg)

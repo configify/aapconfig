@@ -1,0 +1,47 @@
+- name: TEAMS - Create or modify teams (pre 2.5)
+  ansible.controller.team:
+    name: "{{ item.name }}"
+    description: "{{ item.descr }}"
+    organization: "{{ item.org }}"
+  loop: "{{ controller_objects_teams | default([]) }}"
+  loop_control:
+    label: " | team: {{ item.name }}"
+  when: controller_ping.version is version_compare('4.6', '<')
+  register: team_creation_result
+  failed_when: >
+               (not ansible_check_mode and
+                team_creation_result.msg is defined) or
+               (ansible_check_mode and
+                team_creation_result.msg is defined and
+                'expected 1' not in team_creation_result.msg and
+                'does not exist' not in team_creation_result.msg)
+  changed_when: >
+                team_creation_result.changed or
+                (ansible_check_mode and
+                 team_creation_result.msg is defined and
+                 ('does not exist' in team_creation_result.msg or
+                  'expected 1' in team_creation_result.msg))
+
+- name: TEAMS - Create or modify teams (2.5)
+  ansible.platform.team:
+    name: "{{ item.name }}"
+    description: "{{ item.descr }}"
+    organization: "{{ item.org }}"
+  loop: "{{ controller_objects_teams | default([]) }}"
+  loop_control:
+    label: " | team: {{ item.name }}"
+  when: controller_ping.version is version_compare('4.6', '>=')
+  register: team_creation_result
+  failed_when: >
+               (not ansible_check_mode and
+                team_creation_result.msg is defined) or
+               (ansible_check_mode and
+                team_creation_result.msg is defined and
+                'expected 1' not in team_creation_result.msg and
+                'does not exist' not in team_creation_result.msg)
+  changed_when: >
+                team_creation_result.changed or
+                (ansible_check_mode and
+                 team_creation_result.msg is defined and
+                 ('does not exist' in team_creation_result.msg or
+                  'expected 1' in team_creation_result.msg))

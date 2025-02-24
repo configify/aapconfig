@@ -1,0 +1,247 @@
+- name: INVENTORIES - Create or modify static and dynamic inventories
+  ansible.controller.inventory:
+    name: "{{ item.name }}"
+    description: "{{ item.description }}"
+    organization: "{{ item.org }}"
+    host_filter: "{{ item.host_filter }}"
+    variables: "{{ item.variables }}"
+    prevent_instance_group_fallback: "{{ item.prevent_fallback }}"
+  loop: "{{ controller_objects_inventories_dynamic | default([]) + controller_objects_inventories_static | default([]) }}"
+  loop_control:
+    label: " | inventory: {{ item.name }}"
+  register: inventories_static_dynamic_change_result
+  failed_when: >
+               (not ansible_check_mode and
+                inventories_static_dynamic_change_result.msg is defined) or
+               (ansible_check_mode and
+                inventories_static_dynamic_change_result.msg is defined and
+                'was not found' not in inventories_static_dynamic_change_result.msg and
+                'expected 1' not in inventories_static_dynamic_change_result.msg)
+  changed_when: >
+                inventories_static_dynamic_change_result.changed or
+                (ansible_check_mode and
+                 inventories_static_dynamic_change_result.msg is defined and
+                 ('was not found' in inventories_static_dynamic_change_result.msg or
+                  'expected 1' in inventories_static_dynamic_change_result.msg))
+
+- name: INVENTORIES - Create or modify inventory sources
+  ansible.controller.inventory_source:
+    name: "{{ item.1.name }}"
+    description: "{{ item.1.description }}"
+    inventory: "{{ item.0.name }}"
+    enabled_value: "{{ item.1.enabled_value }}"
+    enabled_var: "{{ item.1.enabled_var }}"
+    host_filter: "{{ item.1.host_filter }}"
+    overwrite: "{{ item.1.overwrite }}"
+    overwrite_vars: "{{ item.1.overwrite_vars }}"
+    source: "{{ item.1.source }}"
+    source_path: "{{ item.1.source_path }}"
+    source_project: "{{ omit if not item.1.project else item.1.project }}"
+    source_vars: "{{ item.1.extra_vars }}"
+    timeout: "{{ item.1.timeout }}"
+    update_cache_timeout: "{{ item.1.update_cache_timeout }}"
+    update_on_launch: "{{ item.1.update_on_launch }}"
+    verbosity: "{{ item.1.verbosity }}"
+  loop: "{{ controller_objects_inventories_dynamic | default([]) | subelements('sources') }}"
+  loop_control:
+    label: " | inventory: {{ item.0.name }} ->
+               source: {{ item.1.name }}"
+  register: dynamic_inventories_sources_change
+  failed_when: >
+               (not ansible_check_mode and
+                dynamic_inventories_sources_change.msg is defined) or
+               (ansible_check_mode and
+                dynamic_inventories_sources_change.msg is defined and
+                'was not found' not in dynamic_inventories_sources_change.msg)
+  changed_when: >
+                dynamic_inventories_sources_change.changed or
+                (ansible_check_mode and
+                 dynamic_inventories_sources_change.msg is defined and
+                 'was not found' in dynamic_inventories_sources_change.msg)
+
+- name: INVENTORIES - Create or modify non-grouped hosts
+  ansible.controller.host:
+    name: "{{ item.1.name }}"
+    description: "{{ item.1.description }}"
+    inventory: "{{ item.0.name }}"
+    variables: "{{ item.1.variables }}"
+  loop: "{{ controller_objects_inventories_static | default([]) | subelements('hosts') }}"
+  loop_control:
+    label: " | inventory: {{ item.0.name }}
+               host: {{ item.1.name }}"
+  register: static_inventories_nongrouped_hosts_change
+  failed_when: >
+               (not ansible_check_mode and
+                static_inventories_nongrouped_hosts_change.msg is defined) or
+               (ansible_check_mode and
+                static_inventories_nongrouped_hosts_change.msg is defined and
+                'expected 1' not in static_inventories_nongrouped_hosts_change.msg)
+  changed_when: >
+                static_inventories_nongrouped_hosts_change.changed or
+                (ansible_check_mode and
+                 static_inventories_nongrouped_hosts_change.msg is defined and
+                 'expected 1' in static_inventories_nongrouped_hosts_change.msg)
+
+- name: INVENTORIES - Build list of defined grouped hosts
+  ansible.builtin.set_fact:
+    static_inventory_grouped_hosts_defined: "{{ static_inventory_grouped_hosts_defined | default([]) +
+                                                [{'inventory': item.0.name,
+                                                 'hosts': item.1.hosts}] }}"
+  loop: "{{ controller_objects_inventories_static | default([]) | subelements('groups') }}"
+  loop_control:
+    label: " | inventory: {{ item.0.name }} ->
+               group: {{ item.1.name }}"
+
+- name: INVENTORIES - Create or modify grouped hosts
+  ansible.controller.host:
+    name: "{{ item.1.name }}"
+    description: "{{ item.1.description }}"
+    inventory: "{{ item.0.inventory }}"
+    variables: "{{ item.1.variables }}"
+  loop: "{{ static_inventory_grouped_hosts_defined | default([]) | subelements('hosts') }}"
+  loop_control:
+    label: " | inventory: {{ item.0.inventory }} ->
+               host: {{ item.1.name | default('N/A') }}"
+  when: item.1.name is defined
+  register: static_inventories_grouped_hosts_change
+  failed_when: >
+               (not ansible_check_mode and
+                static_inventories_grouped_hosts_change.msg is defined) or
+               (ansible_check_mode and
+                static_inventories_grouped_hosts_change.msg is defined and
+                'expected 1' not in static_inventories_grouped_hosts_change.msg)
+  changed_when: >
+                static_inventories_grouped_hosts_change.changed or
+                (ansible_check_mode and
+                 static_inventories_grouped_hosts_change.msg is defined and
+                 'expected 1' in static_inventories_grouped_hosts_change.msg)
+
+- name: INVENTORIES - Create or modify children groups
+  ansible.controller.group:
+    name: "{{ item.1.name }}"
+    description: "{{ item.1.description }}"
+    inventory: "{{ item.0.name }}"
+    hosts: "{{ item.1.hosts | map(attribute='name', default='') }}"
+    children: "{{ item.1.subgroups }}"
+    variables: "{{ item.1.variables }}"
+  loop: "{{ controller_objects_inventories_static | default([]) | subelements('groups') }}"
+  loop_control:
+    label: " | inventory: {{ item.0.name }} ->
+               group: {{ item.1.name | default('N/A') }}"
+  when: >
+        item.1.subgroups == [] and
+        item.1.name is defined
+  register: static_inventories_child_groups_change
+  failed_when: >
+               (not ansible_check_mode and
+                static_inventories_child_groups_change.msg is defined) or
+               (ansible_check_mode and
+                static_inventories_child_groups_change.msg is defined and
+                'expected 1' not in static_inventories_child_groups_change.msg and
+                'Could not find' not in static_inventories_child_groups_change.msg)
+  changed_when: >
+                static_inventories_child_groups_change.changed or
+                (ansible_check_mode and
+                 static_inventories_child_groups_change.msg is defined and
+                 ('expected 1' in static_inventories_child_groups_change.msg or
+                  'Could not find' in static_inventories_child_groups_change.msg))
+
+- name: INVENTORIES - Create or modify parent groups
+  ansible.controller.group:
+    name: "{{ item.1.name }}"
+    description: "{{ item.1.description }}"
+    inventory: "{{ item.0.name }}"
+    hosts: "{{ item.1.hosts | map(attribute='name', default='') }}"
+    children: "{{ item.1.subgroups }}"
+    variables: "{{ item.1.variables }}"
+  loop: "{{ controller_objects_inventories_static | default([]) | subelements('groups') }}"
+  loop_control:
+    label: " | inventory: {{ item.0.name }} ->
+               group: {{ item.1.name | default('N/A') }}"
+  when: >
+        item.1.subgroups != [] and
+        item.1.name is defined
+  register: static_inventories_parent_groups_change
+  failed_when: >
+               (not ansible_check_mode and
+                static_inventories_parent_groups_change.msg is defined) or
+               (ansible_check_mode and
+                static_inventories_parent_groups_change.msg is defined and
+                'expected 1' not in static_inventories_parent_groups_change.msg and
+                'Could not find groups with name' not in static_inventories_parent_groups_change.msg)
+  changed_when: >
+                static_inventories_parent_groups_change.changed or
+                (ansible_check_mode and
+                 static_inventories_parent_groups_change.msg is defined and
+                 ('expected 1' in static_inventories_parent_groups_change.msg or
+                  'Could not find' in static_inventories_parent_groups_change.msg))
+
+- name: INVENTORIES - Create or modify smart inventories
+  ansible.controller.inventory:
+    name: "{{ item.name }}"
+    description: "{{ item.description }}"
+    organization: "{{ item.org }}"
+    host_filter: "{{ item.host_filter }}"
+    variables: "{{ item.variables }}"
+    kind: "smart"
+  loop: "{{ controller_objects_inventories_smart | default([]) }}"
+  loop_control:
+    label: " | inventory: {{ item.name }}"
+  register: inventories_smart_change_result
+  failed_when: >
+               (not ansible_check_mode and
+                inventories_smart_change_result.msg is defined) or
+               (ansible_check_mode and
+                inventories_smart_change_result.msg is defined and
+                'expected 1' not in inventories_smart_change_result.msg)
+  changed_when: >
+                inventories_smart_change_result.changed or
+                (ansible_check_mode and
+                 inventories_smart_change_result.msg is defined and
+                 'expected 1' in inventories_smart_change_result.msg)
+
+- name: INVENTORIES - Create or modify constructed inventories
+  ansible.controller.inventory:
+    name: "{{ item.name }}"
+    description: "{{ item.description }}"
+    organization: "{{ item.org }}"
+    host_filter: "{{ item.host_filter }}"
+    kind: "constructed"
+    input_inventories: "{{ item.input }}"
+  loop: "{{ controller_objects_inventories_constructed | default([]) }}"
+  loop_control:
+    label: " | inventory: {{ item.name }}"
+  register: inventories_constructed_change_result
+  failed_when: >
+               (not ansible_check_mode and
+                inventories_constructed_change_result.msg is defined) or
+               (ansible_check_mode and
+                inventories_constructed_change_result.msg is defined and
+                'expected 1' not in inventories_constructed_change_result.msg)
+  changed_when: >
+                inventories_constructed_change_result.changed or
+                (ansible_check_mode and
+                 inventories_constructed_change_result.msg is defined and
+                 'expected 1' in inventories_constructed_change_result.msg)
+
+- name: INVENTORIES - Modify constructed inventories parameters
+  ansible.controller.inventory_source:
+    name: "{{ item.source if item.source | default('') else 'Auto-created source for: ' + item.name }}"
+    inventory: "{{ item.name }}"
+    limit: "{{ item.limit }}"
+    source_vars: "{{ item.source_vars }}"
+  loop: "{{ controller_objects_inventories_constructed | default([]) }}"
+  loop_control:
+    label: " | inventory: {{ item.name }}"
+  register: inventories_constructed_parameter_change_result
+  failed_when: >
+               (not ansible_check_mode and
+                inventories_constructed_parameter_change_result.msg is defined) or
+               (ansible_check_mode and
+                inventories_constructed_parameter_change_result.msg is defined and
+                'was not found' not in inventories_constructed_parameter_change_result.msg)
+  changed_when: >
+                inventories_constructed_parameter_change_result.changed or
+                (ansible_check_mode and
+                 inventories_constructed_parameter_change_result.msg is defined and
+                 'was not found' in inventories_constructed_parameter_change_result.msg)

@@ -1,0 +1,28 @@
+---
+- name: ORGANIZATIONS - Audit AAP organizations
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: ORGANIZATIONS - Get all organizations from AAP
+      ansible.controller.export:
+        organizations: 'all'
+      register: aap_organizations
+
+    - name: ORGANIZATIONS - Build list with all organizations
+      ansible.builtin.set_fact:
+        controller_objects_organizations: "{{ controller_objects_organizations | default([]) +
+                                              [{'name': item.name,
+                                                'descr': item.description,
+                                                'creds': item.related.galaxy_credentials | selectattr('name') | map(attribute='name')} |
+                                                 regex_replace('\n', '')] }}"
+      loop: "{{ aap_organizations.assets.organizations }}"
+      loop_control:
+        label: " | org: {{ item.name }}"
+
+    - name: ORGANIZATIONS - Show all organizations
+      ansible.builtin.debug:
+        var: controller_objects_organizations
+      when: >
+            controller_objects_organizations is defined and
+            controller_objects_organizations

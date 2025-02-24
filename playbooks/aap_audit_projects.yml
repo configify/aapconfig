@@ -1,0 +1,46 @@
+---
+- name: PROJECTS - Audit AAP projects
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: PROJECTS - Get all projects from AAP
+      ansible.controller.export:
+        projects: 'all'
+      register: aap_projects
+
+    - name: PROJECTS - Build list with all projects
+      ansible.builtin.set_fact:
+        controller_objects_projects: |
+                                      {% if not item.credential %}
+                                      {{ controller_objects_projects | default([]) +
+                                         [{'name': item.name,
+                                           'type': item.scm_type,
+                                           'branch': item.scm_branch,
+                                           'scm_clean': item.scm_clean,
+                                           'scm_delete': item.scm_delete_on_update,
+                                           'scm_update': item.scm_update_on_launch,
+                                           'org': item.organization.name,
+                                           'url': item.scm_url} | regex_replace('\n', '')] }}
+                                      {% else %}
+                                      {{ controller_objects_projects | default([]) +
+                                         [{'name': item.name,
+                                           'type': item.scm_type,
+                                           'branch': item.scm_branch,
+                                           'scm_clean': item.scm_clean,
+                                           'scm_delete': item.scm_delete_on_update,
+                                           'scm_update': item.scm_update_on_launch,
+                                           'org': item.organization.name,
+                                           'cred': item.credential.name,
+                                           'url': item.scm_url} | regex_replace('\n', '')] }}
+                                      {% endif %}
+      loop: "{{ aap_projects.assets.projects }}"
+      loop_control:
+        label: " | project: {{ item.name }}"
+
+    - name: PROJECTS - Show all projects
+      ansible.builtin.debug:
+        var: controller_objects_projects
+      when: >
+            controller_objects_projects is defined and
+            controller_objects_projects

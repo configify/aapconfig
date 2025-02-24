@@ -1,0 +1,23 @@
+namespace: configify
+name: aapconfig
+version: 1.0.0
+
+readme: README.md
+
+authors:
+  - Konstantin Kuminsky <k.k@redhat.com>
+
+description: Configure AAP
+
+license_file: 'LICENSE'
+
+tags: [tools]
+
+dependencies: {
+  ansible.controller: 4.6.7,
+  infra.ah_configuration: 2.1.0,
+  ansible.platform: 2.5.20241218,
+  ansible.utils: 3.1.0
+}
+
+repository: https://github.com/configify/aapconfig

@@ -1,0 +1,29 @@
+---
+- name: SCHEDULES - Audit schedules
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: SCHEDULES - Get all schedules from AAP
+      ansible.controller.export:
+        schedules: 'all'
+      register: aap_schedules
+
+    - name: SCHEDULES - Build list with all schedules
+      ansible.builtin.set_fact:
+        controller_objects_schedules: "{{ controller_objects_schedules | default([]) +
+                                          [{'name': item.name,
+                                            'descr': item.description,
+                                            'template': item.unified_job_template.name,
+                                            'rules': item.rrule} |
+                                             regex_replace('\n', '')] }}"
+      loop: "{{ aap_schedules.assets.schedules }}"
+      loop_control:
+        label: " | ee: {{ item.name }}"
+
+    - name: SCHEDULES - Show all schedules
+      ansible.builtin.debug:
+        var: controller_objects_schedules
+      when: >
+            controller_objects_schedules is defined and
+            controller_objects_schedules

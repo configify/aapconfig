@@ -1,0 +1,23 @@
+- name: NOTIFICATIONS - Create or modify notification profiles
+  ansible.controller.notification_template:
+    name: "{{ item.name }}"
+    description: "{{ item.descr }}"
+    organization: "{{ item.org }}"
+    notification_type: "{{ item.notification_type }}"
+    notification_configuration: "{{ item.notification_config }}"
+    messages: "{{ item.messages | default(omit) }}"
+  loop: "{{ controller_objects_notification_profiles | default([]) }}"
+  loop_control:
+    label: " | notification: {{ item.name }}"
+  register: notifications_change_result
+  failed_when: >
+               (not ansible_check_mode and
+                notifications_change_result.msg is defined) or
+               (ansible_check_mode and
+                notifications_change_result.msg is defined and
+                'expected 1' not in notifications_change_result.msg)
+  changed_when: >
+                notifications_change_result.changed or
+                (ansible_check_mode and
+                 notifications_change_result.msg is defined and
+                 'expected 1' in notifications_change_result.msg)

@@ -1,0 +1,32 @@
+---
+- name: AUTH - Audit authenticators
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: AUTH - Get current authenticators (2.5)
+      ansible.builtin.set_fact:
+        controller_authentication: "{{ controller_authentication | default([]) +
+                                      [{'name': item.name,
+                                        'enabled': item.enabled,
+                                        'type': item.type,
+                                        'configuration': item.configuration}] }}"
+      loop: "{{ lookup('ansible.platform.gateway_api', 'authenticators',
+                       return_objects=false,
+                       host=lookup('ansible.builtin.env', 'GATEWAY_HOSTNAME'),
+                       username=lookup('ansible.builtin.env', 'GATEWAY_USERNAME'),
+                       password=lookup('ansible.builtin.env', 'GATEWAY_PASSWORD'),
+                       verify_ssl=lookup('ansible.builtin.env', 'GATEWAY_VERIFY_SSL'),
+                       errors='ignore').results }}"
+      loop_control:
+        label: " | authenticator: {{ item.name }}"
+      when: >
+            lookup('ansible.controller.controller_api', 'ping').version is version_compare('4.6', '>=') | bool and
+            item.type != 'ansible_base.authentication.authenticator_plugins.local'
+
+    - name: AUTH - Show authenticators (2.5)
+      ansible.builtin.debug:
+        var: controller_authentication
+      when: >
+            controller_authentication is defined and
+            controller_authentication

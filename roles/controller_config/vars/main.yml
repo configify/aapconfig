@@ -1,0 +1,22 @@
+---
+controller_config_setting_grp: [
+  'ldap',
+  'authentication',
+  'jobs'
+]
+
+controller_config_setting_grp_25: [
+  'authentication',
+  'jobs'
+]
+
+controller_config_type_to_api_mapping:
+  credential: credentials
+  instancegroup: instance_groups
+  inventory: inventories
+  project: projects
+  executionenvironment: execution_environments
+  workflowjobtemplate: workflow_job_templates
+  notificationtemplate: notification_templates
+  organization: organizations
+  jobtemplate: job_templates

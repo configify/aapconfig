@@ -1,0 +1,27 @@
+---
+- name: INSTANCE GROUPS - Audit AAP instance groups
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: INSTANCE GROUPS - Get instance groups
+      ansible.builtin.set_fact:
+        aap_instance_groups: "{{ lookup('ansible.controller.controller_api', 'instance_groups', return_objects=false, return_all=true).results }}"
+
+    - name: INSTANCE GROUPS - Build instance groups list
+      ansible.builtin.set_fact:
+        controller_objects_instance_groups: "{{ controller_objects_instance_groups | default([]) +
+                                                [{'name': item.name,
+                                                  'minimum': item.policy_instance_minimum,
+                                                  'percentage': item.policy_instance_percentage,
+                                                  'instances': item.policy_instance_list} | regex_replace('\n', '')] }}"
+      loop: "{{ aap_instance_groups }}"
+      loop_control:
+        label: " | ig: {{ item.name }}"
+
+    - name: INSTANCE GROUPS - Show instance groups list (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_instance_groups
+      when: >
+            controller_objects_instance_groups is defined and
+            controller_objects_instance_groups

@@ -1,0 +1,9 @@
+- name: INSTANCE GROUPS - Create or modify instance groups with manual assignment
+  ansible.controller.instance_group:
+    name: "{{ item.name }}"
+    policy_instance_minimum: "{{ item.minimum }}"
+    policy_instance_percentage: "{{ item.percentage }}"
+    instances: "{{ item.instances }}"
+  loop: "{{ controller_objects_instance_groups | default([]) }}"
+  loop_control:
+    label: " | ig: {{ item.name }}"

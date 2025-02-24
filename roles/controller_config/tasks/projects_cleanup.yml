@@ -1,0 +1,26 @@
+- name: PROJECTS - Get all projects from AAP
+  ansible.controller.export:
+    projects: 'all'
+  register: aap_projects
+
+- name: PROJECTS - Notify on rogue projects
+  ansible.builtin.debug:
+    msg: "Shouldn't be there"
+  when: >
+        not delete_objects | default(false) | bool and
+        controller_objects_projects | default([]) | selectattr("name", "equalto", item.name) | length == 0
+  changed_when: true
+  loop: "{{ aap_projects.assets.projects }}"
+  loop_control:
+    label: " | project: {{ item.name }}"
+
+- name: PROJECTS - Delete rogue projects
+  ansible.controller.project:
+    name: "{{ item.name }}"
+    state: absent
+  when: >
+        delete_objects | default(false) | bool and
+        controller_objects_projects | default([]) | selectattr("name", "equalto", item.name) | length == 0
+  loop: "{{ aap_projects.assets.projects }}"
+  loop_control:
+    label: " | project: {{ item.name }}"

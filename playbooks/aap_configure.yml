@@ -1,0 +1,64 @@
+---
+- name: Configure AAP
+  hosts: localhost
+  gather_facts: false
+
+  pre_tasks:
+    - name: Determine AAP version
+      ansible.builtin.set_fact:
+        controller_ping: "{{ lookup('ansible.controller.controller_api', 'ping') }}"
+      tags:
+        - controller_config
+        - controller_config_settings
+        - controller_config_all_apply
+        - controller_config_all_cleanup
+        - controller_config_credentials
+        - controller_config_credentials_apply
+        - controller_config_organizations
+        - controller_config_organizations_cleanup
+        - controller_config_organizations_apply
+        - controller_config_users
+        - controller_config_users_cleanup
+        - controller_config_users_apply
+        - controller_config_authentication
+        - controller_config_authentication_cleanup
+        - controller_config_authentication_apply
+        - controller_config_teams
+        - controller_config_teams_cleanup
+        - controller_config_teams_apply
+        - controller_config_roles
+        - controller_config_roles_cleanup
+        - controller_config_roles_apply
+        - controller_config_roles_orgs
+        - controller_config_roles_orgs_apply
+        - controller_config_roles_orgs_cleanup
+        - controller_config_roles_orgs_teams
+        - controller_config_roles_orgs_teams_apply
+        - controller_config_roles_orgs_teams_cleanup
+        - controller_config_roles_orgs_users
+        - controller_config_roles_orgs_users_apply
+        - controller_config_roles_orgs_users_cleanup
+        - controller_config_roles_creds
+        - controller_config_roles_creds_apply
+        - controller_config_roles_creds_cleanup
+        - controller_config_roles_creds_teams
+        - controller_config_roles_creds_teams_apply
+        - controller_config_roles_creds_teams_cleanup
+        - controller_config_roles_creds_users
+        - controller_config_roles_creds_users_apply
+        - controller_config_roles_creds_users_cleanup
+        - controller_config_roles_templates
+        - controller_config_roles_templates_apply
+        - controller_config_roles_templates_cleanup
+        - controller_config_roles_templates_teams
+        - controller_config_roles_templates_teams_apply
+        - controller_config_roles_templates_teams_cleanup
+        - controller_config_roles_templates_users
+        - controller_config_roles_templates_users_apply
+        - controller_config_roles_templates_users_cleanup
+
+  roles:
+    - role: hub_config
+      tags: hub_config
+    - role: controller_config
+      tags: controller_config

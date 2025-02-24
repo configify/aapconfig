@@ -1,0 +1,136 @@
+---
+- name: Create rrule for schedules
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Get todays date (when start date not specified)
+      when: start_date is not defined
+      block:
+        - name: Gather facts with current date (when start date not specified)
+          ansible.builtin.setup:
+            gather_subset: date_time
+
+        - name: Format current date (when start date not specified)
+          ansible.builtin.set_fact:
+            current_date: "{{ ansible_date_time.date }} {{ ansible_date_time.hour }}:{{ ansible_date_time.minute }}:{{ ansible_date_time.second }}"
+
+    - name: Create rrule without an end date
+      when: end_after is not defined
+      block:
+        - name: Create a rrule for a schedule without end date (every X weekday of the month)
+          ansible.builtin.debug:
+            msg: "{{ query('ansible.controller.schedule_rrule',
+                           'month',
+                           timezone=tz | default('America/New_York'),
+                           start_date=start_date | default(current_date),
+                           on_the=every_x_weekday,
+                           every=repetition | default(1)) }}"
+          when: >
+                frequency is defined and
+                frequency == "month" and
+                every_x_weekday is defined
+
+        - name: Create a rrule for a schedule without end date (X day of the month)
+          ansible.builtin.debug:
+            msg: "{{ query('ansible.controller.schedule_rrule',
+                           'month',
+                           timezone=tz | default('America/New_York'),
+                           start_date=start_date | default(current_date),
+                           month_day_number=x_day,
+                           every=repetition | default(1)) }}"
+          when: >
+                frequency is defined and
+                frequency == "month" and
+                x_day is defined
+
+        - name: Create a rrule for a schedule without end date (specific weekdays)
+          ansible.builtin.debug:
+            msg: "{{ query('ansible.controller.schedule_rrule',
+                           'week',
+                           timezone=tz | default('America/New_York'),
+                           start_date=start_date | default(current_date),
+                           on_days=weekdays,
+                           every=repetition | default(1)) }}"
+          when: >
+                frequency is defined and
+                frequency == "week" and
+                weekdays is defined
+
+        - name: Create a rrule for a schedule without end date
+          ansible.builtin.debug:
+            msg: "{{ query('ansible.controller.schedule_rrule',
+                           frequency | default('day'),
+                           timezone=tz | default('America/New_York'),
+                           start_date=start_date | default(current_date),
+                           every=repetition | default(1)) }}"
+          when: >
+                frequency is not defined or
+                ((frequency != 'month' or
+                  every_x_weekday is not defined) and
+                 (frequency != 'month' or
+                  x_day is not defined) and
+                 (frequency != 'week' or
+                  weekdays is not defined))
+
+    - name: Create rrule with specific an end date
+      when: end_after is defined
+      block:
+        - name: Create a rrule for a schedule with end date (every X weekday of the month)
+          ansible.builtin.debug:
+            msg: "{{ query('ansible.controller.schedule_rrule',
+                           'month',
+                           timezone=tz | default('America/New_York'),
+                           start_date=start_date | default(current_date),
+                           on_the=every_x_weekday,
+                           every=repetition | default(1),
+                           end_on=end_after) }}"
+          when: >
+                frequency is defined and
+                frequency == "month" and
+                every_x_weekday is defined
+
+        - name: Create a rrule for a schedule with end date (X day of the month)
+          ansible.builtin.debug:
+            msg: "{{ query('ansible.controller.schedule_rrule',
+                           'month',
+                           timezone=tz | default('America/New_York'),
+                           start_date=start_date | default(current_date),
+                           month_day_number=x_day,
+                           every=repetition | default(1),
+                           end_on=end_after) }}"
+          when: >
+                frequency is defined and
+                frequency == "month" and
+                x_day is defined
+
+        - name: Create a rrule for a schedule with end date (specific weekdays)
+          ansible.builtin.debug:
+            msg: "{{ query('ansible.controller.schedule_rrule',
+                           'week',
+                           timezone=tz | default('America/New_York'),
+                           start_date=start_date | default(current_date),
+                           on_days=weekdays,
+                           every=repetition | default(1),
+                           end_on=end_after) }}"
+          when: >
+                frequency is defined and
+                frequency == "week" and
+                weekdays is defined
+
+        - name: Create a rrule for a schedule with end date
+          ansible.builtin.debug:
+            msg: "{{ query('ansible.controller.schedule_rrule',
+                           frequency | default('day'),
+                           timezone=tz | default('America/New_York'),
+                           start_date=start_date | default(current_date),
+                           every=repetition | default(1),
+                           end_on=end_after) }}"
+          when: >
+                frequency is not defined or
+                ((frequency != 'month' or
+                  every_x_weekday is not defined) and
+                 (frequency != 'month' or
+                  x_day is not defined) and
+                 (frequency != 'week' or
+                  weekdays is not defined))

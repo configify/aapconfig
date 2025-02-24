@@ -1,0 +1,39 @@
+---
+- name: EXECUTION ENVIRONMENTS - Audit execution environments
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: EXECUTION ENVIRONMENTS - Get all execution environments from AAP
+      ansible.controller.export:
+        execution_environments: 'all'
+      register: aap_ee
+
+    - name: EXECUTION ENVIRONMENTS - Build list with all execution environments
+      ansible.builtin.set_fact:
+        controller_objects_execution_environments: |
+                                                   {% if not item.pull %}
+                                                   {{ controller_objects_execution_environments | default([]) +
+                                                       [{'name': item.name,
+                                                         'descr': item.description,
+                                                         'image': item.image,
+                                                         'pull': 'missing'} |
+                                                          regex_replace('\n', '')] }}
+                                                   {% else %}
+                                                   {{ controller_objects_execution_environments | default([]) +
+                                                       [{'name': item.name,
+                                                         'descr': item.description,
+                                                         'image': item.image,
+                                                         'pull': item.pull} |
+                                                          regex_replace('\n', '')] }}
+                                                   {% endif %}
+      loop: "{{ aap_ee.assets.execution_environments }}"
+      loop_control:
+        label: " | ee: {{ item.name }}"
+
+    - name: EXECUTION ENVIRONMENTS - Show all execution environments
+      ansible.builtin.debug:
+        var: controller_objects_execution_environments
+      when: >
+            controller_objects_execution_environments is defined and
+            controller_objects_execution_environments

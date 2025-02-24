@@ -1,0 +1,173 @@
+---
+- name: Audit unused AAP objects
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Get all credentials from AAP
+      ansible.controller.export:
+        credentials: 'all'
+      register: aap_credentials
+
+    - name: Get all templates from AAP
+      ansible.controller.export:
+        job_templates: 'all'
+      register: aap_templates
+
+    - name: Build list of credentials used in templates
+      ansible.builtin.set_fact:
+        credentials_in_templates: "{{ credentials_in_templates | default([]) + item.related.credentials }}"
+      loop: "{{ aap_templates.assets.job_templates }}"
+      loop_control:
+        label: " | template: {{ item.name }}"
+
+    - name: Find credentials not used in templates
+      ansible.builtin.set_fact:
+        unused_credentials_in_templates: "{{ unused_credentials_in_templates | default([]) + [item.name] }}"
+      when: >
+            item.credential_type.name != "Container Registry" and
+            item.credential_type.name != "Source Control" and
+            item.credential_type.name != "Ansible Galaxy/Automation Hub API Token" and
+            credentials_in_templates | selectattr("name", "equalto", item.name) | length == 0
+      loop: "{{ aap_credentials.assets.credentials }}"
+      loop_control:
+        label: " | credential: {{ item.name }}"
+
+    - name: Get all projects from AAP
+      ansible.controller.export:
+        projects: 'all'
+      register: aap_projects
+
+    - name: Build list of credentials used in projects
+      ansible.builtin.set_fact:
+        credentials_in_projects: "{{ credentials_in_projects | default([]) + [item.credential] }}"
+      when: item.credential
+      loop: "{{ aap_projects.assets.projects }}"
+      loop_control:
+        label: " | project: {{ item.name }}"
+
+    - name: Find credentials not used in projects
+      ansible.builtin.set_fact:
+        unused_credentials_in_projects: "{{ unused_credentials_in_projects | default([]) + [item.name] }}"
+      when: >
+            item.credential_type.name == "Source Control" and
+            credentials_in_projects | selectattr("name", "equalto", item.name) | length == 0
+      loop: "{{ aap_credentials.assets.credentials }}"
+      loop_control:
+        label: " | credential: {{ item.name }}"
+
+    - name: Get all organizations from AAP
+      ansible.controller.export:
+        organizations: 'all'
+      register: aap_organizations
+
+    - name: Build list of credentials used in organizations
+      ansible.builtin.set_fact:
+        credentials_in_organizations: "{{ credentials_in_organizations | default([]) + item.related.galaxy_credentials }}"
+      loop: "{{ aap_organizations.assets.organizations }}"
+      loop_control:
+        label: " | org: {{ item.name }}"
+
+    - name: Find credentials not used in organizations
+      ansible.builtin.set_fact:
+        unused_credentials_in_organizations: "{{ unused_credentials_in_organizations | default([]) + [item.name] }}"
+      when: >
+            item.credential_type.name == "Ansible Galaxy/Automation Hub API Token" and
+            credentials_in_organizations | selectattr("name", "equalto", item.name) | length == 0
+      loop: "{{ aap_credentials.assets.credentials }}"
+      loop_control:
+        label: " | credential: {{ item.name }}"
+
+    - name: Build full list of unused credentials
+      ansible.builtin.set_fact:
+        unused_credentials_in_templates_projects_organizations: "{{ unused_credentials_in_templates_projects_organizations | default([]) +
+                                                                    [unused_credentials_in_templates | default([])] +
+                                                                    [unused_credentials_in_projects | default([])] +
+                                                                    [unused_credentials_in_organizations | default([])] }}"
+
+    - name: Get all custom credential types from AAP
+      ansible.controller.export:
+        credential_types: 'all'
+      register: aap_credential_types
+
+    - name: Build list of credential types used in credentials
+      ansible.builtin.set_fact:
+        cred_types_in_credentials: "{{ cred_types_in_credentials | default([]) + [item.credential_type.name] }}"
+      loop: "{{ aap_credentials.assets.credentials }}"
+      loop_control:
+        label: " | credential: {{ item.name }}"
+
+    - name: Find custom credential types not used in credentials
+      ansible.builtin.set_fact:
+        unused_credential_types_in_credentials: "{{ unused_credential_types_in_credentials | default([]) + [item.name] }}"
+      when: item.name not in cred_types_in_credentials
+      loop: "{{ aap_credential_types.assets.credential_types }}"
+      loop_control:
+        label: " | credential type: {{ item.name }}"
+
+    - name: Build list of projects used in templates
+      ansible.builtin.set_fact:
+        projects_in_templates: "{{ projects_in_templates | default([]) + [item.project.name] }}"
+      when: item.project.name is defined
+      loop: "{{ aap_templates.assets.job_templates }}"
+      loop_control:
+        label: " | template: {{ item.name }}"
+
+    - name: Find projects not used in templates
+      ansible.builtin.set_fact:
+        unused_projects_in_templates: "{{ unused_projects_in_templates | default([]) + [item.name] }}"
+      when: item.name not in projects_in_templates
+      loop: "{{ aap_projects.assets.projects }}"
+      loop_control:
+        label: " | project: {{ item.name }}"
+
+    - name: Get all users from AAP
+      ansible.controller.export:
+        users: 'all'
+      register: aap_users
+
+    - name: Find extra auditor roles
+      ansible.builtin.set_fact:
+        extra_auditor_roles: "{{ extra_auditor_roles | default([]) +
+                                 [{'user': item.0.username,
+                                   'role': item.1.name,
+                                   'object_type': item.1.content_object.type,
+                                   'object': item.1.content_object.name} |
+                                   regex_replace('\n', '')] }}"
+      when: >
+            item.0.is_system_auditor and
+            item.1.name != "Member" and
+            item.1.name != "System Auditor"
+      loop: "{{ aap_users.assets.users | subelements('related.roles') }}"
+      loop_control:
+        label: " | user: {{ item.0.username }} ->
+                   role: {{ item.1.name }} ->
+                   object: {{ item.1.content_object.name | default('') }}"
+
+    - name: List unused credentials
+      ansible.builtin.debug:
+        var: unused_credentials_in_templates_projects_organizations
+      when: >
+            unused_credentials_in_templates_projects_organizations is defined and
+            unused_credentials_in_templates_projects_organizations
+
+    - name: List unused custom credential types
+      ansible.builtin.debug:
+        var: unused_credential_types_in_credentials
+      when: >
+            unused_credential_types_in_credentials is defined and
+            unused_credential_types_in_credentials
+
+    - name: List unused projects
+      ansible.builtin.debug:
+        var: unused_projects_in_templates
+      when: >
+            unused_projects_in_templates is defined and
+            unused_projects_in_templates
+
+    - name: List extra auditor roles
+      ansible.builtin.debug:
+        var: extra_auditor_roles
+      when: >
+            extra_auditor_roles is defined and
+            extra_auditor_roles

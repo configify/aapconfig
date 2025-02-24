@@ -1,0 +1,42 @@
+---
+- name: NOTIFICATIONS - Audit notification profiles
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: NOTIFICATIONS - Get all notification profiles from AAP
+      ansible.controller.export:
+        notification_templates: 'all'
+      register: aap_notifications
+
+    - name: NOTIFICATIONS - Build list with all notification profiles
+      ansible.builtin.set_fact:
+        controller_objects_notification_profiles: |
+                                                   {% if not item.messages %}
+                                                   {{ controller_objects_notification_profiles | default([]) +
+                                                      [{'name': item.name,
+                                                        'descr': item.description,
+                                                        'notification_type': item.notification_type,
+                                                        'notification_config': item.notification_configuration,
+                                                        'org': item.organization.name} |
+                                                         regex_replace('\n', '')] }}
+                                                   {% else %}
+                                                   {{ controller_objects_notification_profiles | default([]) +
+                                                      [{'name': item.name,
+                                                        'descr': item.description,
+                                                        'notification_type': item.notification_type,
+                                                        'notification_config': item.notification_configuration,
+                                                        'org': item.organization.name,
+                                                        'messages': item.messages} |
+                                                         regex_replace('\n', '')] }}
+                                                   {% endif %}
+      loop: "{{ aap_notifications.assets.notification_templates }}"
+      loop_control:
+        label: " | notification: {{ item.name }}"
+
+    - name: NOTIFICATIONS - Show all notification profiles
+      ansible.builtin.debug:
+        var: controller_objects_notification_profiles
+      when: >
+            controller_objects_notification_profiles is defined and
+            controller_objects_notification_profiles

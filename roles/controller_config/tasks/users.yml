@@ -1,0 +1,46 @@
+- name: USERS - Create or modify users (2.5)
+  when: controller_ping.version is version_compare('4.6', '>=')
+  block:
+    - name: USERS - Create users (2.5)
+      ansible.platform.user:
+        username: "{{ item.username }}"
+        first_name: "{{ item.first_name }}"
+        last_name: "{{ item.last_name }}"
+        email: "{{ item.email }}"
+        password: "{{ item.pass }}"
+        superuser: "{{ item.superuser }}"
+        update_secrets: "{{ replace_passwords | default(false) }}"
+      loop: "{{ controller_objects_users | default([]) }}"
+      loop_control:
+        label: " | user: {{ item.username }}"
+      register: user_creation_result
+      failed_when: >
+                   user_creation_result.msg is defined and
+                   'fields_could_be_same' not in user_creation_result.module_stderr
+      no_log: "{{ replace_passwords | default(false) }}"
+
+    - name: USERS - Make user an auditor if required (2.5)
+      ansible.controller.user:
+        username: "{{ item.username }}"
+        auditor: "{{ item.auditor }}"
+      loop: "{{ controller_objects_users | default([]) }}"
+      loop_control:
+        label: " | user: {{ item.username }}"
+      when: item.auditor
+      no_log: "{{ replace_passwords | default(false) }}"
+
+- name: USERS - Create or modify users (pre 2.5)
+  ansible.controller.user:
+    username: "{{ item.username }}"
+    first_name: "{{ item.first_name }}"
+    last_name: "{{ item.last_name }}"
+    email: "{{ item.email }}"
+    password: "{{ item.pass }}"
+    auditor: "{{ item.auditor }}"
+    superuser: "{{ item.superuser }}"
+    update_secrets: "{{ replace_passwords | default(false) }}"
+  loop: "{{ controller_objects_users | default([]) }}"
+  loop_control:
+    label: " | user: {{ item.username }}"
+  when: controller_ping.version is version_compare('4.6', '<')
+  no_log: "{{ replace_passwords | default(false) }}"

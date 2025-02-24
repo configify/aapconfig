@@ -1,0 +1,172 @@
+#  This doesn't exist yet but API endpoint is there
+# - name: ROLES - Build list with gateway team roles (2.5)
+#   ansible.builtin.set_fact:
+#     gateway_objects_roles_teams: "{{ lookup('ansible.platform.gateway_api', 'role_team_assignments',
+#                                             return_objects=false,
+#                                             host=lookup('ansible.builtin.env', 'GATEWAY_HOSTNAME'),
+#                                             username=lookup('ansible.builtin.env', 'GATEWAY_USERNAME'),
+#                                             password=lookup('ansible.builtin.env', 'GATEWAY_PASSWORD'),
+#                                             verify_ssl=lookup('ansible.builtin.env', 'GATEWAY_VERIFY_SSL')).results }}"
+#
+# - name: ROLES - Notify on rogue gateway team roles (2.5)
+#   ansible.builtin.debug:
+#     msg: "Shouldn't be there"
+#   when: >
+#         not delete_objects | default(false) | bool and
+#         gateway_objects_roles |
+#           selectattr("team", "defined") |
+#             selectattr("team", "equalto", item.summary_fields.team.name) |
+#               selectattr("role", "equalto", item.summary_fields.role_definition.name) |
+#                 selectattr("object_name", "equalto", item.summary_fields.content_object.name) | length == 0
+#   changed_when: true
+#   loop: "{{ gateway_objects_roles_teams | default([]) }}"
+#   loop_control:
+#     label: " | team: {{ item.summary_fields.team.name }} ->
+#                role: {{ item.summary_fields.role_definition.name }} ->
+#                {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
+#
+# - name: ROLES - Delete rogue gateway team roles (2.5)
+#   ansible.platform.role_team_assignment:
+#     role_definition: "{{ item.summary_fields.role_definition.name }}"
+#     object_id: "{{ item.summary_fields.content_object.id }}"
+#     team: "{{ item.summary_fields.team.name }}"
+#     state: absent
+#   when: >
+#         delete_objects | default(false) | bool and
+#         gateway_objects_roles |
+#           selectattr("team", "defined") |
+#             selectattr("team", "equalto", item.summary_fields.team.name) |
+#               selectattr("role", "equalto", item.summary_fields.role_definition.name) |
+#                 selectattr("object_name", "equalto", item.summary_fields.content_object.name) | length == 0
+#   loop: "{{ gateway_objects_roles_teams | default([]) }}"
+#   loop_control:
+#     label: " | team: {{ item.summary_fields.team.name }} ->
+#                role: {{ item.summary_fields.role_definition.name }} ->
+#                {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
+
+- name: ROLES - Build list with gateway user roles (2.5)
+  ansible.builtin.set_fact:
+    gateway_objects_roles_users: "{{ lookup('ansible.platform.gateway_api', 'role_user_assignments',
+                                            return_objects=false,
+                                            host=lookup('ansible.builtin.env', 'GATEWAY_HOSTNAME'),
+                                            username=lookup('ansible.builtin.env', 'GATEWAY_USERNAME'),
+                                            password=lookup('ansible.builtin.env', 'GATEWAY_PASSWORD'),
+                                            verify_ssl=lookup('ansible.builtin.env', 'GATEWAY_VERIFY_SSL')).results }}"
+
+- name: ROLES - Notify on rogue gateway user roles (2.5)
+  ansible.builtin.debug:
+    msg: "Shouldn't be there"
+  when: >
+        not delete_objects | default(false) | bool and
+        gateway_objects_roles |
+          selectattr("user", "defined") |
+            selectattr("user", "equalto", item.summary_fields.user.username) |
+              selectattr("role", "equalto", item.summary_fields.role_definition.name) |
+                selectattr("object_name", "equalto", item.summary_fields.content_object.name) | length == 0
+  changed_when: true
+  loop: "{{ gateway_objects_roles_users | default([]) }}"
+  loop_control:
+    label: " | user: {{ item.summary_fields.user.username }} ->
+               role: {{ item.summary_fields.role_definition.name }} ->
+               {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
+
+- name: ROLES - Delete rogue gateway user roles (2.5)
+  ansible.platform.role_user_assignment:
+    role_definition: "{{ item.summary_fields.role_definition.name }}"
+    object_id: "{{ item.summary_fields.content_object.id }}"
+    user: "{{ item.summary_fields.user.username }}"
+    state: absent
+  when: >
+        delete_objects | default(false) | bool and
+        gateway_objects_roles |
+          selectattr("user", "defined") |
+            selectattr("user", "equalto", item.summary_fields.user.username) |
+              selectattr("role", "equalto", item.summary_fields.role_definition.name) |
+                selectattr("object_name", "equalto", item.summary_fields.content_object.name) | length == 0
+  loop: "{{ gateway_objects_roles_users | default([]) }}"
+  loop_control:
+    label: " | user: {{ item.summary_fields.user.username }} ->
+               role: {{ item.summary_fields.role_definition.name }} ->
+               {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
+
+- name: ROLES - Build list with controller team roles (2.5)
+  ansible.builtin.set_fact:
+    controller_objects_roles_teams: "{{ lookup('ansible.controller.controller_api', 'role_team_assignments', return_objects=false).results }}"
+
+- name: ROLES - Notify on rogue controller team roles (2.5)
+  ansible.builtin.debug:
+    msg: "Shouldn't be there"
+  when: >
+        not delete_objects | default(false) | bool and
+        controller_objects_roles |
+          selectattr("team", "defined") |
+            selectattr("team", "equalto", item.summary_fields.team.name) |
+              selectattr("role", "equalto", item.summary_fields.role_definition.name) |
+                selectattr("object_name", "equalto", item.summary_fields.content_object.name) | length == 0
+  changed_when: true
+  loop: "{{ controller_objects_roles_teams | default([]) }}"
+  loop_control:
+    label: " | team: {{ item.summary_fields.team.name }} ->
+               role: {{ item.summary_fields.role_definition.name }} ->
+               {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
+
+- name: ROLES - Delete rogue controller team roles (2.5)
+  ansible.controller.role_team_assignment:
+    role_definition: "{{ item.summary_fields.role_definition.name }}"
+    object_id: "{{ item.summary_fields.content_object.id }}"
+    team: "{{ item.summary_fields.team.name }}"
+    state: absent
+  when: >
+        delete_objects | default(false) | bool and
+        controller_objects_roles |
+          selectattr("team", "defined") |
+            selectattr("team", "equalto", item.summary_fields.team.name) |
+              selectattr("role", "equalto", item.summary_fields.role_definition.name) |
+                selectattr("object_name", "equalto", item.summary_fields.content_object.name) | length == 0
+  loop: "{{ controller_objects_roles_teams | default([]) }}"
+  loop_control:
+    label: " | team: {{ item.summary_fields.team.name }} ->
+               role: {{ item.summary_fields.role_definition.name }} ->
+               {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
+
+- name: ROLES - Build list with controller user roles (2.5)
+  ansible.builtin.set_fact:
+    controller_objects_roles_users: "{{ lookup('ansible.controller.controller_api', 'role_user_assignments', return_objects=false).results }}"
+
+- name: ROLES - Notify on rogue controller user roles (2.5)
+  ansible.builtin.debug:
+    msg: "Shouldn't be there"
+  when: >
+        not delete_objects | default(false) | bool and
+        item.content_type and
+        controller_objects_roles |
+          selectattr("user", "defined") |
+            selectattr("user", "equalto", item.summary_fields.user.username) |
+              selectattr("role", "equalto", item.summary_fields.role_definition.name) |
+                selectattr("object_name", "equalto", item.summary_fields.content_object.name) | length == 0
+  changed_when: true
+  loop: "{{ controller_objects_roles_users | default([]) }}"
+  loop_control:
+    label: " | user: {{ item.summary_fields.user.username }} ->
+               role: {{ item.summary_fields.role_definition.name }} ->
+               {{ (item.content_type | string).split('.')[1] | default('N/A') }}: {{ item.summary_fields.content_object.name | default('N/A') }} }}"
+
+- name: ROLES - Delete rogue controller user roles (2.5)
+  ansible.controller.role_user_assignment:
+    role_definition: "{{ item.summary_fields.role_definition.name }}"
+    object_id: "{{ item.summary_fields.content_object.id }}"
+    user: "{{ item.summary_fields.user.username }}"
+    state: absent
+  when: >
+        delete_objects | default(false) | bool and
+        item.content_type and
+        controller_objects_roles |
+          selectattr("user", "defined") |
+            selectattr("user", "equalto", item.summary_fields.user.username) |
+              selectattr("role", "equalto", item.summary_fields.role_definition.name) |
+                selectattr("object_name", "equalto", item.summary_fields.content_object.name) | length == 0
+  loop: "{{ controller_objects_roles_users | default([]) }}"
+  loop_control:
+    label: " | user: {{ item.summary_fields.user.username }} ->
+               role: {{ item.summary_fields.role_definition.name }} ->
+               {{ (item.content_type | string).split('.')[1] | default('N/A') }}: {{ item.summary_fields.content_object.name | default('N/A') }} }}"

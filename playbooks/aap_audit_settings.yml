@@ -1,0 +1,65 @@
+---
+- name: SETTINGS - Audit AAP settings
+  hosts: localhost
+  gather_facts: false
+
+  vars_files: ../roles/controller_config/vars/main.yml
+
+  tasks:
+    - name: Determine AAP version
+      ansible.builtin.set_fact:
+        pre_25: "{{ lookup('ansible.controller.controller_api', 'ping').version is version_compare('4.6', '<') | bool }}"
+
+    - name: SETTINGS - Get current settings
+      ansible.builtin.set_fact:
+        controller_settings_current: "{{ controller_settings_current | default({}) |
+                                         combine({item: lookup('ansible.controller.controller_api', 'settings/{{ item }}')}) }}"
+      loop: |
+            {% if pre_25 %}
+            {{ controller_config_setting_grp }}
+            {% else %}
+            {{ controller_config_setting_grp_25 }}
+            {% endif %}
+      loop_control:
+        label: " | setting: {{ item }}"
+
+    - name: SETTINGS - Include variables with default settings
+      ansible.builtin.include_vars:
+        dir: "../roles/controller_config/defaults/main/"
+
+    - name: SETTINGS - Compare current LDAP settings with defaults (pre 2.5)
+      ansible.builtin.set_fact:
+        controller_settings_ldap: "{{ controller_settings_current.ldap | dict2items |
+                                      difference(controller_config_settings_default_ldap | dict2items) | items2dict }}"
+      when: pre_25
+
+    - name: SETTINGS - Compare current AUTH settings with defaults
+      ansible.builtin.set_fact:
+        controller_settings_authentication: "{{ controller_settings_current.authentication | dict2items |
+                                                difference(controller_config_settings_default_authentication | dict2items) | items2dict }}"
+
+    - name: SETTINGS - Compare current JOBS settings with defaults
+      ansible.builtin.set_fact:
+        controller_settings_jobs: "{{ controller_settings_current.jobs | dict2items |
+                                                difference(controller_config_settings_default_jobs | dict2items) | items2dict }}"
+
+    - name: SETTINGS - Show custom LDAP settings (pre 2.5)
+      ansible.builtin.debug:
+        var: controller_settings_ldap
+      when: >
+            controller_settings_ldap is defined and
+            controller_settings_ldap
+
+    - name: SETTINGS - Show custom AUTH settings
+      ansible.builtin.debug:
+        var: controller_settings_authentication
+      when: >
+            controller_settings_authentication is defined and
+            controller_settings_authentication
+
+    - name: SETTINGS - Show custom JOBS settings
+      ansible.builtin.debug:
+        var: controller_settings_jobs
+      when: >
+            controller_settings_jobs is defined and
+            controller_settings_jobs

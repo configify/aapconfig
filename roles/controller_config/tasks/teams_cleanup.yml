@@ -1,0 +1,47 @@
+- name: TEAMS - Get all teams from AAP
+  ansible.controller.export:
+    teams: 'all'
+  register: aap_teams
+
+- name: TEAMS - Notify on rogue teams
+  ansible.builtin.debug:
+    msg: "Shouldn't be there"
+  when: >
+        not delete_objects | default(false) | bool and
+        controller_objects_teams |
+          selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.organization.name) | length == 0
+  changed_when: true
+  loop: "{{ aap_teams.assets.teams }}"
+  loop_control:
+    label: " | team: {{ item.name }}"
+
+- name: TEAMS - Delete rogue teams (pre 2.5)
+  ansible.controller.team:
+    name: "{{ item.name }}"
+    organization: "{{ item.organization.name }}"
+    state: absent
+  when: >
+        delete_objects | default(false) | bool and
+        controller_ping.version is version_compare('4.6', '<') and
+        controller_objects_teams |
+          selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.organization.name) | length == 0
+  loop: "{{ aap_teams.assets.teams }}"
+  loop_control:
+    label: " | team: {{ item.name }}"
+
+- name: TEAMS - Delete rogue teams (2.5)
+  ansible.platform.team:
+    name: "{{ item.name }}"
+    organization: "{{ item.organization.name }}"
+    state: absent
+  when: >
+        delete_objects | default(false) | bool and
+        controller_ping.version is version_compare('4.6', '>=') and
+        controller_objects_teams |
+          selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.organization.name) | length == 0
+  loop: "{{ aap_teams.assets.teams }}"
+  loop_control:
+    label: " | team: {{ item.name }}"

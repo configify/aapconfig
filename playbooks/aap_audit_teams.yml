@@ -1,0 +1,28 @@
+---
+- name: TEAMS - Audit AAP teams
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: TEAMS - Get all teams from AAP
+      ansible.controller.export:
+        teams: 'all'
+      register: aap_teams
+
+    - name: TEAMS - Build list with all teams
+      ansible.builtin.set_fact:
+        controller_objects_teams: "{{ controller_objects_teams | default([]) +
+                                      [{'name': item.name,
+                                        'descr': item.description,
+                                        'org': item.organization.name} |
+                                         regex_replace('\n', '')] }}"
+      loop: "{{ aap_teams.assets.teams }}"
+      loop_control:
+        label: " | team: {{ item.name }}"
+
+    - name: TEAMS - Show all teams
+      ansible.builtin.debug:
+        var: controller_objects_teams
+      when: >
+            controller_objects_teams is defined and
+            controller_objects_teams

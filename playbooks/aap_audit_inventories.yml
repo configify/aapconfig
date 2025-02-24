@@ -1,0 +1,198 @@
+---
+- name: INVENTORIES - Audit AAP inventories
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: INVENTORIES - Get all inventories from AAP
+      ansible.builtin.set_fact:
+        aap_inventories: "{{ lookup('ansible.controller.controller_api', 'inventories', return_objects=false, return_all=true).results }}"
+
+    - name: INVENTORIES - Build smart inventories list
+      ansible.builtin.set_fact:
+        controller_objects_inventories_smart: "{{ controller_objects_inventories_smart | default([]) +
+                                                  [{'name': item.name,
+                                                    'description': item.description,
+                                                    'org': item.summary_fields.organization.name,
+                                                    'variables': {} if not item.variables or item.variables == '---'
+                                                                    else item.variables | from_yaml,
+                                                    'host_filter': item.host_filter} |
+                                                    regex_replace('\n', '')] }}"
+        aap_inventories_processed: "{{ aap_inventories_processed | default([]) + [item] }}"
+      loop: "{{ aap_inventories }}"
+      loop_control:
+        label: " | inventory: {{ item.name }}"
+      when: item.host_filter
+
+    - name: INVENTORIES - Build inventory sources list
+      ansible.builtin.set_fact:
+        controller_objects_inventory_sources: "{{ controller_objects_inventory_sources | default([]) +
+                                                  [{'name': item.name,
+                                                    'description': item.description,
+                                                    'inventory': item.summary_fields.inventory.name,
+                                                    'enabled_value': item.enabled_value,
+                                                    'enabled_var': item.enabled_var,
+                                                    'host_filter': item.host_filter | default(''),
+                                                    'overwrite': item.overwrite,
+                                                    'overwrite_vars': item.overwrite_vars,
+                                                    'project': item.summary_fields.source_project.name | default(''),
+                                                    'source': item.source,
+                                                    'source_path': item.source_path,
+                                                    'source_project': item.summary_fields.source_project.name | default(''),
+                                                    'extra_vars': {} if not item.source_vars or item.source_vars == '---'
+                                                                      else item.source_vars | from_yaml,
+                                                    'limit': item.limit,
+                                                    'timeout': item.timeout,
+                                                    'update_cache_timeout': item.update_cache_timeout,
+                                                    'update_on_launch': item.update_on_launch,
+                                                    'verbosity': item.verbosity}] }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'inventory_sources', return_all=true, return_objects=false).results }}"
+      loop_control:
+        label: " | inventory source: {{ item.name }}"
+
+    - name: INVENTORIES - Filter sources and dynamic inventories
+      ansible.builtin.set_fact:
+        controller_objects_inventories_dynamic_raw: "{{ controller_objects_inventories_dynamic_raw | default([]) +
+                                                        [inventories_filtered | combine({'sources': item}, recursive=true)] }}"
+        aap_inventories_processed: "{{ aap_inventories_processed | default([]) + inventories_filtered }}"
+      loop: "{{ controller_objects_inventory_sources | default([]) }}"
+      loop_control:
+        label: " | inventory source: {{ item.name }}"
+      vars:
+        inventories_filtered: "{{ aap_inventories | selectattr('name', 'equalto', item.inventory) }}"
+
+    - name: INVENTORIES - Remove processed inventories
+      ansible.builtin.set_fact:
+        aap_inventories: "{{ aap_inventories | difference(aap_inventories_processed | default([])) }}"
+
+    - name: INVENTORIES - Build dynamic inventories list
+      ansible.builtin.set_fact:
+        controller_objects_inventories_dynamic: "{{ controller_objects_inventories_dynamic | default([]) +
+                                                    [{'name': item.1[0].name,
+                                                      'description': item.1[0].description,
+                                                      'org': item.1[0].summary_fields.organization.name,
+                                                      'host_filter': item.1[0].host_filter | default('') | regex_replace('None', ''),
+                                                      'prevent_fallback': item.1[0].prevent_instance_group_fallback,
+                                                      'variables': {} if not item.1[0].variables or item.1[0].variables == '---'
+                                                                      else item.1[0].variables | from_yaml,
+                                                      'sources': item.1 | map(attribute='sources') |
+                                                                 ansible.utils.remove_keys(target=['inventory',
+                                                                                                   'limit',
+                                                                                                   'source_project']) | list} |
+                                                      regex_replace('\n', '')] }}"
+      loop: "{{ controller_objects_inventories_dynamic_raw | default([]) | groupby('name') }}"
+      loop_control:
+        label: " | inventory: {{ item.1[0].name }}"
+      when: "'Auto-created' not in item.1[0].sources.name"
+
+    - name: INVENTORIES - Build constructed inventories list
+      ansible.builtin.set_fact:
+        controller_objects_inventories_constructed: "{{ controller_objects_inventories_constructed | default([]) +
+                                                        [{'name': item.name,
+                                                          'description': item.description,
+                                                          'org': item.summary_fields.organization.name,
+                                                          'input': (lookup('ansible.controller.controller_api',
+                                                                           'inventories/' + item.id | string + '/input_inventories/',
+                                                                           return_objects=false,
+                                                                           return_all=true)).results | map(attribute='name'),
+                                                          'host_filter': item.host_filter | default('') | regex_replace('None', ''),
+                                                          'source_vars': controller_objects_inventory_sources |
+                                                                         selectattr('inventory', 'equalto', item.name) |
+                                                                         map(attribute='extra_vars') | last | from_yaml,
+                                                          'limit': item.sources.limit,
+                                                          'source': '' if item.sources.name[25:] == item.name
+                                                                       else item.sources.name} |
+                                                          regex_replace('\n', '')] }}"
+      loop: "{{ controller_objects_inventories_dynamic_raw | default([]) }}"
+      loop_control:
+        label: " | inventory: {{ item.name }}"
+      when: "'Auto-created' in item.sources.name"
+
+    - name: INVENTORIES - Build nested groups list
+      ansible.builtin.set_fact:
+        aap_inventories_groups: "{{ aap_inventories_groups | default([]) +
+                                    [item | combine({'variables': {} if not item.variables or item.variables == '---'
+                                                                     else item.variables | from_yaml,
+                                                     'subgroups': lookup('ansible.controller.controller_api',
+                                                                               'groups/' + item.id | string + '/children/',
+                                                                               return_objects=false,
+                                                                               return_all=true,
+                                                                               max_objects=10000).results |
+                                                                                 map(attribute='name', default=[]),
+                                                     'hosts': lookup('ansible.controller.controller_api',
+                                                                     'groups/' + item.id | string + '/hosts/',
+                                                                     return_objects=false,
+                                                                     return_all=true,
+                                                                     max_objects=10000).results |
+                                                                       ansible.utils.remove_keys(target=['summary_fields']) |
+                                                                       ansible.utils.keep_keys(target=['name',
+                                                                                                       'description',
+                                                                                                       'variables'])},
+                                                                     recursive=true)] }}"
+      when: item.summary_fields.inventory.name in aap_inventories | map(attribute='name')
+      loop: "{{ lookup('ansible.controller.controller_api', 'groups', return_objects=false, return_all=true).results }}"
+      loop_control:
+        label: " | inventory: {{ item.summary_fields.inventory.name }} ->
+                   group: {{ item.name }}"
+
+    - name: INVENTORIES - Build static inventories list
+      ansible.builtin.set_fact:
+        controller_objects_inventories_static: "{{ controller_objects_inventories_static | default([]) +
+                                                   [{'name': item.name,
+                                                     'description': item.description,
+                                                     'org': item.summary_fields.organization.name,
+                                                     'host_filter': item.host_filter | default('') | regex_replace('None', ''),
+                                                     'prevent_fallback': item.prevent_instance_group_fallback,
+                                                     'variables': {} if not item.variables or item.variables == '---'
+                                                                     else item.variables | from_yaml,
+                                                     'hosts': lookup('ansible.controller.controller_api',
+                                                                         'inventories/' + item.id | string + '/hosts/',
+                                                                         return_objects=false,
+                                                                         return_all=true).results |
+                                                                           selectattr('summary_fields.groups.count', 'equalto', 0) |
+                                                                           ansible.utils.remove_keys(target=['summary_fields']) |
+                                                                           ansible.utils.keep_keys(target=['name',
+                                                                                                           'description',
+                                                                                                           'variables']),
+                                                     'groups': aap_inventories_groups | default([]) |
+                                                               selectattr('summary_fields.inventory.id', 'equalto', item.id) |
+                                                               ansible.utils.remove_keys(target=['summary_fields',
+                                                                                                 'related',
+                                                                                                 'created',
+                                                                                                 'id',
+                                                                                                 'inventory',
+                                                                                                 'modified',
+                                                                                                 'type',
+                                                                                                 'url'])} |
+                                                     regex_replace('\n', '')] }}"
+      loop: "{{ aap_inventories }}"
+      loop_control:
+        label: " | inventory: {{ item.name }}"
+
+    - name: INVENTORIES - Show smart inventories list (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_inventories_smart
+      when: >
+            controller_objects_inventories_smart is defined and
+            controller_objects_inventories_smart
+
+    - name: INVENTORIES - Show constructed inventories list (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_inventories_constructed
+      when: >
+            controller_objects_inventories_constructed is defined and
+            controller_objects_inventories_constructed
+
+    - name: INVENTORIES - Show dynamic inventories list (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_inventories_dynamic
+      when: >
+            controller_objects_inventories_dynamic is defined and
+            controller_objects_inventories_dynamic
+
+    - name: INVENTORIES - Show static inventories list (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_inventories_static
+      when: >
+            controller_objects_inventories_static is defined and
+            controller_objects_inventories_static

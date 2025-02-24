@@ -1,0 +1,28 @@
+- name: NOTIFICATIONS - Get all notification profiles from AAP
+  ansible.controller.export:
+    notification_templates: 'all'
+  register: aap_notifications
+
+- name: NOTIFICATIONS - Notify on rogue notification profiles
+  ansible.builtin.debug:
+    msg: "Shouldn't be there"
+  when: >
+        not delete_objects | default(false) | bool and
+        controller_objects_notification_profiles | selectattr("name", "equalto", item.name) | length == 0
+  changed_when: true
+  loop: "{{ aap_notifications.assets.notification_templates }}"
+  loop_control:
+    label: " | notification: {{ item.name }}"
+
+- name: NOTIFICATIONS - Delete rogue notification profiles
+  ansible.controller.notification_template:
+    name: "{{ item.name }}"
+    notification_type: "{{ item.notification_type }}"
+    organization: "{{ item.organization.name }}"
+    state: absent
+  when: >
+        delete_objects | default(false) | bool and
+        controller_objects_notification_profiles | selectattr("name", "equalto", item.name) | length == 0
+  loop: "{{ aap_notifications.assets.notification_templates }}"
+  loop_control:
+    label: " | notification: {{ item.name }}"

@@ -1,0 +1,17 @@
+---
+- name: Create Private Hub token
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Message that old token will be reset
+      ansible.builtin.debug:
+        msg: "Creating new token resets any existing ones"
+      changed_when: true
+
+    - name: Create new token
+      infra.ah_configuration.ah_token:
+
+    - name: Show new token
+      ansible.builtin.debug:
+        var: ansible_facts.ah_token

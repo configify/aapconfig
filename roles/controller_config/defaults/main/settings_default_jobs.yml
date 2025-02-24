@@ -1,0 +1,56 @@
+controller_config_settings_default_jobs: {
+  "AD_HOC_COMMANDS": [
+    "command",
+    "shell",
+    "yum",
+    "apt",
+    "apt_key",
+    "apt_repository",
+    "apt_rpm",
+    "service",
+    "group",
+    "user",
+    "mount",
+    "ping",
+    "selinux",
+    "setup",
+    "win_ping",
+    "win_service",
+    "win_updates",
+    "win_group",
+    "win_user"
+  ],
+  "ALLOW_JINJA_IN_EXTRA_VARS": "template",
+  "ANSIBLE_FACT_CACHE_TIMEOUT": 0,
+  "AWX_ANSIBLE_CALLBACK_PLUGINS": [],
+  "AWX_COLLECTIONS_ENABLED": true,
+  "AWX_ISOLATION_BASE_PATH": "/tmp",
+  "AWX_ISOLATION_SHOW_PATHS": [
+    "/etc/pki/ca-trust:/etc/pki/ca-trust:O",
+    "/usr/share/pki:/usr/share/pki:O"
+  ],
+  "AWX_MOUNT_ISOLATED_PATHS_ON_K8S": false,
+  "AWX_ROLES_ENABLED": true,
+  "AWX_RUNNER_KEEPALIVE_SECONDS": 0,
+  "AWX_SHOW_PLAYBOOK_LINKS": false,
+  "AWX_TASK_ENV": {},
+  "DEFAULT_CONTAINER_RUN_OPTIONS": [
+    "--network",
+    "slirp4netns:enable_ipv6=true"
+  ],
+  "DEFAULT_INVENTORY_UPDATE_TIMEOUT": 0,
+  "DEFAULT_JOB_IDLE_TIMEOUT": 0,
+  "DEFAULT_JOB_TIMEOUT": 0,
+  "DEFAULT_PROJECT_UPDATE_TIMEOUT": 0,
+  "EVENT_STDOUT_MAX_BYTES_DISPLAY": 1024,
+  "GALAXY_IGNORE_CERTS": false,
+  "GALAXY_TASK_ENV": {
+    "ANSIBLE_FORCE_COLOR": "false",
+    "GIT_SSH_COMMAND": "ssh -o StrictHostKeyChecking=no"
+  },
+  "MAX_FORKS": 200,
+  "MAX_WEBSOCKET_EVENT_RATE": 30,
+  "PROJECT_UPDATE_VVV": false,
+  "SCHEDULE_MAX_JOBS": 10,
+  "STDOUT_MAX_BYTES_DISPLAY": 1048576
+}

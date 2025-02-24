@@ -1,0 +1,9 @@
+- name: SETTINGS - Create or modify authenticators (2.5)
+  ansible.platform.authenticator:
+    name: "{{ item.name }}"
+    type: "{{ item.type }}"
+    enabled: "{{ item.enabled }}"
+    configuration: "{{ item.configuration }}"
+  loop: "{{ controller_authentication }}"
+  loop_control:
+    label: " | authenticator: {{ item.name }}"

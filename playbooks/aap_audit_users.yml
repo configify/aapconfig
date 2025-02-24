@@ -1,0 +1,37 @@
+---
+- name: USERS - Audit AAP users
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: USERS - Get all users from AAP
+      ansible.builtin.set_fact:
+        aap_users: "{{ lookup('ansible.controller.controller_api', 'users', return_objects=false, return_all=true).results }}"
+
+    - name: USERS - Make it a list in case only one user
+      ansible.builtin.set_fact:
+        aap_users: "{{ [aap_users] }}"
+      when: aap_users | type_debug != 'list'
+
+    - name: USERS - Build list with local users
+      ansible.builtin.set_fact:
+        controller_objects_users: "{{ controller_objects_users | default([]) +
+                                      [{'username': item.username,
+                                        'first_name': item.first_name,
+                                        'last_name': item.last_name,
+                                        'email': item.email,
+                                        'superuser': item.is_superuser,
+                                        'auditor': item.is_system_auditor,
+                                        'pass': item.password} |
+                                         regex_replace('\n', '')] }}"
+      loop: "{{ aap_users }}"
+      loop_control:
+        label: " | user: {{ item.username }}"
+      when: not item.external_account
+
+    - name: USERS - Show all users
+      ansible.builtin.debug:
+        var: controller_objects_users
+      when: >
+            controller_objects_users is defined and
+            controller_objects_users

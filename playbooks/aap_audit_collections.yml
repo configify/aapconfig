@@ -1,0 +1,27 @@
+---
+- name: COLLECTIONS - Audit Hub collections
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: COLLECTIONS - Get list of published collections
+      ansible.builtin.set_fact:
+        published_collections: "{{ query('infra.ah_configuration.ah_api', 'collections', return_all=true) }}"
+
+    - name: COLLECTIONS - Build list with published collections
+      ansible.builtin.set_fact:
+        hub_objects_collections: "{{ hub_objects_collections | default([]) +
+                                     [{'namespace': item.namespace,
+                                       'name': item.name,
+                                       'filename': item.namespace + '-' + item.name + '-' + item.highest_version.version + '.tar.gz'} |
+                                        regex_replace('\n', '')] }}"
+      loop: "{{ published_collections[0] }}"
+      loop_control:
+        label: " | collection: {{ item.name }}"
+
+    - name: COLLECTIONS - Show all published collections
+      ansible.builtin.debug:
+        var: hub_objects_collections
+      when: >
+            hub_objects_collections is defined and
+            hub_objects_collections

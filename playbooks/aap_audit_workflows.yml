@@ -1,0 +1,60 @@
+---
+- name: WORKFLOWS - Audit workflows
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: WORKFLOWS - Get all workflows from AAP
+      ansible.controller.export:
+        workflow_job_templates: 'all'
+      register: aap_workflows
+
+    - name: WORKFLOWS - Build list with all workflows
+      ansible.builtin.set_fact:
+        controller_objects_workflows: "{{ controller_objects_workflows | default([]) +
+                                          [{'name': item.name,
+                                            'descr': item.description,
+                                            'org': item.organization.name,
+                                            'inventory': item.inventory.name,
+                                            'allow_simultaneous': item.allow_simultaneous,
+                                            'ask_inventory_on_launch': item.ask_inventory_on_launch,
+                                            'ask_labels_on_launch': item.ask_labels_on_launch,
+                                            'ask_limit_on_launch': item.ask_limit_on_launch,
+                                            'ask_scm_branch_on_launch': item.ask_scm_branch_on_launch,
+                                            'ask_skip_tags_on_launch': item.ask_skip_tags_on_launch,
+                                            'ask_tags_on_launch': item.ask_tags_on_launch,
+                                            'ask_variables_on_launch': item.ask_variables_on_launch,
+                                            'extra_vars': item.extra_vars,
+                                            'job_tags': item.job_tags | regex_replace('None', ''),
+                                            'limit': item.limit | regex_replace('None', ''),
+                                            'scm_branch': item.scm_branch | regex_replace('None', ''),
+                                            'skip_tags': item.skip_tags | regex_replace('None', ''),
+                                            'survey_enabled': item.survey_enabled | bool,
+                                            'webhook_credential': item.webhook_credential,
+                                            'webhook_service': item.webhook_service,
+                                            'extra_vars': {} if not item.extra_vars or item.extra_vars == '---'
+                                                             else item.extra_vars | from_yaml,
+                                            'notifications_on_start': item.related.notification_templates_started |
+                                                                        selectattr('name') | map(attribute='name'),
+                                            'notifications_on_success': item.related.notification_templates_success |
+                                                                          selectattr('name') | map(attribute='name'),
+                                            'notifications_on_failure': item.related.notification_templates_error |
+                                                                          selectattr('name') | map(attribute='name'),
+                                            'notifications_on_approval': item.related.notification_templates_approvals |
+                                                                          selectattr('name') | map(attribute='name'),
+                                            'nodes': item.related.workflow_nodes |
+                                                     ansible.utils.remove_keys(target=['natural_key',
+                                                                                       'workflow_job_template',
+                                                                                       'execution_environment',
+                                                                                       'inventory'])} |
+                                              regex_replace('\n', '') | regex_replace('None', \"''\")] }}"
+      loop: "{{ aap_workflows.assets.workflow_job_templates }}"
+      loop_control:
+        label: " | workflow: {{ item.name }}"
+
+    - name: WORKFLOWS - Show all workflows
+      ansible.builtin.debug:
+        var: controller_objects_workflows
+      when: >
+            controller_objects_workflows is defined and
+            controller_objects_workflows

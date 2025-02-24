@@ -1,0 +1,78 @@
+---
+- name: TEMPLATES - Audit AAP job templates
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: TEMPLATES - Get all job templates from AAP
+      ansible.controller.export:
+        job_templates: 'all'
+      register: aap_templates
+
+    - name: TEMPLATES - Build list with all templates
+      ansible.builtin.set_fact:
+        controller_objects_templates: "{{ controller_objects_templates | default([]) +
+                                          [{
+                                            'name': item.name,
+                                            'description': item.description,
+                                            'playbook': item.playbook,
+                                            'execution_environment': item.execution_environment.name | default(''),
+                                            'project': item.project.name,
+                                            'allow_simultaneous': item.allow_simultaneous,
+                                            'ask_credential_on_launch': item.ask_credential_on_launch,
+                                            'ask_diff_mode_on_launch': item.ask_diff_mode_on_launch,
+                                            'ask_execution_environment_on_launch': item.ask_execution_environment_on_launch,
+                                            'ask_forks_on_launch': item.ask_forks_on_launch,
+                                            'ask_instance_groups_on_launch': item.ask_instance_groups_on_launch,
+                                            'ask_inventory_on_launch': item.ask_inventory_on_launch,
+                                            'ask_job_slice_count_on_launch': item.ask_job_slice_count_on_launch,
+                                            'ask_job_type_on_launch': item.ask_job_type_on_launch,
+                                            'ask_labels_on_launch': item.ask_labels_on_launch,
+                                            'ask_limit_on_launch': item.ask_limit_on_launch,
+                                            'ask_scm_branch_on_launch': item.ask_scm_branch_on_launch,
+                                            'ask_skip_tags_on_launch': item.ask_skip_tags_on_launch,
+                                            'ask_tags_on_launch': item.ask_tags_on_launch,
+                                            'ask_timeout_on_launch': item.ask_timeout_on_launch,
+                                            'ask_variables_on_launch': item.ask_variables_on_launch,
+                                            'ask_verbosity_on_launch': item.ask_verbosity_on_launch,
+                                            'become_enabled': item.become_enabled,
+                                            'diff_mode': item.diff_mode,
+                                            'force_handlers': item.force_handlers,
+                                            'forks': item.forks,
+                                            'host_config_key': item.host_config_key,
+                                            'inventory': item.inventory.name | default(''),
+                                            'job_slice_count': item.job_slice_count,
+                                            'job_tags': item.job_tags,
+                                            'job_type': item.job_type,
+                                            'limit': item.limit,
+                                            'prevent_instance_group_fallback': item.prevent_instance_group_fallback,
+                                            'scm_branch': item.scm_branch,
+                                            'skip_tags': item.skip_tags,
+                                            'start_at_task': item.start_at_task,
+                                            'survey_enabled': item.survey_enabled,
+                                            'timeout': item.timeout,
+                                            'use_fact_cache': item.use_fact_cache,
+                                            'verbosity': item.verbosity,
+                                            'survey': item.related.survey_spec,
+                                            'extra_vars': {} if not item.extra_vars or item.extra_vars == '---'
+                                                             else item.extra_vars | from_yaml,
+                                            'webhook_service': item.webhook_service,
+                                            'webhook_credential': item.webhook_credential,
+                                            'creds': item.related.credentials | selectattr('name') | map(attribute='name'),
+                                            'notifications_on_start': item.related.notification_templates_started |
+                                                                        selectattr('name') | map(attribute='name'),
+                                            'notifications_on_success': item.related.notification_templates_success |
+                                                                          selectattr('name') | map(attribute='name'),
+                                            'notifications_on_failure': item.related.notification_templates_error |
+                                                                          selectattr('name') | map(attribute='name')} |
+                                              default([]) | regex_replace('\n', '')] }}"
+      loop: "{{ aap_templates.assets.job_templates }}"
+      loop_control:
+        label: " | template: {{ item.name }}"
+
+    - name: TEMPLATES - Show all templates
+      ansible.builtin.debug:
+        var: controller_objects_templates
+      when: >
+            controller_objects_templates is defined and
+            controller_objects_templates

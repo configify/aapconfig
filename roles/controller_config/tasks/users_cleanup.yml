@@ -1,0 +1,44 @@
+- name: USERS - Get all users from AAP
+  ansible.builtin.set_fact:
+    aap_exiting_users: "{{ lookup('ansible.controller.controller_api', 'users', return_objects=false, return_all=true).results }}"
+
+- name: USERS - Notify on rogue users
+  ansible.builtin.debug:
+    msg: "Shouldn't be there"
+  when: >
+        not delete_objects | default(false) | bool and
+        not item.external_account and
+        controller_objects_users | selectattr("username", "equalto", item.username) | length == 0 and
+        item.username != 'admin'
+  changed_when: true
+  loop: "{{ aap_exiting_users }}"
+  loop_control:
+    label: " | user: {{ item.username }}"
+
+- name: USERS - Delete rogue users (pre 2.5)
+  ansible.controller.user:
+    username: "{{ item.username }}"
+    state: absent
+  when: >
+        delete_objects | default(false) | bool and
+        controller_ping.version is version_compare('4.6', '<') and
+        not item.external_account and
+        controller_objects_users | selectattr("username", "equalto", item.username) | length == 0 and
+        item.username != 'admin'
+  loop: "{{ aap_exiting_users }}"
+  loop_control:
+    label: " | user: {{ item.username }}"
+
+- name: USERS - Delete rogue users (2.5)
+  ansible.platform.user:
+    username: "{{ item.username }}"
+    state: absent
+  when: >
+        delete_objects | default(false) | bool and
+        controller_ping.version is version_compare('4.6', '>=') and
+        not item.external_account and
+        controller_objects_users | selectattr("username", "equalto", item.username) | length == 0 and
+        item.username != 'admin'
+  loop: "{{ aap_exiting_users }}"
+  loop_control:
+    label: " | user: {{ item.username }}"

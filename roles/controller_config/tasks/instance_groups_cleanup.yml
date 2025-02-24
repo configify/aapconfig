@@ -1,0 +1,27 @@
+- name: INSTANCE GROUPS - Get all instance groups from AAP
+  ansible.builtin.set_fact:
+    aap_instance_groups: "{{ lookup('ansible.controller.controller_api', 'instance_groups', return_objects=false, return_all=true).results }}"
+
+- name: INSTANCE GROUPS - Notify on rogue instance groups
+  ansible.builtin.debug:
+    msg: "Shouldn't be there"
+  when: >
+        not delete_objects | default(false) | bool and
+        controller_objects_instance_groups | selectattr("name", "equalto", item.name) | length == 0 and
+        item.name != 'controlplane' and item.name != 'default'
+  changed_when: true
+  loop: "{{ aap_instance_groups }}"
+  loop_control:
+    label: " | ig: {{ item.name }}"
+
+- name: INSTANCE GROUPS - Delete rogue instance groups
+  ansible.controller.instance_group:
+    name: "{{ item.name }}"
+    state: absent
+  when: >
+        delete_objects | default(false) | bool and
+        controller_objects_instance_groups | selectattr("name", "equalto", item.name) | length == 0 and
+        item.name != 'controlplane' and item.name != 'default'
+  loop: "{{ aap_instance_groups }}"
+  loop_control:
+    label: " | ig: {{ item.name }}"
