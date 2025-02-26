@@ -669,7 +669,6 @@ controller_objects_inventories_smart: [
 
 Note:
 
-* inventory host variables need to be converted to a dictionary manually after an export
 * inventories and hosts always report "changed" in check mode
 * inventories, inventory sources, groups and hosts report "changed" during the first run and each time after template "saved" in the GUI
 

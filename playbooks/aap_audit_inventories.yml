@@ -127,7 +127,8 @@
                                                                        ansible.utils.remove_keys(target=['summary_fields']) |
                                                                        ansible.utils.keep_keys(target=['name',
                                                                                                        'description',
-                                                                                                       'variables'])},
+                                                                                                       'variables']) |
+                                                                       configify.aapconfig.convert_yaml_fields(fields=['variables'])},
                                                                      recursive=true)] }}"
       when: item.summary_fields.inventory.name in aap_inventories | map(attribute='name')
       loop: "{{ lookup('ansible.controller.controller_api', 'groups', return_objects=false, return_all=true).results }}"
@@ -153,7 +154,8 @@
                                                                            ansible.utils.remove_keys(target=['summary_fields']) |
                                                                            ansible.utils.keep_keys(target=['name',
                                                                                                            'description',
-                                                                                                           'variables']),
+                                                                                                           'variables']) |
+                                                                           configify.aapconfig.convert_yaml_fields(fields=['variables']),
                                                      'groups': aap_inventories_groups | default([]) |
                                                                selectattr('summary_fields.inventory.id', 'equalto', item.id) |
                                                                ansible.utils.remove_keys(target=['summary_fields',
