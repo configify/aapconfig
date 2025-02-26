@@ -1,4 +1,25 @@
-# filter_plugins/remove_empty_fields.py
+DOCUMENTATION = r"""
+name: remove_empty_fields
+short_description: A filter that removes specified fields if empty from each dictionary in a list of dictionaries
+description:
+  - Returns list of dictionaries without specified fields if they were empty
+options:
+  _data:
+    description: A list of dictionaries
+    type: list
+    elements: dictionaries
+    required: true
+  _fields:
+    description: Dictionary fields to remove
+    type: str
+    required: true
+"""
+
+EXAMPLES = r'''
+- name: Remove empty variables from each dict
+  ansible.builtin.set_fact:
+    clean_list_of_dict: "{{ list_of_dict | configify.aapconfig.remove_empty_fields(fields=['field_that_is_often_empty']) }}"
+'''
 
 def remove_empty_fields(data, fields):
     """

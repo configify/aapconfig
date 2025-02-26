@@ -1,4 +1,26 @@
-# filter_plugins/yaml_to_dict.py
+DOCUMENTATION = r"""
+name: convert_yaml_fields
+short_description: A filter that converts specified dictionary fields in provided list of dictionaries to json
+description:
+  - Returns list of dictionaries with modified fields
+  - Fields are converted from a string (in yaml format) to a dictionary (json)
+options:
+  _data:
+    description: A list of dictionaries
+    type: list
+    elements: dictionaries
+    required: true
+  _fields:
+    description: Dictionary fields to convert
+    type: str
+    required: true
+"""
+
+EXAMPLES = r'''
+- name: Convert extra variables to dict
+  ansible.builtin.set_fact:
+    converted_list_of_dict: "{{ list_of_dict | configify.aapconfig.convert_yaml_fields(fields=['extra_vars']) }}"
+'''
 
 import yaml
 
