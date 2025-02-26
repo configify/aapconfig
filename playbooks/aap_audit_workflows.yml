@@ -44,9 +44,9 @@
                                                                           selectattr('name') | map(attribute='name'),
                                             'nodes': item.related.workflow_nodes |
                                                      ansible.utils.remove_keys(target=['natural_key',
-                                                                                       'workflow_job_template',
-                                                                                       'execution_environment',
-                                                                                       'inventory'])} |
+                                                                                       'workflow_job_template']) |
+                                                     configify.aapconfig.remove_empty_fields(fields=['inventory',
+                                                                                                     'execution_environment'])} |
                                               regex_replace('\n', '') | regex_replace('None', \"''\")] }}"
       loop: "{{ aap_workflows.assets.workflow_job_templates }}"
       loop_control:
