@@ -24,10 +24,11 @@ EXAMPLES = r'''
 
 import yaml
 
+
 def convert_yaml_fields(data, fields):
     """
     Convert specified YAML fields to dictionaries.
-    
+
     Args:
         data (list): List of dictionaries containing YAML strings.
         fields (list): List of fields to convert from YAML string to dictionary.
@@ -46,6 +47,7 @@ def convert_yaml_fields(data, fields):
                     except yaml.YAMLError as e:
                         raise ValueError(f"Error converting field '{field}': {e}")
     return data
+
 
 class FilterModule(object):
     def filters(self):

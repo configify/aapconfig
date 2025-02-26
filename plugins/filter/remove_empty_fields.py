@@ -21,6 +21,7 @@ EXAMPLES = r'''
     clean_list_of_dict: "{{ list_of_dict | configify.aapconfig.remove_empty_fields(fields=['field_that_is_often_empty']) }}"
 '''
 
+
 def remove_empty_fields(data, fields):
     """
     Removes specified fields from a list of dictionaries if they have empty values.
@@ -41,6 +42,7 @@ def remove_empty_fields(data, fields):
             if field in item and is_empty(item[field]):
                 del item[field]
     return data
+
 
 class FilterModule(object):
     def filters(self):
