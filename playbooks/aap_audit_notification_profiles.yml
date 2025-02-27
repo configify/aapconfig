@@ -11,25 +11,18 @@
 
     - name: NOTIFICATIONS - Build list with all notification profiles
       ansible.builtin.set_fact:
-        controller_objects_notification_profiles: |
-                                                   {% if not item.messages %}
-                                                   {{ controller_objects_notification_profiles | default([]) +
-                                                      [{'name': item.name,
-                                                        'descr': item.description,
-                                                        'notification_type': item.notification_type,
-                                                        'notification_config': item.notification_configuration,
-                                                        'org': item.organization.name} |
-                                                         regex_replace('\n', '')] }}
-                                                   {% else %}
-                                                   {{ controller_objects_notification_profiles | default([]) +
+        controller_objects_notification_profiles: "{{ controller_objects_notification_profiles | default([]) +
                                                       [{'name': item.name,
                                                         'descr': item.description,
                                                         'notification_type': item.notification_type,
                                                         'notification_config': item.notification_configuration,
                                                         'org': item.organization.name,
-                                                        'messages': item.messages} |
-                                                         regex_replace('\n', '')] }}
-                                                   {% endif %}
+                                                        'messages': [{} if not item.messages else item.messages] |
+                                                                    configify.aapconfig.remove_empty_fields(fields=['error',
+                                                                                                                    'started',
+                                                                                                                    'success',
+                                                                                                                    'workflow_approval']) | last} |
+                                                         regex_replace('\n', '')] }}"
       loop: "{{ aap_notifications.assets.notification_templates }}"
       loop_control:
         label: " | notification: {{ item.name }}"
