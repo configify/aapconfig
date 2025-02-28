@@ -4,6 +4,68 @@
     - controller_config_roles_instance_groups
     - controller_config_roles_instance_groups_cleanup
   block:
+    - name: ROLES - Get all team roles from AAP (pre 2.5)
+      ansible.builtin.set_fact:
+        aap_ig_team_roles: "{{ aap_ig_team_roles | default([]) +
+                               [{'name': item.name,
+                                 'roles': lookup('ansible.controller.controller_api', 'teams/' + item.id | string + '/roles',
+                                                 return_objects=false,
+                                                 return_all=true).results}] }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'teams/',
+                       return_objects=false,
+                       return_all=true).results }}"
+      loop_control:
+        label: " | team: {{ item.name }}"
+
+    - name: ROLES - Notify on rogue instance group roles for teams (pre 2.5)
+      ansible.builtin.debug:
+        msg: "Shouldn't be there"
+      when: >
+            not delete_objects | default(false) | bool and
+            item.1.summary_fields.resource_name is defined and
+            item.1.name is defined and
+            item.1.summary_fields.resource_type == 'instance_group' and
+            controller_objects_roles_instance_groups |
+              selectattr("team", "defined") |
+                selectattr("team", "equalto", item.0.name) |
+                selectattr("role", "equalto", item.1.name) |
+                selectattr("ig", "equalto", item.1.summary_fields.resource_name) | length == 0
+      changed_when: true
+      loop: "{{ aap_ig_team_roles | default([]) | subelements('roles') }}"
+      loop_control:
+        label: " | team: {{ item.0.name }} ->
+                   role: {{ item.1.name }} ->
+                   {{ item.1.summary_fields.resource_type | default('N/A') }}: {{ item.1.summary_fields.resource_name | default('N/A') }}"
+      tags:
+        - controller_config_roles_instance_groups_teams
+        - controller_config_roles_instance_groups_teams_cleanup
+
+    - name: ROLES - Delete rogue instance group roles for teams (pre 2.5)
+      ansible.controller.role:
+        team: "{{ item.0.name }}"
+        role: "{{ item.1.name | lower }}"
+        instance_groups: "{{ item.1.summary_fields.resource_name }}"
+        state: absent
+      when: >
+            delete_objects | default(false) | bool and
+            item.1.summary_fields.resource_name is defined and
+            item.1.name is defined and
+            item.1.summary_fields.resource_type == 'instance_group' and
+            controller_objects_roles_instance_groups |
+              selectattr("team", "defined") |
+                selectattr("team", "equalto", item.0.name) |
+                selectattr("role", "equalto", item.1.name) |
+                selectattr("ig", "equalto", item.1.summary_fields.resource_name) | length == 0
+      changed_when: true
+      loop: "{{ aap_ig_team_roles | default([]) | subelements('roles') }}"
+      loop_control:
+        label: " | team: {{ item.0.name }} ->
+                   role: {{ item.1.name }} ->
+                   {{ item.1.summary_fields.resource_type | default('N/A') }}: {{ item.1.summary_fields.resource_name | default('N/A') }}"
+      tags:
+        - controller_config_roles_instance_groups_teams
+        - controller_config_roles_instance_groups_teams_cleanup
+
     - name: ROLES - Get instance groups (pre 2.5)
       ansible.builtin.set_fact:
         aap_instance_groups: "{{ lookup('ansible.controller.controller_api', 'instance_groups', return_objects=false).results }}"
@@ -22,52 +84,6 @@
       loop: "{{ aap_instance_groups }}"
       loop_control:
         label: " | ig: {{ item.name }}"
-
-    - name: ROLES - Notify on rogue instance group roles for teams (pre 2.5)
-      ansible.builtin.debug:
-        msg: "Shouldn't be there"
-      when: >
-            not delete_objects | default(false) | bool and
-            item.0.summary_fields.direct_access and
-            item.1.role.team_name is defined and
-            controller_objects_roles_instance_groups |
-              selectattr("team", "defined") |
-                selectattr("team", "equalto", item.1.role.team_name) |
-                selectattr("role", "equalto", item.1.role.name) |
-                selectattr("ig", "equalto", item.1.role.resource_name) | length == 0
-      changed_when: true
-      loop: "{{ aap_instance_groups_acl | default([]) | subelements('summary_fields.direct_access') }}"
-      loop_control:
-        label: " | team: {{ item.1.role.team_name | default(item.0.username) }} (user: {{ item.0.username }}) ->
-                   role: {{ item.1.role.name }} ->
-                   ig: {{ item.1.role.resource_name }}"
-      tags:
-        - controller_config_roles_instance_groups_teams
-        - controller_config_roles_instance_groups_teams_cleanup
-
-    - name: ROLES - Delete rogue instance group roles for teams (pre 2.5)
-      ansible.controller.role:
-        team: "{{ item.1.role.team_name }}"
-        role: "{{ item.1.role.name | lower }}"
-        instance_groups: "{{ item.1.role.resource_name }}"
-        state: absent
-      when: >
-            delete_objects | default(false) | bool and
-            item.0.summary_fields.direct_access and
-            item.1.role.team_name is defined and
-            controller_objects_roles_instance_groups |
-              selectattr("team", "defined") |
-                selectattr("team", "equalto", item.1.role.team_name) |
-                selectattr("role", "equalto", item.1.role.name) |
-                selectattr("ig", "equalto", item.1.role.resource_name) | length == 0
-      loop: "{{ aap_instance_groups_acl | default([]) | subelements('summary_fields.direct_access') }}"
-      loop_control:
-        label: " | team: {{ item.1.role.team_name | default(item.0.username) }} (user: {{ item.0.username }}) ->
-                   role: {{ item.1.role.name }} ->
-                   ig: {{ item.1.role.resource_name }}"
-      tags:
-        - controller_config_roles_instance_groups_teams
-        - controller_config_roles_instance_groups_teams_cleanup
 
     - name: ROLES - Notify on rogue instance group roles for users (pre 2.5)
       ansible.builtin.debug:
