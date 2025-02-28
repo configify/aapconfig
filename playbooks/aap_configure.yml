@@ -56,6 +56,15 @@
         - controller_config_roles_templates_users
         - controller_config_roles_templates_users_apply
         - controller_config_roles_templates_users_cleanup
+        - controller_config_roles_instance_groups
+        - controller_config_roles_instance_groups_apply
+        - controller_config_roles_instance_groups_cleanup
+        - controller_config_roles_instance_groups_teams
+        - controller_config_roles_instance_groups_teams_apply
+        - controller_config_roles_instance_groups_teams_cleanup
+        - controller_config_roles_instance_groups_users
+        - controller_config_roles_instance_groups_users_apply
+        - controller_config_roles_instance_groups_users_cleanup
 
   roles:
     - role: hub_config

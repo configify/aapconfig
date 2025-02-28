@@ -4,9 +4,24 @@
   gather_facts: false
 
   tasks:
-    - name: USERS - Get all users from AAP
+    - name: USERS - Determine AAP version
+      ansible.builtin.set_fact:
+        controller_ping: "{{ lookup('ansible.controller.controller_api', 'ping') }}"
+
+    - name: USERS - Get all users from AAP (pre 2.5)
       ansible.builtin.set_fact:
         aap_users: "{{ lookup('ansible.controller.controller_api', 'users', return_objects=false, return_all=true).results }}"
+      when: controller_ping.version is version_compare('4.6', '<')
+
+    - name: USERS - Get all users from AAP (2.5)
+      ansible.builtin.set_fact:
+        aap_users: "{{ lookup('ansible.platform.gateway_api', 'users',
+                              return_objects=false,
+                              host=lookup('ansible.builtin.env', 'GATEWAY_HOSTNAME'),
+                              username=lookup('ansible.builtin.env', 'GATEWAY_USERNAME'),
+                              password=lookup('ansible.builtin.env', 'GATEWAY_PASSWORD'),
+                              verify_ssl=lookup('ansible.builtin.env', 'GATEWAY_VERIFY_SSL')).results }}"
+      when: controller_ping.version is version_compare('4.6', '>=')
 
     - name: USERS - Make it a list in case only one user
       ansible.builtin.set_fact:
@@ -21,13 +36,13 @@
                                         'last_name': item.last_name,
                                         'email': item.email,
                                         'superuser': item.is_superuser,
-                                        'auditor': item.is_system_auditor,
+                                        'auditor': item.is_system_auditor | default(item.is_platform_auditor),
                                         'pass': item.password} |
                                          regex_replace('\n', '')] }}"
       loop: "{{ aap_users }}"
       loop_control:
         label: " | user: {{ item.username }}"
-      when: not item.external_account
+      when: not item.external_account | default(item.managed)
 
     - name: USERS - Show all users
       ansible.builtin.debug:

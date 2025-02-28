@@ -669,7 +669,6 @@ controller_objects_inventories_smart: [
 
 Note:
 
-* inventory host variables need to be converted to a dictionary manually after an export
 * inventories and hosts always report "changed" in check mode
 * inventories, inventory sources, groups and hosts report "changed" during the first run and each time after template "saved" in the GUI
 
@@ -786,7 +785,7 @@ Note:
 * workflows always report "changed" in check mode
 * workflows with extra vars will report "changed" each time after the "Save" button is pressed in the GUI, even if nothing has changed
 * currently there is no ability to disable webhook or remove webhook credentials using automation
-* inventory and execution environment fields for workflow nodes have been omitted
+* inventory and execution environment fields for workflow nodes are omitted from export when empty
 
 See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat PRs/tickets.
 
