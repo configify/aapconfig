@@ -11,61 +11,86 @@
     - name: ROLES - Audit roles (pre 2.5)
       when: controller_ping.version is version_compare('4.6', '<')
       block:
-        - name: ROLES - Get all teams from AAP
-          ansible.controller.export:
-            teams: 'all'
-          register: aap_teams
+        - name: ROLES - Get all team roles from AAP (pre 2.5)
+          ansible.builtin.set_fact:
+            aap_ig_team_roles: "{{ aap_ig_team_roles | default([]) +
+                                   [{'name': item.name,
+                                     'roles': lookup('ansible.controller.controller_api', 'teams/' + item.id | string + '/roles',
+                                                     return_objects=false,
+                                                     return_all=true).results}] }}"
+          loop: "{{ lookup('ansible.controller.controller_api', 'teams/',
+                           return_objects=false,
+                           return_all=true).results }}"
+          loop_control:
+            label: " | team: {{ item.name }}"
+
+        - name: ROLES - Build list with all instance group roles for teams (pre 2.5)
+          ansible.builtin.set_fact:
+            controller_objects_roles_instance_groups: "{{ (controller_objects_roles_instance_groups | default([]) +
+                                                           [{'team': item.0.name,
+                                                             'role': item.1.name,
+                                                             'ig': item.1.summary_fields.resource_name} |
+                                                            regex_replace('\n', '')]) }}"
+          loop: "{{ aap_ig_team_roles | default([]) | subelements('roles') }}"
+          loop_control:
+            label: " | team: {{ item.0.name }} ->
+                       role: {{ item.1.name | default('N/A') }} ->
+                       {{ item.1.summary_fields.resource_type | default('N/A') }}: {{ item.1.summary_fields.resource_name | default('N/A') }}"
+          when: >
+                item.1.summary_fields.resource_name is defined and
+                item.1.name is defined and
+                item.1.summary_fields.resource_type == 'instance_group'
 
         - name: ROLES - Build list with all organization roles for teams (pre 2.5)
           ansible.builtin.set_fact:
             controller_objects_roles_organization: "{{ controller_objects_roles_organization | default([]) +
                                                        [{'team': item.0.name,
                                                          'role': item.1.name,
-                                                         'org': item.1.content_object.name} |
+                                                         'org': item.1.summary_fields.resource_name} |
                                                          regex_replace('\n', '')] }}"
-          loop: "{{ aap_teams.assets.teams | default([]) | subelements('related.roles') }}"
+          loop: "{{ aap_ig_team_roles | default([]) | subelements('roles') }}"
           when: >
-                item.0.related.roles is defined and
-                item.1.content_object and
-                item.1.content_object.type == "organization"
+                item.1.summary_fields.resource_name is defined and
+                item.1.name is defined and
+                item.1.summary_fields.resource_type == "organization"
           loop_control:
             label: " | team: {{ item.0.name }} ->
                        role: {{ item.1.name }} ->
-                       {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
+                       {{ item.1.summary_fields.resource_type | default('N/A') }}: {{ item.1.summary_fields.resource_name | default('N/A') }}"
 
         - name: ROLES - Build list with all credential roles for teams (pre 2.5)
           ansible.builtin.set_fact:
             controller_objects_roles_credential: "{{ controller_objects_roles_credential | default([]) +
                                                      [{'team': item.0.name,
                                                        'role': item.1.name,
-                                                       'cred': item.1.content_object.name} |
+                                                       'cred': item.1.summary_fields.resource_name} |
                                                        regex_replace('\n', '')] }}"
-          loop: "{{ aap_teams.assets.teams | default([]) | subelements('related.roles') }}"
+          loop: "{{ aap_ig_team_roles | default([]) | subelements('roles') }}"
           when: >
-                item.0.related.roles is defined and
-                item.1.content_object and
-                item.1.content_object.type == "credential"
+                item.1.summary_fields.resource_name is defined and
+                item.1.name is defined and
+                item.1.summary_fields.resource_type == "credential"
           loop_control:
             label: " | team: {{ item.0.name }} ->
                        role: {{ item.1.name }} ->
-                       {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
+                       {{ item.1.summary_fields.resource_type | default('N/A') }}: {{ item.1.summary_fields.resource_name | default('N/A') }}"
 
         - name: ROLES - Build list with all template roles for teams (pre 2.5)
           ansible.builtin.set_fact:
             controller_objects_roles_template: "{{ controller_objects_roles_template | default([]) +
                                                    [{'team': item.0.name,
                                                      'role': item.1.name,
-                                                     'template': item.1.content_object.name} |
+                                                     'template': item.1.summary_fields.resource_name} |
                                                      regex_replace('\n', '')] }}"
-          loop: "{{ aap_teams.assets.teams | default([]) | subelements('related.roles') }}"
+          loop: "{{ aap_ig_team_roles | default([]) | subelements('roles') }}"
           when: >
-                item.0.related.roles is defined and
-                item.1.content_object and
-                item.1.content_object.type == "job_template"
+                item.1.summary_fields.resource_name is defined and
+                item.1.name is defined and
+                item.1.summary_fields.resource_type == "job_template"
           loop_control:
             label: " | team: {{ item.0.name }} ->
                        role: {{ item.1.name }} ->
-                       {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
+                       {{ item.1.summary_fields.resource_type | default('N/A') }}: {{ item.1.summary_fields.resource_name | default('N/A') }}"
 
         - name: ROLES - Get all users from AAP
           ansible.controller.export:
@@ -142,22 +167,6 @@
           loop: "{{ aap_instance_groups }}"
           loop_control:
             label: " | ig: {{ item.name }}"
-
-        - name: ROLES - Build list with all instance group roles for teams (pre 2.5)
-          ansible.builtin.set_fact:
-            controller_objects_roles_instance_groups: "{{ (controller_objects_roles_instance_groups | default([]) +
-                                                           [{'team': item.1.role.team_name,
-                                                             'role': item.1.role.name,
-                                                             'ig': item.1.role.resource_name} |
-                                                            regex_replace('\n', '')]) | unique }}"
-          loop: "{{ aap_instance_groups_acl | default([]) | subelements('summary_fields.direct_access') }}"
-          loop_control:
-            label: " | team/user: {{ item.1.role.team_name | default(item.0.username) }} (user: {{ item.0.username }}) ->
-                       role: {{ item.1.role.name | default('N/A') }} ->
-                       ig: {{ item.1.role.resource_name | default('N/A') }}"
-          when: >
-                item.0.summary_fields.direct_access and
-                item.1.role.team_name is defined
 
         - name: ROLES - Build list with all instance group roles for users (pre 2.5)
           ansible.builtin.set_fact:
