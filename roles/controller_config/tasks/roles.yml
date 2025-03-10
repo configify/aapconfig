@@ -1,255 +1,166 @@
-- name: ROLES - Instance groups
-  when: controller_objects_roles_instance_groups is defined
-  tags:
-    - controller_config_roles_instance_groups
-    - controller_config_roles_instance_groups_apply
+- name: ROLES - Add/modify roles (pre 2.5)
+  when: controller_ping.version is version_compare('4.6', '<')
   block:
-    - name: ROLES - Create or modify instance group roles (teams)
+    - name: ROLES - Add/modify organization roles (pre 2.5)
       ansible.controller.role:
-        team: "{{ item.team }}"
-        role: "{{ item.role | lower | replace(' ', '_') | replace('approve', 'approval') }}"
-        instance_groups: "{{ item.ig }}"
-      loop: "{{ controller_objects_roles_instance_groups | default([]) }}"
+        team: "{{ item.team | default(omit) }}"
+        user: "{{ item.user | default(omit) }}"
+        role: "{{ role }}"
+        organizations: "{{ item.object_name }}"
+      loop: "{{ controller_objects_roles | default([]) }}"
       loop_control:
-        label: " | team: {{ item.team | default('N/A') }} ->
-                   role: {{ item.role }} ->
-                   ig: {{ item.ig }}"
-      when: item.team is defined
-      register: instance_group_roles_teams_change
+        label: " | team/user: {{ item.team | default(item.user) }} ->
+                   role: {{ role }} ->
+                   {{ item.object_type }}: {{ item.object_name }}"
+      vars:
+        role: "{{ item.role.split(' ')[1:] | join('_') | lower | replace('approve', 'approval') | replace('ad_hoc', 'adhoc') }}"
+      when: item.object_type == 'organization'
+      register: roles_change
       failed_when: >
                    (not ansible_check_mode and
-                    instance_group_roles_teams_change.msg is defined) or
+                    roles_change.msg is defined) or
                    (ansible_check_mode and
-                    instance_group_roles_teams_change.msg is defined and
-                    'missing items' not in instance_group_roles_teams_change.msg and
-                    'returned 0 items' not in instance_group_roles_teams_change.msg)
+                    roles_change.msg is defined and
+                    'missing items' not in roles_change.msg and
+                    'returned 0 items' not in roles_change.msg)
       changed_when: >
-                    instance_group_roles_teams_change.changed or
+                    roles_change.changed or
                     (ansible_check_mode and
-                     instance_group_roles_teams_change.msg is defined and
-                     ('returned 0 items' in instance_group_roles_teams_change.msg or
-                      'missing items' in instance_group_roles_teams_change.msg))
-      tags:
-        - controller_config_roles_instance_groups_teams
-        - controller_config_roles_instance_groups_teams_apply
+                     roles_change.msg is defined and
+                     ('returned 0 items' in roles_change.msg or
+                      'missing items' in roles_change.msg))
 
-    - name: ROLES - Create or modify instance group roles (users)
+    - name: ROLES - Add/modify the rest of the roles (pre 2.5)
       ansible.controller.role:
+        team: "{{ item.team | default(omit) }}"
+        user: "{{ item.user | default(omit) }}"
+        role: "{{ role }}"
+        instance_groups: "{{ omit if item.object_type != 'instancegroup' else item.object_name }}"
+        credentials: "{{ omit if item.object_type != 'credential' else item.object_name }}"
+        job_templates: "{{ omit if item.object_type != 'jobtemplate' else item.object_name }}"
+        projects: "{{ omit if item.object_type != 'project' else item.object_name }}"
+        workflows: "{{ omit if item.object_type != 'workflowjobtemplate' else item.object_name }}"
+        inventories: "{{ omit if item.object_type != 'inventory' else item.object_name }}"
+      loop: "{{ controller_objects_roles | default([]) }}"
+      loop_control:
+        label: " | team/user: {{ item.team | default(item.user) }} ->
+                   role: {{ role }} ->
+                   {{ item.object_type }}: {{ item.object_name }}"
+      vars:
+        role: "{{ item.role.split(' ')[1:] | join('_') | lower | replace('approve', 'approval') | replace('ad_hoc', 'adhoc') }}"
+      when: item.object_type != 'organization'
+      register: roles_change
+      failed_when: >
+                   (not ansible_check_mode and
+                    roles_change.msg is defined) or
+                   (ansible_check_mode and
+                    roles_change.msg is defined and
+                    'missing items' not in roles_change.msg and
+                    'returned 0 items' not in roles_change.msg)
+      changed_when: >
+                    roles_change.changed or
+                    (ansible_check_mode and
+                     roles_change.msg is defined and
+                     ('returned 0 items' in roles_change.msg or
+                      'missing items' in roles_change.msg))
+
+- name: ROLES - Add/modify roles (2.5)
+  when: controller_ping.version is version_compare('4.6', '>=')
+  block:
+    - name: ROLES - Create user gateway roles (2.5)
+      ansible.platform.role_user_assignment:
+        role_definition: "{{ item.role }}"
+        object_id: "{{ lookup('ansible.controller.controller_api',
+                              controller_config_type_to_api_mapping[item.object_type],
+                              return_objects=false,
+                              return_all=true).results |
+                       selectattr('name', 'equalto', item.object_name) |
+                       map(attribute='id') | last | default('0') | int }}"
         user: "{{ item.user }}"
-        role: "{{ item.role | lower | replace(' ', '_') | replace('approve', 'approval') }}"
-        instance_groups: "{{ item.ig }}"
-      loop: "{{ controller_objects_roles_instance_groups | default([]) }}"
+      loop: "{{ gateway_objects_roles }}"
       loop_control:
         label: " | user: {{ item.user | default('N/A') }} ->
                    role: {{ item.role }} ->
-                   ig: {{ item.ig }}"
-      when: item.user is defined
-      register: instance_group_roles_users_change
+                   {{ item.object_type }}: {{ item.object_name }}"
+      when: >
+            gateway_objects_roles is defined and
+            item.user is defined
+      register: gateway_user_roles_change
       failed_when: >
                    (not ansible_check_mode and
-                    instance_group_roles_users_change.msg is defined) or
+                    gateway_user_roles_change.msg is defined) or
                    (ansible_check_mode and
-                    instance_group_roles_users_change.msg is defined and
-                    'returned 0 items' not in instance_group_roles_users_change.msg and
-                    'missing items' not in instance_group_roles_users_change.msg)
+                    gateway_user_roles_change.msg is defined and
+                    'object does not exist' not in gateway_user_roles_change.msg and
+                    'Provide exactly one of user or user_ansible_id' not in gateway_user_roles_change.msg)
       changed_when: >
-                    instance_group_roles_users_change.changed or
+                    gateway_user_roles_change.changed or
                     (ansible_check_mode and
-                     instance_group_roles_users_change.msg is defined and
-                     ('returned 0 items' in instance_group_roles_users_change.msg or
-                      'missing items' in instance_group_roles_users_change.msg))
-      tags:
-        - controller_config_roles_instance_groups_users
-        - controller_config_roles_instance_groups_users_apply
+                     gateway_user_roles_change.msg is defined and
+                     ('object does not exist' in gateway_user_roles_change.msg or
+                      'Provide exactly one of user or user_ansible_id' in gateway_user_roles_change.msg))
 
-- name: ROLES - Organizations
-  when: controller_objects_roles_organization is defined
-  tags:
-    - controller_config_roles_orgs
-    - controller_config_roles_orgs_apply
-  block:
-    - name: ROLES - Create or modify organization roles (teams)
-      ansible.controller.role:
-        team: "{{ item.team }}"
-        role: "{{ item.role | lower | replace(' ', '_') | replace('approve', 'approval') }}"
-        organization: "{{ item.org }}"
-      loop: "{{ controller_objects_roles_organization | default([]) }}"
-      loop_control:
-        label: " | team: {{ item.team | default('N/A') }} ->
-                   role: {{ item.role }} ->
-                   org: {{ item.org }}"
-      when: item.team is defined
-      register: organization_roles_teams_change
-      failed_when: >
-                   (not ansible_check_mode and
-                    organization_roles_teams_change.msg is defined) or
-                   (ansible_check_mode and
-                    organization_roles_teams_change.msg is defined and
-                    'returned 0 items' not in organization_roles_teams_change.msg and
-                    'missing items' not in organization_roles_teams_change.msg)
-      changed_when: >
-                    organization_roles_teams_change.changed or
-                    (ansible_check_mode and
-                     organization_roles_teams_change.msg is defined and
-                     ('returned 0 items' in organization_roles_teams_change.msg or
-                      'missing items' in organization_roles_teams_change.msg))
-      tags:
-        - controller_config_roles_orgs_teams
-        - controller_config_roles_orgs_teams_apply
-
-    - name: ROLES - Create or modify organization roles (users)
-      ansible.controller.role:
+    - name: ROLES - Create controller user roles (2.5)
+      ansible.controller.role_user_assignment:
+        role_definition: "{{ item.role }}"
+        object_id: "{{ lookup('ansible.controller.controller_api',
+                              controller_config_type_to_api_mapping[item.object_type],
+                              return_objects=false,
+                              return_all=true).results |
+                       selectattr('name', 'equalto', item.object_name) |
+                       map(attribute='id') | last | default('0') | int }}"
         user: "{{ item.user }}"
-        role: "{{ item.role | lower | replace(' ', '_') | replace('approve', 'approval') }}"
-        organization: "{{ item.org }}"
-      loop: "{{ controller_objects_roles_organization | default([]) }}"
+      loop: "{{ controller_objects_roles }}"
       loop_control:
-        label: " | user: {{ item.user | default('N/A') }} ->
+        label: " | team/user: {{ item.team | default(item.user) }} ->
                    role: {{ item.role }} ->
-                   org: {{ item.org }}"
-      when: item.user is defined
-      register: organization_roles_users_change
+                   {{ item.object_type }}: {{ item.object_name }}"
+      when: >
+            item.user is defined and
+            controller_objects_roles is defined and
+            item.role != 'Organization Member' and
+            item.role != 'Organization Admin'
+      register: controller_roles_change
       failed_when: >
                    (not ansible_check_mode and
-                    organization_roles_users_change.msg is defined) or
+                    controller_roles_change.msg is defined) or
                    (ansible_check_mode and
-                    organization_roles_users_change.msg is defined and
-                    'returned 0 items' not in organization_roles_users_change.msg and
-                    'missing items' not in organization_roles_users_change.msg)
+                    controller_roles_change.msg is defined and
+                    'returned 0 items' not in controller_roles_change.msg)
       changed_when: >
-                    organization_roles_users_change.changed or
+                    controller_roles_change.changed or
                     (ansible_check_mode and
-                     organization_roles_users_change.msg is defined and
-                     ('returned 0 items' in organization_roles_users_change.msg or
-                      'missing items' in organization_roles_users_change.msg))
-      tags:
-        - controller_config_roles_orgs_users
-        - controller_config_roles_orgs_users_apply
+                     controller_roles_change.msg is defined and
+                     'returned 0 items' in controller_roles_change.msg)
 
-- name: ROLES - Credentials
-  when: controller_objects_roles_credential is defined
-  tags:
-    - controller_config_roles_creds
-    - controller_config_roles_creds_apply
-  block:
-    - name: ROLES - Create or modify credential roles (teams)
-      ansible.controller.role:
-        team: "{{ item.team }}"
-        role: "{{ item.role | lower | replace(' ', '_') | replace('approve', 'approval') }}"
-        credentials: "{{ item.cred }}"
-      loop: "{{ controller_objects_roles_credential | default([]) }}"
+    - name: ROLES - Create controller team roles (2.5)
+      ansible.controller.role_team_assignment:
+        role_definition: "{{ item.role }}"
+        object_id: "{{ lookup('ansible.controller.controller_api',
+                              controller_config_type_to_api_mapping[item.object_type],
+                              return_objects=false,
+                              return_all=true).results |
+                       selectattr('name', 'equalto', item.object_name) |
+                       map(attribute='id') | last | default('0') | int }}"
+        team: "{{ item.team | default(omit) }}"
+      loop: "{{ controller_objects_roles }}"
       loop_control:
-        label: " | team: {{ item.team | default('N/A') }} ->
+        label: " | team/user: {{ item.team | default(item.user) }} ->
                    role: {{ item.role }} ->
-                   credential: {{ item.cred }}"
-      when: item.team is defined
-      register: credential_roles_teams_change
+                   {{ item.object_type }}: {{ item.object_name }}"
+      when: >
+            item.team is defined and
+            controller_objects_roles is defined and
+            item.role != 'Organization Member'
+      register: controller_roles_change
       failed_when: >
                    (not ansible_check_mode and
-                    credential_roles_teams_change.msg is defined) or
+                    controller_roles_change.msg is defined) or
                    (ansible_check_mode and
-                    credential_roles_teams_change.msg is defined and
-                    'returned 0 items' not in credential_roles_teams_change.msg and
-                    'missing items' not in credential_roles_teams_change.msg)
+                    controller_roles_change.msg is defined and
+                    'returned 0 items' not in controller_roles_change.msg)
       changed_when: >
-                    credential_roles_teams_change.changed or
+                    controller_roles_change.changed or
                     (ansible_check_mode and
-                     credential_roles_teams_change.msg is defined and
-                     ('returned 0 items' in credential_roles_teams_change.msg or
-                      'missing items' in credential_roles_teams_change.msg))
-      tags:
-        - controller_config_roles_creds_teams
-        - controller_config_roles_creds_teams_apply
-
-    - name: ROLES - Create or modify credential roles (users)
-      ansible.controller.role:
-        user: "{{ item.user }}"
-        role: "{{ item.role | lower | replace(' ', '_') | replace('approve', 'approval') }}"
-        credential: "{{ item.cred }}"
-      loop: "{{ controller_objects_roles_credential | default([]) }}"
-      loop_control:
-        label: " | user: {{ item.user | default('N/A') }} ->
-                   role: {{ item.role }} ->
-                   credential: {{ item.cred }}"
-      when: item.user is defined
-      register: credential_roles_users_change
-      failed_when: >
-                   (not ansible_check_mode and
-                    credential_roles_users_change.msg is defined) or
-                   (ansible_check_mode and
-                    credential_roles_users_change.msg is defined and
-                    'returned 0 items' not in credential_roles_users_change.msg and
-                    'missing items' not in credential_roles_users_change.msg)
-      changed_when: >
-                    credential_roles_users_change.changed or
-                    (ansible_check_mode and
-                     credential_roles_users_change.msg is defined and
-                     ('returned 0 items' in credential_roles_users_change.msg or
-                      'missing items' in credential_roles_users_change.msg))
-      tags:
-        - controller_config_roles_creds_users
-        - controller_config_roles_creds_users_apply
-
-- name: ROLES - Credentials
-  when: controller_objects_roles_credential is defined
-  tags:
-    - controller_config_roles_templates
-    - controller_config_roles_templates_apply
-  block:
-    - name: ROLES - Create or modify template roles (teams)
-      ansible.controller.role:
-        team: "{{ item.team }}"
-        role: "{{ item.role | lower | replace(' ', '_') | replace('approve', 'approval') }}"
-        job_templates: "{{ item.template }}"
-      loop: "{{ controller_objects_roles_template | default([]) }}"
-      loop_control:
-        label: " | team: {{ item.team | default('N/A') }} ->
-                   role: {{ item.role }} ->
-                   template: {{ item.template }}"
-      when: item.team is defined
-      register: templates_roles_teams_change
-      failed_when: >
-                   (not ansible_check_mode and
-                    templates_roles_teams_change.msg is defined) or
-                   (ansible_check_mode and
-                    templates_roles_teams_change.msg is defined and
-                    'returned 0 items' not in templates_roles_teams_change.msg and
-                    'missing items' not in templates_roles_teams_change.msg)
-      changed_when: >
-                    templates_roles_teams_change.changed or
-                    (ansible_check_mode and
-                     templates_roles_teams_change.msg is defined and
-                     ('returned 0 items' in templates_roles_teams_change.msg or
-                      'missing items' in templates_roles_teams_change.msg))
-      tags:
-        - controller_config_roles_templates_teams
-        - controller_config_roles_templates_teams_apply
-
-    - name: ROLES - Create or modify template roles (users)
-      ansible.controller.role:
-        user: "{{ item.user }}"
-        role: "{{ item.role | lower | replace(' ', '_') | replace('approve', 'approval') }}"
-        job_template: "{{ item.template }}"
-      loop: "{{ controller_objects_roles_template | default([]) }}"
-      loop_control:
-        label: " | user: {{ item.user | default('N/A') }} ->
-                   role: {{ item.role }} ->
-                   template: {{ item.template }}"
-      when: item.user is defined
-      register: templates_roles_users_change
-      failed_when: >
-                   (not ansible_check_mode and
-                    templates_roles_users_change.msg is defined) or
-                   (ansible_check_mode and
-                    templates_roles_users_change.msg is defined and
-                    'returned 0 items' not in templates_roles_users_change.msg and
-                    'missing items' not in templates_roles_users_change.msg)
-      changed_when: >
-                    templates_roles_users_change.changed or
-                    (ansible_check_mode and
-                     templates_roles_users_change.msg is defined and
-                     ('returned 0 items' in templates_roles_users_change.msg or
-                      'missing items' in templates_roles_users_change.msg))
-      tags:
-        - controller_config_roles_templates_users
-        - controller_config_roles_templates_users_apply
+                     controller_roles_change.msg is defined and
+                     'returned 0 items' in controller_roles_change.msg)

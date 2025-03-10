@@ -199,6 +199,7 @@ The following switches can also be specified as extra variables:
 - **replace_passwords** to change passwords for users and credentials
 - **delete_objects** to delete rogue objects
 - **wait_project_sync** to wait for projects to synchronise (note: the task will not fail if project fails to sync)
+- **format_for_25** to export certain objects in a structure ready for import into AAP 2.5
 
 When using from command line call the playbook specifying files with variables:
 
@@ -288,42 +289,6 @@ Available tags:
 - controller_config_roles
 - controller_config_roles_apply
 - controller_config_roles_cleanup
-- controller_config_roles_instance_groups (pre 2.5)
-- controller_config_roles_instance_groups_apply (pre 2.5)
-- controller_config_roles_instance_groups_cleanup (pre 2.5)
-- controller_config_roles_instance_groups_teams (pre 2.5)
-- controller_config_roles_instance_groups_teams_apply (pre 2.5)
-- controller_config_roles_instance_groups_teams_cleanup (pre 2.5)
-- controller_config_roles_instance_groups_users (pre 2.5)
-- controller_config_roles_instance_groups_users_apply (pre 2.5)
-- controller_config_roles_instance_groups_users_cleanup (pre 2.5)
-- controller_config_roles_orgs (pre 2.5)
-- controller_config_roles_orgs_apply (pre 2.5)
-- controller_config_roles_orgs_cleanup (pre 2.5)
-- controller_config_roles_orgs_teams (pre 2.5)
-- controller_config_roles_orgs_teams_apply (pre 2.5)
-- controller_config_roles_orgs_teams_cleanup (pre 2.5)
-- controller_config_roles_orgs_users (pre 2.5)
-- controller_config_roles_orgs_users_apply (pre 2.5)
-- controller_config_roles_orgs_users_cleanup (pre 2.5)
-- controller_config_roles_creds (pre 2.5)
-- controller_config_roles_creds_apply (pre 2.5)
-- controller_config_roles_creds_cleanup (pre 2.5)
-- controller_config_roles_creds_teams (pre 2.5)
-- controller_config_roles_creds_teams_apply (pre 2.5)
-- controller_config_roles_creds_teams_cleanup (pre 2.5)
-- controller_config_roles_creds_users (pre 2.5)
-- controller_config_roles_creds_users_apply (pre 2.5)
-- controller_config_roles_creds_users_cleanup (pre 2.5)
-- controller_config_roles_templates (pre 2.5)
-- controller_config_roles_templates_apply (pre 2.5)
-- controller_config_roles_templates_cleanup (pre 2.5)
-- controller_config_roles_templates_teams (pre 2.5)
-- controller_config_roles_templates_teams_apply (pre 2.5)
-- controller_config_roles_templates_teams_cleanup (pre 2.5)
-- controller_config_roles_templates_users (pre 2.5)
-- controller_config_roles_templates_users_apply (pre 2.5)
-- controller_config_roles_templates_users_cleanup (pre 2.5)
 - controller_config_settings
 - controller_config_teams
 - controller_config_teams_apply
@@ -505,45 +470,40 @@ controller_objects_teams: [
 
 **Audit playbook**: aap_audit_roles.yml
 
-**Variable structure** (pre 2.5):
-
-```
-controller_objects_roles_organization: [
-  {'team': 'Team A', 'role': 'Approve', 'org': 'Org A'},
- 
-  {'user': 'UserA', 'role': 'Project Admin', 'org': 'Org C'}
-]
-
-controller_objects_roles_instance_groups: [
-  {'team': 'Team A', 'role': 'Admin', 'ig': 'Static IG A'},
- 
-  {'user': 'UserC', 'role': 'Use', 'ig': 'Static IG C'}
-]
-
-controller_objects_roles_credential: [
-  {'team': 'Team A', 'role': 'Admin', 'cred': 'Credential Machine A'},
-
-  {'user': 'UserC', 'role': 'Use', 'cred': 'Credential Machine C'}
-]
-
-controller_objects_roles_template: [
-  {'team': 'Team A', 'role': 'Admin', 'template': 'Template A'},
-
-  {'user': 'UserC', 'role': 'Execute', 'template': 'Template C'}
-]
-```
-
-**Variable structure** (2.5 and up):
+**Variable structure**:
 
 ```
 controller_objects_roles: [
-  {'team': 'Team A', 'role': 'JobTemplate Admin', 'object_type': 'jobtemplate', 'object_name': 'Template A'},
- 
-  {'user': 'UserA', 'role': 'JobTemplate Execute', 'object_type': 'jobtemplate', 'object_name': 'Template A'}
-]
+  {'team': 'Team A', 'role': 'JobTemplate Execute', 'object_type': 'jobtemplate', 'object_name': 'Template A'},
+  {'team': 'Team A', 'role': 'Project Update', 'object_type': 'project', 'object_name': 'Project A'},
+  {'team': 'Team A', 'role': 'WorkflowJobTemplate Approve', 'object_type': 'workflowjobtemplate', 'object_name': 'Workflow A'},
+  {'team': 'Team A', 'role': 'Credential Use', 'object_type': 'credential', 'object_name': 'Credential GitHub A'},
+  {'team': 'Team A', 'role': 'Inventory Adhoc', 'object_type': 'inventory', 'object_name': 'Inventory Constructed A'},
+  {'team': 'Team A', 'role': 'InstanceGroup Admin', 'object_type': 'instancegroup', 'object_name': 'Auto IG A'},
 
+  {'team': 'Team C', 'role': 'Organization ExecutionEnvironment Admin', 'object_type': 'organization', 'object_name': 'Org C'},
+  {'team': 'Team C', 'role': 'Organization Audit', 'object_type': 'organization', 'object_name': 'Org C'},
+  {'team': 'Team C', 'role': 'Organization Approval', 'object_type': 'organization', 'object_name': 'Org C'},
+
+  {'user': 'UserA', 'role': 'JobTemplate Execute', 'object_type': 'jobtemplate', 'object_name': 'Template A'},
+  {'user': 'UserA', 'role': 'Project Use', 'object_type': 'project', 'object_name': 'Project A'},
+  {'user': 'UserA', 'role': 'WorkflowJobTemplate Execute', 'object_type': 'workflowjobtemplate', 'object_name': 'Workflow A'},
+  {'user': 'UserA', 'role': 'Credential Admin', 'object_type': 'credential', 'object_name': 'Credential GitHub A'},
+  {'user': 'UserA', 'role': 'Inventory Update', 'object_type': 'inventory', 'object_name': 'Inventory Constructed A'},
+  {'user': 'UserA', 'role': 'InstanceGroup Use', 'object_type': 'instancegroup', 'object_name': 'Auto IG A'},
+
+  {'user': 'UserC', 'role': 'Organization Execute', 'object_type': 'organization', 'object_name': 'Org C'},
+  {'user': 'UserC', 'role': 'Organization Project Admin', 'object_type': 'organization', 'object_name': 'Org C'},
+  {'user': 'UserC', 'role': 'Organization Approval', 'object_type': 'organization', 'object_name': 'Org C'}
+] # type: ignore
+```
+
+**Variable structure** (2.5 addition):
+
+```
 gateway_objects_roles: [
-  {'user': 'UserA', 'role': 'Organization Member', 'object_type': 'organization', 'object_name': 'Org A'}
+  {'user': 'UserA', 'role': 'Organization Member', 'object_type': 'organization', 'object_name': 'Org A'},
+  {'user': 'UserC', 'role': 'Organization Admin', 'object_type': 'organization', 'object_name': 'Org C'}
 ]
 ```
 
@@ -865,14 +825,17 @@ All the issues below are related to Red Hat certified collections. We opened tic
 
 - **Users**: no ability to modify users in AAP 2.5 (see https://issues.redhat.com/browse/AAP-40035)
 
-- **Notifications**: custom messages that haven't been changed (i.e. still default) will show "None" during export. This is an issue with API (see https://issues.redhat.com/browse/AAP-40066)
+- **Notifications**: custom messages that haven't been changed (i.e. still default) will show "None" during export. This is an issue with API
+(see https://issues.redhat.com/browse/AAP-40066)
 
 - **Notifications**: add update_secrets parameter
 (see https://github.com/ansible/awx/issues/15825 and https://github.com/ansible/awx/pull/15826)
 
-- **Authentication**: module ansible.platform.authenticator does not honor check mode (see https://issues.redhat.com/browse/AAP-40037)
+- **Authentication**: module ansible.platform.authenticator does not honor check mode
+(see https://issues.redhat.com/browse/AAP-40037)
 
-- **Roles**: module ansible.platform.role_user_assignment does not honor check mode (see https://issues.redhat.com/browse/AAP-40037)
+- **Roles**: module ansible.platform.role_user_assignment does not honor check mode
+(see https://issues.redhat.com/browse/AAP-40037)
 
 - **Inventories**: because of how variables are handled by ansible.controller collection, automation reports "changed" during the first run and each time after template "saved" in the GUI
 (see https://github.com/ansible/awx/issues/14918 and https://github.com/ansible/awx/pull/15232)
@@ -884,4 +847,4 @@ All the issues below are related to Red Hat certified collections. We opened tic
 (see https://github.com/ansible/awx/issues/14918 and https://github.com/ansible/awx/pull/15232)
 
 - **Inventory hosts**: automation reports "changed" during the first run and each time after template "saved" in the GUI
-  (see https://github.com/ansible/awx/issues/14918 and https://github.com/ansible/awx/pull/15232)
+(see https://github.com/ansible/awx/issues/14918 and https://github.com/ansible/awx/pull/15232)
