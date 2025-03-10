@@ -123,8 +123,9 @@ Playbooks that interact with AAP Controller need the following parameters (as en
 
 ```
 CONTROLLER_HOST
+CONTROLLER_USERNAME
 CONTROLLER_OAUTH_TOKEN
-CONTROLLER_VERIFY_SSL
+(CONTROLLER_VERIFY_SSL)
 ```
 
 Playbooks that interact with AAP Hub need:
@@ -133,8 +134,7 @@ Playbooks that interact with AAP Hub need:
 AH_HOST
 AH_USERNAME
 AH_PASSWORD
-[AH_API_TOKEN]
-AH_VERIFY_SSL
+(AH_VERIFY_SSL)
 ```
 
 For AAP 2.5, Gateway credentials are also needed to create/change Organizations, Users, Teams and Settings:
@@ -142,7 +142,8 @@ For AAP 2.5, Gateway credentials are also needed to create/change Organizations,
 ```
 GATEWAY_HOSTNAME
 GATEWAY_USERNAME
-GATEWAY_PASSWORD
+GATEWAY_API_TOKEN
+(GATEWAY_VERIFY_SSL)
 ```
 
 When using from command line supply parameters as environment variables on localhost, for example:
@@ -848,3 +849,6 @@ All the issues below are related to Red Hat certified collections. We opened tic
 
 - **Inventory hosts**: automation reports "changed" during the first run and each time after template "saved" in the GUI
 (see https://github.com/ansible/awx/issues/14918 and https://github.com/ansible/awx/pull/15232)
+
+- **Private Hub**: automation doesn't support oAuth tokens which is a limitation of infra.ah_configuration.ah_api plugin
+(see https://github.com/ansible/galaxy_collection/issues/447)
