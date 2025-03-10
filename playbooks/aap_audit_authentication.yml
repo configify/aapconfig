@@ -30,4 +30,5 @@
         var: controller_authentication
       when: >
             controller_authentication is defined and
-            controller_authentication
+            controller_authentication and
+            not show_vars_at_the_end | default(false)

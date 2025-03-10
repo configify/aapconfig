@@ -50,4 +50,5 @@
         var: controller_objects_users
       when: >
             controller_objects_users is defined and
-            controller_objects_users
+            controller_objects_users and
+            not show_vars_at_the_end | default(false)

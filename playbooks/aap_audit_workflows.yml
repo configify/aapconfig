@@ -419,4 +419,5 @@
         var: controller_objects_workflows
       when: >
             controller_objects_workflows is defined and
-            controller_objects_workflows
+            controller_objects_workflows and
+            not show_vars_at_the_end | default(false)

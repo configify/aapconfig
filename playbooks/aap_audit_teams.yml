@@ -20,4 +20,5 @@
         var: controller_objects_teams
       when: >
             controller_objects_teams is defined and
-            controller_objects_teams
+            controller_objects_teams and
+            not show_vars_at_the_end | default(false)

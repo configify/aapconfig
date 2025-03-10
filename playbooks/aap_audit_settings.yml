@@ -48,18 +48,21 @@
         var: controller_settings_ldap
       when: >
             controller_settings_ldap is defined and
-            controller_settings_ldap
+            controller_settings_ldap and
+            not show_vars_at_the_end | default(false)
 
     - name: SETTINGS - Show custom AUTH settings (formatted)
       ansible.builtin.debug:
         var: controller_settings_authentication
       when: >
             controller_settings_authentication is defined and
-            controller_settings_authentication
+            controller_settings_authentication and
+            not show_vars_at_the_end | default(false)
 
     - name: SETTINGS - Show custom JOBS settings (formatted)
       ansible.builtin.debug:
         var: controller_settings_jobs
       when: >
             controller_settings_jobs is defined and
-            controller_settings_jobs
+            controller_settings_jobs and
+            not show_vars_at_the_end | default(false)

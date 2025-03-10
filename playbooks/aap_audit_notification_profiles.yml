@@ -23,4 +23,5 @@
         var: controller_objects_notification_profiles
       when: >
             controller_objects_notification_profiles is defined and
-            controller_objects_notification_profiles
+            controller_objects_notification_profiles and
+            not show_vars_at_the_end | default(false)
