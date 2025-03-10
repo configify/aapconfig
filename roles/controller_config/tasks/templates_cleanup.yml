@@ -1,7 +1,9 @@
 - name: TEMPLATES - Get all templates from AAP
-  ansible.controller.export:
-    job_templates: 'all'
-  register: aap_templates
+  ansible.builtin.set_fact:
+    aap_templates: "{{ aap_templates | default([]) + [{'name': item.name}] }}"
+  loop: "{{ lookup('ansible.controller.controller_api', 'job_templates/', return_objects=false, return_all=true).results }}"
+  loop_control:
+    label: " | template: {{ item.name }}"
 
 - name: TEMPLATES - Notify on rogue templates
   ansible.builtin.debug:
@@ -10,7 +12,7 @@
         not delete_objects | default(false) | bool and
         controller_objects_templates | selectattr("name", "equalto", item.name) | length == 0
   changed_when: true
-  loop: "{{ aap_templates.assets.job_templates }}"
+  loop: "{{ aap_templates | default([]) }}"
   loop_control:
     label: " | template: {{ item.name }}"
 
@@ -21,6 +23,6 @@
   when: >
         delete_objects | default(false) | bool and
         controller_objects_templates | selectattr("name", "equalto", item.name) | length == 0
-  loop: "{{ aap_templates.assets.job_templates }}"
+  loop: "{{ aap_templates | default([]) }}"
   loop_control:
     label: " | template: {{ item.name }}"

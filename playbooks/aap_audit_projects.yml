@@ -4,15 +4,10 @@
   gather_facts: false
 
   tasks:
-    - name: PROJECTS - Get all projects from AAP
-      ansible.controller.export:
-        projects: 'all'
-      register: aap_projects
-
     - name: PROJECTS - Build list with all projects
       ansible.builtin.set_fact:
         controller_objects_projects: |
-                                      {% if not item.credential %}
+                                      {% if item.summary_fields.credential is not defined %}
                                       {{ controller_objects_projects | default([]) +
                                          [{'name': item.name,
                                            'type': item.scm_type,
@@ -20,7 +15,7 @@
                                            'scm_clean': item.scm_clean,
                                            'scm_delete': item.scm_delete_on_update,
                                            'scm_update': item.scm_update_on_launch,
-                                           'org': item.organization.name,
+                                           'org': item.summary_fields.organization.name | default(''),
                                            'url': item.scm_url} | regex_replace('\n', '')] }}
                                       {% else %}
                                       {{ controller_objects_projects | default([]) +
@@ -30,11 +25,11 @@
                                            'scm_clean': item.scm_clean,
                                            'scm_delete': item.scm_delete_on_update,
                                            'scm_update': item.scm_update_on_launch,
-                                           'org': item.organization.name,
-                                           'cred': item.credential.name,
+                                           'org': item.summary_fields.organization.name | default(''),
+                                           'cred': item.summary_fields.credential.name,
                                            'url': item.scm_url} | regex_replace('\n', '')] }}
                                       {% endif %}
-      loop: "{{ aap_projects.assets.projects }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'projects/', return_objects=false, return_all=true).results }}"
       loop_control:
         label: " | project: {{ item.name }}"
 

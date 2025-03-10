@@ -4,20 +4,15 @@
   gather_facts: false
 
   tasks:
-    - name: SCHEDULES - Get all schedules from AAP
-      ansible.controller.export:
-        schedules: 'all'
-      register: aap_schedules
-
     - name: SCHEDULES - Build list with all schedules
       ansible.builtin.set_fact:
         controller_objects_schedules: "{{ controller_objects_schedules | default([]) +
                                           [{'name': item.name,
                                             'descr': item.description,
-                                            'template': item.unified_job_template.name,
+                                            'template': item.summary_fields.unified_job_template.name,
                                             'rules': item.rrule} |
                                              regex_replace('\n', '')] }}"
-      loop: "{{ aap_schedules.assets.schedules }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'schedules/', return_objects=false, return_all=true).results }}"
       loop_control:
         label: " | ee: {{ item.name }}"
 

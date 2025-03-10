@@ -1,7 +1,9 @@
 - name: PROJECTS - Get all projects from AAP
-  ansible.controller.export:
-    projects: 'all'
-  register: aap_projects
+  ansible.builtin.set_fact:
+    aap_projects: "{{ aap_projects | default([]) + [{'name': item.name}] }}"
+  loop: "{{ lookup('ansible.controller.controller_api', 'projects/', return_objects=false, return_all=true).results }}"
+  loop_control:
+    label: " | project: {{ item.name }}"
 
 - name: PROJECTS - Notify on rogue projects
   ansible.builtin.debug:
@@ -10,7 +12,7 @@
         not delete_objects | default(false) | bool and
         controller_objects_projects | default([]) | selectattr("name", "equalto", item.name) | length == 0
   changed_when: true
-  loop: "{{ aap_projects.assets.projects }}"
+  loop: "{{ aap_projects | default([]) }}"
   loop_control:
     label: " | project: {{ item.name }}"
 
@@ -21,6 +23,6 @@
   when: >
         delete_objects | default(false) | bool and
         controller_objects_projects | default([]) | selectattr("name", "equalto", item.name) | length == 0
-  loop: "{{ aap_projects.assets.projects }}"
+  loop: "{{ aap_projects | default([]) }}"
   loop_control:
     label: " | project: {{ item.name }}"

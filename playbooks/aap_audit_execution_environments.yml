@@ -4,11 +4,6 @@
   gather_facts: false
 
   tasks:
-    - name: EXECUTION ENVIRONMENTS - Get all execution environments from AAP
-      ansible.controller.export:
-        execution_environments: 'all'
-      register: aap_ee
-
     - name: EXECUTION ENVIRONMENTS - Build list with all execution environments
       ansible.builtin.set_fact:
         controller_objects_execution_environments: |
@@ -27,7 +22,7 @@
                                                          'pull': item.pull} |
                                                           regex_replace('\n', '')] }}
                                                    {% endif %}
-      loop: "{{ aap_ee.assets.execution_environments }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'execution_environments/', return_objects=false, return_all=true).results }}"
       loop_control:
         label: " | ee: {{ item.name }}"
 

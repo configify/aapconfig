@@ -4,11 +4,6 @@
   gather_facts: false
 
   tasks:
-    - name: TEMPLATES - Get all job templates from AAP
-      ansible.controller.export:
-        job_templates: 'all'
-      register: aap_templates
-
     - name: TEMPLATES - Build list with all templates
       ansible.builtin.set_fact:
         controller_objects_templates: "{{ controller_objects_templates | default([]) +
@@ -16,8 +11,8 @@
                                             'name': item.name,
                                             'description': item.description,
                                             'playbook': item.playbook,
-                                            'execution_environment': item.execution_environment.name | default(''),
-                                            'project': item.project.name,
+                                            'execution_environment': item.summary_fields.execution_environment.name | default(''),
+                                            'project': item.summary_fields.project.name | default(''),
                                             'allow_simultaneous': item.allow_simultaneous,
                                             'ask_credential_on_launch': item.ask_credential_on_launch,
                                             'ask_diff_mode_on_launch': item.ask_diff_mode_on_launch,
@@ -40,7 +35,7 @@
                                             'force_handlers': item.force_handlers,
                                             'forks': item.forks,
                                             'host_config_key': item.host_config_key,
-                                            'inventory': item.inventory.name | default(''),
+                                            'inventory': item.summary_fields.inventory.name | default(''),
                                             'job_slice_count': item.job_slice_count,
                                             'job_tags': item.job_tags,
                                             'job_type': item.job_type,
@@ -53,20 +48,32 @@
                                             'timeout': item.timeout,
                                             'use_fact_cache': item.use_fact_cache,
                                             'verbosity': item.verbosity,
-                                            'survey': item.related.survey_spec,
+                                            'survey': lookup('ansible.controller.controller_api',
+                                                             'job_templates/' + item.id | string + '/survey_spec/',
+                                                             return_objects=false,
+                                                             return_all=true).spec | default({}),
                                             'extra_vars': {} if not item.extra_vars or item.extra_vars == '---'
                                                              else item.extra_vars | from_yaml,
                                             'webhook_service': item.webhook_service,
                                             'webhook_credential': item.webhook_credential,
-                                            'creds': item.related.credentials | selectattr('name') | map(attribute='name'),
-                                            'notifications_on_start': item.related.notification_templates_started |
-                                                                        selectattr('name') | map(attribute='name'),
-                                            'notifications_on_success': item.related.notification_templates_success |
+                                            'creds': item.summary_fields.credentials | selectattr('name') | map(attribute='name'),
+                                            'notifications_on_start': lookup('ansible.controller.controller_api',
+                                                                             'job_templates/' + item.id | string + '/notification_templates_started/',
+                                                                             return_objects=false,
+                                                                             return_all=true).results |
+                                                                      selectattr('name') | map(attribute='name'),
+                                            'notifications_on_success': lookup('ansible.controller.controller_api',
+                                                                               'job_templates/' + item.id | string + '/notification_templates_success/',
+                                                                               return_objects=false,
+                                                                               return_all=true).results |
                                                                           selectattr('name') | map(attribute='name'),
-                                            'notifications_on_failure': item.related.notification_templates_error |
+                                            'notifications_on_failure': lookup('ansible.controller.controller_api',
+                                                                               'job_templates/' + item.id | string + '/notification_templates_error/',
+                                                                               return_objects=false,
+                                                                               return_all=true).results |
                                                                           selectattr('name') | map(attribute='name')} |
                                               default([]) | regex_replace('\n', '')] }}"
-      loop: "{{ aap_templates.assets.job_templates }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'job_templates/', return_objects=false, return_all=true).results }}"
       loop_control:
         label: " | template: {{ item.name }}"
 

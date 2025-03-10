@@ -25,7 +25,7 @@
         not item.external_account and
         controller_objects_users | selectattr("username", "equalto", item.username) | length == 0 and
         item.username != 'admin'
-  loop: "{{ aap_exiting_users }}"
+  loop: "{{ aap_exiting_users | default([]) }}"
   loop_control:
     label: " | user: {{ item.username }}"
 
@@ -39,6 +39,6 @@
         not item.external_account and
         controller_objects_users | selectattr("username", "equalto", item.username) | length == 0 and
         item.username != 'admin'
-  loop: "{{ aap_exiting_users }}"
+  loop: "{{ aap_exiting_users | default([]) }}"
   loop_control:
     label: " | user: {{ item.username }}"
