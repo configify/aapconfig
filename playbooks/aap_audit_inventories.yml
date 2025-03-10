@@ -177,25 +177,29 @@
         var: controller_objects_inventories_smart
       when: >
             controller_objects_inventories_smart is defined and
-            controller_objects_inventories_smart
+            controller_objects_inventories_smart and
+            not show_vars_at_the_end | default(false)
 
     - name: INVENTORIES - Show constructed inventories (formatted)
       ansible.builtin.debug:
         var: controller_objects_inventories_constructed
       when: >
             controller_objects_inventories_constructed is defined and
-            controller_objects_inventories_constructed
+            controller_objects_inventories_constructed and
+            not show_vars_at_the_end | default(false)
 
     - name: INVENTORIES - Show dynamic inventories (formatted)
       ansible.builtin.debug:
         var: controller_objects_inventories_dynamic
       when: >
             controller_objects_inventories_dynamic is defined and
-            controller_objects_inventories_dynamic
+            controller_objects_inventories_dynamic and
+            not show_vars_at_the_end | default(false)
 
     - name: INVENTORIES - Show static inventories (formatted)
       ansible.builtin.debug:
         var: controller_objects_inventories_static
       when: >
             controller_objects_inventories_static is defined and
-            controller_objects_inventories_static
+            controller_objects_inventories_static and
+            not show_vars_at_the_end | default(false)

@@ -24,4 +24,5 @@
         var: hub_objects_collections
       when: >
             hub_objects_collections is defined and
-            hub_objects_collections
+            hub_objects_collections and
+            not show_vars_at_the_end | default(false)

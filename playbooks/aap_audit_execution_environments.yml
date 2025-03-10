@@ -31,4 +31,5 @@
         var: controller_objects_execution_environments
       when: >
             controller_objects_execution_environments is defined and
-            controller_objects_execution_environments
+            controller_objects_execution_environments and
+            not show_vars_at_the_end | default(false)

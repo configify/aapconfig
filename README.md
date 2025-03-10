@@ -255,7 +255,7 @@ If the requirement is to configure credentials including cleanup and add/change,
 
 If the requirement is to remove credentials and credential types that are not needed it's enough to specify **controller_config_credentials_cleanup** and **controller_config_credential_types_cleanup**.
 
-Available tags:
+Available configuration tags:
 
 - hub_config
 - hub_config_all_cleanup
@@ -310,6 +310,25 @@ Available tags:
 - controller_config_schedules_apply
 - controller_config_schedules_cleanup
 
+Available export tags:
+
+- export_collections
+- export_authenticators
+- export_credential_types
+- export_credentials
+- export_execution_environments
+- export_instance_groups
+- export_inventories
+- export_notifications
+- export_organizations
+- export_projects
+- export_roles
+- export_schedules
+- export_settings
+- export_teams
+- export_templates
+- export_users
+- export_workflows
 
 ## Variable structure
 

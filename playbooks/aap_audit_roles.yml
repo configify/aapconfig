@@ -287,4 +287,5 @@
         var: gateway_objects_roles
       when: >
             gateway_objects_roles is defined and
-            gateway_objects_roles
+            gateway_objects_roles and
+            not show_vars_at_the_end | default(false)

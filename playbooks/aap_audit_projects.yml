@@ -38,4 +38,5 @@
         var: controller_objects_projects
       when: >
             controller_objects_projects is defined and
-            controller_objects_projects
+            controller_objects_projects and
+            not show_vars_at_the_end | default(false)

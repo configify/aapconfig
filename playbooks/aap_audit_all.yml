@@ -1,0 +1,299 @@
+---
+- name: Audit collections
+  import_playbook: aap_audit_collections.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_collections
+
+- name: Audit Controller settings
+  import_playbook: aap_audit_authentication.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_authenticators
+
+- name: Audit credential types
+  import_playbook: aap_audit_credential_types.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_credential_types
+
+- name: Audit credentials
+  import_playbook: aap_audit_credentials.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_credentials
+
+- name: Audit execution environments
+  import_playbook: aap_audit_execution_environments.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_execution_environments
+
+- name: Audit instance groups
+  import_playbook: aap_audit_instance_groups.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_instance_groups
+
+- name: Audit inventories
+  import_playbook: aap_audit_inventories.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_inventories
+
+- name: Audit notification profiles
+  import_playbook: aap_audit_notification_profiles.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_notifications
+
+- name: Audit organizations
+  import_playbook: aap_audit_organizations.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_organizations
+
+- name: Audit projects
+  import_playbook: aap_audit_projects.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_projects
+
+- name: Audit roles
+  import_playbook: aap_audit_roles.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_roles
+
+- name: Audit schedules
+  import_playbook: aap_audit_schedules.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_schedules
+
+- name: Audit settings
+  import_playbook: aap_audit_settings.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_settings
+
+- name: Audit teams
+  import_playbook: aap_audit_teams.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_teams
+
+- name: Audit templates
+  import_playbook: aap_audit_templates.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_templates
+
+- name: Audit users
+  import_playbook: aap_audit_users.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_users
+
+- name: Audit workflows
+  import_playbook: aap_audit_workflows.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_workflows
+
+- name: Output all objects
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: COLLECTIONS - Show published collections (formatted)
+      ansible.builtin.debug:
+        var: hub_objects_collections
+      when: >
+            hub_objects_collections is defined and
+            hub_objects_collections
+      tags: export_collections
+
+    - name: SETTINGS - Show custom LDAP settings (formatted)
+      ansible.builtin.debug:
+        var: controller_settings_ldap
+      when: >
+            controller_settings_ldap is defined and
+            controller_settings_ldap
+      tags: export_settings
+
+    - name: SETTINGS - Show custom AUTH settings (formatted)
+      ansible.builtin.debug:
+        var: controller_settings_authentication
+      when: >
+            controller_settings_authentication is defined and
+            controller_settings_authentication
+      tags: export_settings
+
+    - name: SETTINGS - Show custom JOBS settings (formatted)
+      ansible.builtin.debug:
+        var: controller_settings_jobs
+      when: >
+            controller_settings_jobs is defined and
+            controller_settings_jobs
+      tags: export_settings
+
+    - name: AUTH - Show authenticators (2.5) (formatted)
+      ansible.builtin.debug:
+        var: controller_authentication
+      when: >
+            controller_authentication is defined and
+            controller_authentication
+      tags: export_authenticators
+
+    - name: USERS - Show all users (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_users
+      when: >
+            controller_objects_users is defined and
+            controller_objects_users
+      tags: export_users
+
+    - name: EXECUTION ENVIRONMENTS - Show execution environments (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_execution_environments
+      when: >
+            controller_objects_execution_environments is defined and
+            controller_objects_execution_environments
+      tags: export_execution_environments
+
+    - name: INSTANCE GROUPS - Show instance groups (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_instance_groups
+      when: >
+            controller_objects_instance_groups is defined and
+            controller_objects_instance_groups
+      tags: export_instance_groups
+
+    - name: CREDENTIAL TYPES - Show credential types (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_credential_types
+      when: >
+            controller_objects_credential_types is defined and
+            controller_objects_credential_types
+      tags: export_credential_types
+
+    - name: CREDENTIALS - Show organizational credentials (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_credentials_organizational
+      when: >
+            controller_objects_credentials_organizational is defined and
+            controller_objects_credentials_organizational
+      tags: export_credentials
+
+    - name: CREDENTIALS - Show personal credentials (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_credentials_personal
+      when: >
+            controller_objects_credentials_personal is defined and
+            controller_objects_credentials_personal
+      tags: export_credentials
+
+    - name: ORGANIZATIONS - Show all organizations (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_organizations
+      when: >
+            controller_objects_organizations is defined and
+            controller_objects_organizations
+      tags: export_organizations
+
+    - name: NOTIFICATIONS - Show all notification profiles (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_notification_profiles
+      when: >
+            controller_objects_notification_profiles is defined and
+            controller_objects_notification_profiles
+      tags: export_notifications
+
+    - name: TEAMS - Show all teams (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_teams
+      when: >
+            controller_objects_teams is defined and
+            controller_objects_teams
+      tags: export_teams
+
+    - name: PROJECTS - Show all projects (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_projects
+      when: >
+            controller_objects_projects is defined and
+            controller_objects_projects
+      tags: export_projects
+
+    - name: INVENTORIES - Show smart inventories (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_inventories_smart
+      when: >
+            controller_objects_inventories_smart is defined and
+            controller_objects_inventories_smart
+      tags: export_inventories
+
+    - name: INVENTORIES - Show constructed inventories (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_inventories_constructed
+      when: >
+            controller_objects_inventories_constructed is defined and
+            controller_objects_inventories_constructed
+      tags: export_inventories
+
+    - name: INVENTORIES - Show dynamic inventories (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_inventories_dynamic
+      when: >
+            controller_objects_inventories_dynamic is defined and
+            controller_objects_inventories_dynamic
+      tags: export_inventories
+
+    - name: INVENTORIES - Show static inventories (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_inventories_static
+      when: >
+            controller_objects_inventories_static is defined and
+            controller_objects_inventories_static
+      tags: export_inventories
+
+    - name: TEMPLATES - Show all templates (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_templates
+      when: >
+            controller_objects_templates is defined and
+            controller_objects_templates
+      tags: export_templates
+
+    - name: ROLES - Show controller roles (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_roles
+      when: >
+            controller_objects_roles is defined and
+            controller_objects_roles
+      tags: export_roles
+
+    - name: ROLES - Show gateway roles (formatted)
+      ansible.builtin.debug:
+        var: gateway_objects_roles
+      when: >
+            gateway_objects_roles is defined and
+            gateway_objects_roles
+      tags: export_roles
+
+    - name: SCHEDULES - Show all schedules (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_schedules
+      when: >
+            controller_objects_schedules is defined and
+            controller_objects_schedules
+      tags: export_schedules
+
+    - name: WORKFLOWS - Show all workflows (formatted)
+      ansible.builtin.debug:
+        var: controller_objects_workflows
+      when: >
+            controller_objects_workflows is defined and
+            controller_objects_workflows
+      tags: export_workflows
