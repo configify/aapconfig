@@ -11,213 +11,183 @@
     - name: ROLES - Audit roles (pre 2.5)
       when: controller_ping.version is version_compare('4.6', '<')
       block:
-        - name: ROLES - Get all team roles from AAP (pre 2.5)
+        - name: ROLES - Get team roles (pre 2.5)
           ansible.builtin.set_fact:
-            aap_ig_team_roles: "{{ aap_ig_team_roles | default([]) +
-                                   [{'name': item.name,
-                                     'roles': lookup('ansible.controller.controller_api', 'teams/' + item.id | string + '/roles',
-                                                     return_objects=false,
-                                                     return_all=true).results}] }}"
-          loop: "{{ lookup('ansible.controller.controller_api', 'teams/',
-                           return_objects=false,
-                           return_all=true).results }}"
+            controller_objects_team_roles: "{{ controller_objects_team_roles | default([]) +
+                                               [{'team': item.name,
+                                                 'roles': lookup('ansible.controller.controller_api',
+                                                                 'teams/' +
+                                                                    item.id | string +
+                                                                    '/roles/',
+                                                                 return_objects=false,
+                                                                 return_all=true).results}] }}"
+          loop: "{{ lookup('ansible.controller.controller_api', 'teams/', return_objects=false, return_all=true).results }}"
           loop_control:
             label: " | team: {{ item.name }}"
 
-        - name: ROLES - Build list with all instance group roles for teams (pre 2.5)
+        - name: ROLES - Build list with team roles (pre 2.5)
           ansible.builtin.set_fact:
-            controller_objects_roles_instance_groups: "{{ (controller_objects_roles_instance_groups | default([]) +
-                                                           [{'team': item.0.name,
-                                                             'role': item.1.name,
-                                                             'ig': item.1.summary_fields.resource_name} |
-                                                            regex_replace('\n', '')]) }}"
-          loop: "{{ aap_ig_team_roles | default([]) | subelements('roles') }}"
+            controller_objects_roles: "{{ controller_objects_roles | default([]) +
+                                          [{'team': item.0.team,
+                                            'role': item.1.summary_fields.resource_type_display_name | replace(' ', '') + ' ' + item.1.name,
+                                            'object_type': object_type,
+                                            'object_name': item.1.summary_fields.resource_name} |
+                                            regex_replace('\n', '')] }}"
+          loop: "{{ controller_objects_team_roles | default([]) | subelements('roles') }}"
           loop_control:
-            label: " | team: {{ item.0.name }} ->
-                       role: {{ item.1.name | default('N/A') }} ->
-                       {{ item.1.summary_fields.resource_type | default('N/A') }}: {{ item.1.summary_fields.resource_name | default('N/A') }}"
-          when: >
-                item.1.summary_fields.resource_name is defined and
-                item.1.name is defined and
-                item.1.summary_fields.resource_type == 'instance_group'
-
-        - name: ROLES - Build list with all organization roles for teams (pre 2.5)
-          ansible.builtin.set_fact:
-            controller_objects_roles_organization: "{{ controller_objects_roles_organization | default([]) +
-                                                       [{'team': item.0.name,
-                                                         'role': item.1.name,
-                                                         'org': item.1.summary_fields.resource_name} |
-                                                         regex_replace('\n', '')] }}"
-          loop: "{{ aap_ig_team_roles | default([]) | subelements('roles') }}"
-          when: >
-                item.1.summary_fields.resource_name is defined and
-                item.1.name is defined and
-                item.1.summary_fields.resource_type == "organization"
-          loop_control:
-            label: " | team: {{ item.0.name }} ->
+            label: " | team: {{ item.0.team }} ->
                        role: {{ item.1.name }} ->
-                       {{ item.1.summary_fields.resource_type | default('N/A') }}: {{ item.1.summary_fields.resource_name | default('N/A') }}"
+                       {{ object_type }}: {{ item.1.summary_fields.resource_name }}"
+          when: not format_for_25 | default(false)
+          vars:
+            object_type: "{{ item.1.summary_fields.resource_type | replace('_', '') }}"
 
-        - name: ROLES - Build list with all credential roles for teams (pre 2.5)
+        - name: ROLES - Build list with team roles (pre 2.5 in 2.5 format)
           ansible.builtin.set_fact:
-            controller_objects_roles_credential: "{{ controller_objects_roles_credential | default([]) +
-                                                     [{'team': item.0.name,
-                                                       'role': item.1.name,
-                                                       'cred': item.1.summary_fields.resource_name} |
-                                                       regex_replace('\n', '')] }}"
-          loop: "{{ aap_ig_team_roles | default([]) | subelements('roles') }}"
-          when: >
-                item.1.summary_fields.resource_name is defined and
-                item.1.name is defined and
-                item.1.summary_fields.resource_type == "credential"
+            controller_objects_roles: "{{ controller_objects_roles | default([]) +
+                                          [{'team': item.0.team,
+                                            'role': (item.1.summary_fields.resource_type_display_name | replace(' ', '') + ' ' + item.1.name) |
+                                                     replace('Job Template', 'JobTemplate') |
+                                                     replace('Auditor', 'Audit') |
+                                                     replace('Organization Approve', 'Organization Approval') |
+                                                     replace('Execution Environment', 'ExecutionEnvironment') |
+                                                     replace('Ad Hoc', 'Adhoc') |
+                                                     replace('Workflow Admin', 'WorkflowJobTemplate Admin') |
+                                                     replace('Notification Admin', 'NotificationTemplate Admin'),
+                                            'object_type': object_type,
+                                            'object_name': item.1.summary_fields.resource_name} |
+                                            regex_replace('\n', '')] }}"
+          loop: "{{ controller_objects_team_roles | default([]) | subelements('roles') }}"
           loop_control:
-            label: " | team: {{ item.0.name }} ->
+            label: " | team: {{ item.0.team }} ->
                        role: {{ item.1.name }} ->
-                       {{ item.1.summary_fields.resource_type | default('N/A') }}: {{ item.1.summary_fields.resource_name | default('N/A') }}"
-
-        - name: ROLES - Build list with all template roles for teams (pre 2.5)
-          ansible.builtin.set_fact:
-            controller_objects_roles_template: "{{ controller_objects_roles_template | default([]) +
-                                                   [{'team': item.0.name,
-                                                     'role': item.1.name,
-                                                     'template': item.1.summary_fields.resource_name} |
-                                                     regex_replace('\n', '')] }}"
-          loop: "{{ aap_ig_team_roles | default([]) | subelements('roles') }}"
+                       {{ object_type }}: {{ item.1.summary_fields.resource_name }}"
           when: >
-                item.1.summary_fields.resource_name is defined and
-                item.1.name is defined and
-                item.1.summary_fields.resource_type == "job_template"
+                format_for_25 | default(false) and
+                item.1.name != "Read"
+          vars:
+            object_type: "{{ item.1.summary_fields.resource_type | replace('_', '') }}"
+
+        - name: ROLES - Get user roles (pre 2.5)
+          ansible.builtin.set_fact:
+            controller_objects_user_roles: "{{ controller_objects_user_roles | default([]) +
+                                               [{'user': item.username,
+                                                 'roles': lookup('ansible.controller.controller_api',
+                                                                 'users/' +
+                                                                    item.id | string +
+                                                                    '/roles/',
+                                                                 return_objects=false,
+                                                                 return_all=true).results}] }}"
+          when: not item.is_superuser
+          loop: "{{ lookup('ansible.controller.controller_api', 'users/', return_objects=false, return_all=true).results }}"
           loop_control:
-            label: " | team: {{ item.0.name }} ->
+            label: " | user: {{ item.username }}"
+
+        - name: ROLES - Build list with all controller non-org user roles (pre 2.5)
+          ansible.builtin.set_fact:
+            controller_objects_roles: "{{ controller_objects_roles | default([]) +
+                                          [{'user': item.0.user,
+                                            'role': role,
+                                            'object_type': object_type,
+                                            'object_name': item.1.summary_fields.resource_name} |
+                                            regex_replace('\n', '')] }}"
+          when: >
+                not format_for_25 | default(false) and
+                item.1.summary_fields.resource_type is defined and
+                item.1.name != "Member" and
+                role != "Organization Admin"
+          loop: "{{ controller_objects_user_roles | default([]) | subelements('roles') }}"
+          loop_control:
+            label: " | user: {{ item.0.user }} ->
                        role: {{ item.1.name }} ->
-                       {{ item.1.summary_fields.resource_type | default('N/A') }}: {{ item.1.summary_fields.resource_name | default('N/A') }}"
+                       {{ object_type }}: {{ item.1.summary_fields.resource_name | default('N/A') }}"
+          vars:
+            object_type: "{{ item.1.summary_fields.resource_type | default('N/A') | replace('_', '') }}"
+            role: "{{ item.1.summary_fields.resource_type_display_name | replace(' ', '') + ' ' + item.1.name }}"
 
-        - name: ROLES - Get all users from AAP
-          ansible.controller.export:
-            users: 'all'
-          register: aap_users
-
-        - name: ROLES - Build list with all organization roles for users (pre 2.5)
+        - name: ROLES - Build list with all controller non-org user roles (pre 2.5 in 2.5 format)
           ansible.builtin.set_fact:
-            controller_objects_roles_organization: "{{ controller_objects_roles_organization | default([]) +
-                                                       [{'user': item.0.username,
-                                                         'role': item.1.name,
-                                                         'org': item.1.content_object.name} |
-                                                         regex_replace('\n', '')] }}"
-          loop: "{{ aap_users.assets.users | default([]) | subelements('related.roles') }}"
+            controller_objects_roles: "{{ controller_objects_roles | default([]) +
+                                          [{'user': item.0.user,
+                                            'role': role,
+                                            'object_type': object_type,
+                                            'object_name': item.1.summary_fields.resource_name} |
+                                            regex_replace('\n', '')] }}"
           when: >
-                item.0.related.roles is defined and
-                not item.0.is_superuser and
-                not item.0.is_system_auditor and
-                item.1.content_object and
-                item.1.content_object.type == "organization"
+                format_for_25 | default(false) and
+                item.1.summary_fields.resource_type is defined and
+                item.1.name != "Member" and
+                item.1.name != "Read" and
+                role != "Organization Admin"
+          loop: "{{ controller_objects_user_roles | default([]) | subelements('roles') }}"
           loop_control:
-            label: " | user: {{ item.0.username }} ->
+            label: " | user: {{ item.0.user }} ->
                        role: {{ item.1.name }} ->
-                       {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
+                       {{ object_type }}: {{ item.1.summary_fields.resource_name | default('N/A') }}"
+          vars:
+            object_type: "{{ item.1.summary_fields.resource_type | default('N/A') | replace('_', '') }}"
+            role: "{{ (item.1.summary_fields.resource_type_display_name | replace(' ', '') + ' ' + item.1.name) |
+                       replace('Job Template', 'JobTemplate') |
+                       replace('Auditor', 'Audit') |
+                       replace('Organization Approve', 'Organization Approval') |
+                       replace('Execution Environment', 'ExecutionEnvironment') |
+                       replace('Ad Hoc', 'Adhoc') |
+                       replace('Workflow Admin', 'WorkflowJobTemplate Admin') |
+                       replace('Notification Admin', 'NotificationTemplate Admin') }}"
 
-        - name: ROLES - Build list with all credential roles for users (pre 2.5)
+        - name: ROLES - Build list with all controller org user roles (pre 2.5)
           ansible.builtin.set_fact:
-            controller_objects_roles_credential: "{{ controller_objects_roles_credential | default([]) +
-                                                     [{'user': item.0.username,
-                                                       'role': item.1.name,
-                                                       'cred': item.1.content_object.name} |
-                                                       regex_replace('\n', '')] }}"
-          loop: "{{ aap_users.assets.users | default([]) | subelements('related.roles') }}"
+            controller_objects_roles: "{{ controller_objects_roles | default([]) +
+                                          [{'user': item.0.user,
+                                            'role': role,
+                                            'object_type': object_type,
+                                            'object_name': item.1.summary_fields.resource_name} |
+                                            regex_replace('\n', '')] }}"
           when: >
-                item.0.related.roles is defined and
-                not item.0.is_superuser and
-                not item.0.is_system_auditor and
-                item.1.content_object and
-                item.1.content_object.type == "credential"
+                not format_for_25 | default(false) and
+                item.1.summary_fields.resource_type is defined and
+                (item.1.name == "Member" or
+                 role == "Organization Admin")
+          loop: "{{ controller_objects_user_roles | default([]) | subelements('roles') }}"
           loop_control:
-            label: " | user:{{ item.0.username }} ->
+            label: " | user: {{ item.0.user }} ->
                        role: {{ item.1.name }} ->
-                       {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
+                       {{ object_type }}: {{ item.1.summary_fields.resource_name | default('N/A') }}"
+          vars:
+            object_type: "{{ item.1.summary_fields.resource_type | default('N/A') | replace('_', '') }}"
+            role: "{{ item.1.summary_fields.resource_type_display_name | replace(' ', '') + ' ' + item.1.name }}"
 
-        - name: ROLES - Build list with all template roles for users (pre 2.5)
+        - name: ROLES - Build list with all controller org user roles (pre 2.5 in 2.5 format)
           ansible.builtin.set_fact:
-            controller_objects_roles_template: "{{ controller_objects_roles_template | default([]) +
-                                                   [{'user': item.0.username,
-                                                     'role': item.1.name,
-                                                     'template': item.1.content_object.name} |
-                                                     regex_replace('\n', '')] }}"
-          loop: "{{ aap_users.assets.users | default([]) | subelements('related.roles') }}"
+            gateway_objects_roles: "{{ gateway_objects_roles | default([]) +
+                                       [{'user': item.0.user,
+                                         'role': role,
+                                         'object_type': object_type,
+                                         'object_name': item.1.summary_fields.resource_name} |
+                                         regex_replace('\n', '')] }}"
           when: >
-                item.0.related.roles is defined and
-                not item.0.is_superuser and
-                not item.0.is_system_auditor and
-                item.1.content_object and
-                item.1.content_object.type == "job_template"
+                format_for_25 | default(false) and
+                item.1.summary_fields.resource_type is defined and
+                (item.1.name == "Member" or
+                 role == "Organization Admin")
+          loop: "{{ controller_objects_user_roles | default([]) | subelements('roles') }}"
           loop_control:
-            label: " | user:{{ item.0.username }} ->
+            label: " | user: {{ item.0.user }} ->
                        role: {{ item.1.name }} ->
-                       {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
-
-        - name: ROLES - Get instance groups
-          ansible.builtin.set_fact:
-            aap_instance_groups: "{{ lookup('ansible.controller.controller_api', 'instance_groups', return_objects=false, return_all=true).results }}"
-
-        - name: ROLES - Get instance groups acl
-          ansible.builtin.set_fact:
-            aap_instance_groups_acl: "{{ aap_instance_groups_acl | default([]) +
-                                         lookup('ansible.controller.controller_api', 'instance_groups/' + item.id | string + '/access_list',
-                                                return_objects=false,
-                                                return_all=true).results }}"
-          loop: "{{ aap_instance_groups }}"
-          loop_control:
-            label: " | ig: {{ item.name }}"
-
-        - name: ROLES - Build list with all instance group roles for users (pre 2.5)
-          ansible.builtin.set_fact:
-            controller_objects_roles_instance_groups: "{{ (controller_objects_roles_instance_groups | default([]) +
-                                                           [{'user': item.0.username,
-                                                             'role': item.1.role.name,
-                                                             'ig': item.1.role.resource_name} |
-                                                            regex_replace('\n', '')]) | unique }}"
-          loop: "{{ aap_instance_groups_acl | default([]) | subelements('summary_fields.direct_access') }}"
-          loop_control:
-            label: " | team/user: {{ item.1.role.team_name | default(item.0.username) }} (user: {{ item.0.username }}) ->
-                       role: {{ item.1.role.name | default('N/A') }} ->
-                       ig: {{ item.1.role.resource_name | default('N/A') }}"
-          when: >
-                item.0.summary_fields.direct_access and
-                item.1.role.team_name is not defined
-
-        - name: ROLES - Show all instance group roles (formatted)
-          ansible.builtin.debug:
-            var: controller_objects_roles_instance_groups
-          when: >
-                controller_objects_roles_instance_groups is defined and
-                controller_objects_roles_instance_groups
-
-        - name: ROLES - Show all organization roles
-          ansible.builtin.debug:
-            var: controller_objects_roles_organization
-          when: >
-                controller_objects_roles_organization is defined and
-                controller_objects_roles_organization
-
-        - name: ROLES - Show all credential roles
-          ansible.builtin.debug:
-            var: controller_objects_roles_credential
-          when: >
-                controller_objects_roles_credential is defined and
-                controller_objects_roles_credential
-
-        - name: ROLES - Show all template roles
-          ansible.builtin.debug:
-            var: controller_objects_roles_template
-          when: >
-                controller_objects_roles_template is defined and
-                controller_objects_roles_template
+                       {{ object_type }}: {{ item.1.summary_fields.resource_name  | default('N/A')}}"
+          vars:
+            object_type: "{{ item.1.summary_fields.resource_type | default('N/A') | replace('_', '') }}"
+            role: "{{ item.1.summary_fields.resource_type_display_name | replace(' ', '') + ' ' + item.1.name }}"
 
     - name: ROLES - Audit roles (2.5)
       when: controller_ping.version is version_compare('4.6', '>=')
       block:
-        - name: ROLES - Get controller team role assignments
+        - name: ROLES - Get controller team role assignments (2.5)
           ansible.builtin.set_fact:
-            controller_team_role_assignments: "{{ lookup('ansible.controller.controller_api', 'role_team_assignments', return_objects=false).results }}"
+            controller_team_role_assignments: "{{ lookup('ansible.controller.controller_api',
+                                                         'role_team_assignments',
+                                                         return_objects=false,
+                                                         return_all=true).results }}"
 
         - name: ROLES - Build list with controller team roles (2.5)
           ansible.builtin.set_fact:
@@ -235,7 +205,10 @@
 
         - name: ROLES - Get controller user role assignments
           ansible.builtin.set_fact:
-            controller_user_role_assignments: "{{ lookup('ansible.controller.controller_api', 'role_user_assignments', return_objects=false).results }}"
+            controller_user_role_assignments: "{{ lookup('ansible.controller.controller_api',
+                                                         'role_user_assignments',
+                                                         return_objects=false,
+                                                         return_all=true).results }}"
 
         - name: ROLES - Build list with controller user roles (2.5)
           ansible.builtin.set_fact:
@@ -254,11 +227,13 @@
 
         - name: ROLES - Get gateway team role assignments
           ansible.builtin.set_fact:
-            gateway_team_role_assignments: "{{ lookup('ansible.platform.gateway_api', 'role_team_assignments',
+            gateway_team_role_assignments: "{{ lookup('ansible.platform.gateway_api',
+                                                      'role_team_assignments',
                                                       return_objects=false,
                                                       host=lookup('ansible.builtin.env', 'GATEWAY_HOSTNAME'),
                                                       username=lookup('ansible.builtin.env', 'GATEWAY_USERNAME'),
                                                       password=lookup('ansible.builtin.env', 'GATEWAY_PASSWORD'),
+                                                      oauth_token=lookup('ansible.builtin.env', 'GATEWAY_API_TOKEN'),
                                                       verify_ssl=lookup('ansible.builtin.env', 'GATEWAY_VERIFY_SSL')).results }}"
 
         - name: ROLES - Build list with gateway team roles (2.5)
@@ -277,11 +252,13 @@
 
         - name: ROLES - Get gateway user role assignments
           ansible.builtin.set_fact:
-            gateway_user_role_assignments: "{{ lookup('ansible.platform.gateway_api', 'role_user_assignments',
+            gateway_user_role_assignments: "{{ lookup('ansible.platform.gateway_api',
+                                                      'role_user_assignments',
                                                       return_objects=false,
                                                       host=lookup('ansible.builtin.env', 'GATEWAY_HOSTNAME'),
                                                       username=lookup('ansible.builtin.env', 'GATEWAY_USERNAME'),
                                                       password=lookup('ansible.builtin.env', 'GATEWAY_PASSWORD'),
+                                                      oauth_token=lookup('ansible.builtin.env', 'GATEWAY_API_TOKEN'),
                                                       verify_ssl=lookup('ansible.builtin.env', 'GATEWAY_VERIFY_SSL')).results }}"
 
         - name: ROLES - Build list with gateway user roles (2.5)
@@ -298,16 +275,16 @@
                        role: {{ item.summary_fields.role_definition.name }} ->
                        {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
 
-        - name: ROLES - Show all controller roles
-          ansible.builtin.debug:
-            var: controller_objects_roles
-          when: >
-                controller_objects_roles is defined and
-                controller_objects_roles
+    - name: ROLES - Show all controller roles
+      ansible.builtin.debug:
+        var: controller_objects_roles
+      when: >
+            controller_objects_roles is defined and
+            controller_objects_roles
 
-        - name: ROLES - Show all gateway roles
-          ansible.builtin.debug:
-            var: gateway_objects_roles
-          when: >
-                gateway_objects_roles is defined and
-                gateway_objects_roles
+    - name: ROLES - Show all gateway roles
+      ansible.builtin.debug:
+        var: gateway_objects_roles
+      when: >
+            gateway_objects_roles is defined and
+            gateway_objects_roles
