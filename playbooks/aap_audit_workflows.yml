@@ -414,7 +414,7 @@
       loop_control:
         label: " | workflow: {{ item.name }}"
 
-    - name: WORKFLOWS - Show all workflows
+    - name: WORKFLOWS - Show workflows (formatted)
       ansible.builtin.debug:
         var: controller_objects_workflows
       when: >

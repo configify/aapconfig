@@ -25,7 +25,7 @@
             lookup('ansible.controller.controller_api', 'ping').version is version_compare('4.6', '>=') | bool and
             item.type != 'ansible_base.authentication.authenticator_plugins.local'
 
-    - name: AUTH - Show authenticators (2.5)
+    - name: AUTH - Show authenticators (2.5) (formatted)
       ansible.builtin.debug:
         var: controller_authentication
       when: >

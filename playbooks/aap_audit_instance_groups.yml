@@ -19,7 +19,7 @@
       loop_control:
         label: " | ig: {{ item.name }}"
 
-    - name: INSTANCE GROUPS - Show instance groups list (formatted)
+    - name: INSTANCE GROUPS - Show instance groups (formatted)
       ansible.builtin.debug:
         var: controller_objects_instance_groups
       when: >

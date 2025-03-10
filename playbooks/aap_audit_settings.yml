@@ -43,21 +43,21 @@
         controller_settings_jobs: "{{ controller_settings_current.jobs | dict2items |
                                                 difference(controller_config_settings_default_jobs | dict2items) | items2dict }}"
 
-    - name: SETTINGS - Show custom LDAP settings (pre 2.5)
+    - name: SETTINGS - Show custom LDAP settings (pre 2.5) (formatted)
       ansible.builtin.debug:
         var: controller_settings_ldap
       when: >
             controller_settings_ldap is defined and
             controller_settings_ldap
 
-    - name: SETTINGS - Show custom AUTH settings
+    - name: SETTINGS - Show custom AUTH settings (formatted)
       ansible.builtin.debug:
         var: controller_settings_authentication
       when: >
             controller_settings_authentication is defined and
             controller_settings_authentication
 
-    - name: SETTINGS - Show custom JOBS settings
+    - name: SETTINGS - Show custom JOBS settings (formatted)
       ansible.builtin.debug:
         var: controller_settings_jobs
       when: >

@@ -18,7 +18,7 @@
       loop_control:
         label: " | notification: {{ item.name }}"
 
-    - name: NOTIFICATIONS - Show all notification profiles
+    - name: NOTIFICATIONS - Show notification profiles (formatted)
       ansible.builtin.debug:
         var: controller_objects_notification_profiles
       when: >

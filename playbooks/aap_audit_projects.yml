@@ -33,7 +33,7 @@
       loop_control:
         label: " | project: {{ item.name }}"
 
-    - name: PROJECTS - Show all projects
+    - name: PROJECTS - Show projects (formatted)
       ansible.builtin.debug:
         var: controller_objects_projects
       when: >

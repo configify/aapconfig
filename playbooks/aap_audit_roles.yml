@@ -275,14 +275,14 @@
                        role: {{ item.summary_fields.role_definition.name }} ->
                        {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
 
-    - name: ROLES - Show all controller roles
+    - name: ROLES - Show controller roles (formatted)
       ansible.builtin.debug:
         var: controller_objects_roles
       when: >
             controller_objects_roles is defined and
             controller_objects_roles
 
-    - name: ROLES - Show all gateway roles
+    - name: ROLES - Show gateway roles (formatted)
       ansible.builtin.debug:
         var: gateway_objects_roles
       when: >

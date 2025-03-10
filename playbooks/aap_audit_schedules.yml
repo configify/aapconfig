@@ -16,7 +16,7 @@
       loop_control:
         label: " | ee: {{ item.name }}"
 
-    - name: SCHEDULES - Show all schedules
+    - name: SCHEDULES - Show schedules (formatted)
       ansible.builtin.debug:
         var: controller_objects_schedules
       when: >

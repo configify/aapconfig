@@ -19,7 +19,7 @@
       loop_control:
         label: " | org: {{ item.name }}"
 
-    - name: ORGANIZATIONS - Show all organizations
+    - name: ORGANIZATIONS - Show organizations (formatted)
       ansible.builtin.debug:
         var: controller_objects_organizations
       when: >

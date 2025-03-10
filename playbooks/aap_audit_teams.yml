@@ -15,7 +15,7 @@
       loop_control:
         label: " | team: {{ item.name }}"
 
-    - name: TEAMS - Show all teams
+    - name: TEAMS - Show teams (formatted)
       ansible.builtin.debug:
         var: controller_objects_teams
       when: >

@@ -77,7 +77,7 @@
       loop_control:
         label: " | template: {{ item.name }}"
 
-    - name: TEMPLATES - Show all templates
+    - name: TEMPLATES - Show templates (formatted)
       ansible.builtin.debug:
         var: controller_objects_templates
       when: >

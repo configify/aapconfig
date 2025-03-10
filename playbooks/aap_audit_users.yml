@@ -45,7 +45,7 @@
         label: " | user: {{ item.username }}"
       when: not item.external_account | default(item.managed)
 
-    - name: USERS - Show all users
+    - name: USERS - Show users (formatted)
       ansible.builtin.debug:
         var: controller_objects_users
       when: >

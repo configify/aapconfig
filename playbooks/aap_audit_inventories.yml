@@ -172,28 +172,28 @@
             not item.has_inventory_sources and
             not item.kind
 
-    - name: INVENTORIES - Show smart inventories list (formatted)
+    - name: INVENTORIES - Show smart inventories (formatted)
       ansible.builtin.debug:
         var: controller_objects_inventories_smart
       when: >
             controller_objects_inventories_smart is defined and
             controller_objects_inventories_smart
 
-    - name: INVENTORIES - Show constructed inventories list (formatted)
+    - name: INVENTORIES - Show constructed inventories (formatted)
       ansible.builtin.debug:
         var: controller_objects_inventories_constructed
       when: >
             controller_objects_inventories_constructed is defined and
             controller_objects_inventories_constructed
 
-    - name: INVENTORIES - Show dynamic inventories list (formatted)
+    - name: INVENTORIES - Show dynamic inventories (formatted)
       ansible.builtin.debug:
         var: controller_objects_inventories_dynamic
       when: >
             controller_objects_inventories_dynamic is defined and
             controller_objects_inventories_dynamic
 
-    - name: INVENTORIES - Show static inventories list (formatted)
+    - name: INVENTORIES - Show static inventories (formatted)
       ansible.builtin.debug:
         var: controller_objects_inventories_static
       when: >
