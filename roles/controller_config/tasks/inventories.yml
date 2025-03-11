@@ -245,3 +245,47 @@
                 (ansible_check_mode and
                  inventories_constructed_parameter_change_result.msg is defined and
                  'was not found' in inventories_constructed_parameter_change_result.msg)
+
+- name: INVENTORIES - Synchronize sources
+  when: trigger_inventory_sync | default(false)
+  block:
+    - name: INVENTORIES - Synchronize dynamic inventory sources
+      ansible.controller.inventory_source_update:
+        name: "{{ item.1.name }}"
+        inventory: "{{ item.0.name }}"
+      loop: "{{ controller_objects_inventories_dynamic | default([]) | subelements('sources') }}"
+      loop_control:
+        label: " | inventory: {{ item.0.name }} ->
+                   source: {{ item.1.name }}"
+      register: dynamic_inventories_sources_sync
+      failed_when: >
+                   (not ansible_check_mode and
+                    dynamic_inventories_sources_sync.msg is defined) or
+                   (ansible_check_mode and
+                    dynamic_inventories_sources_sync.msg is defined and
+                    'was not found' not in dynamic_inventories_sources_sync.msg)
+      changed_when: >
+                    dynamic_inventories_sources_sync.changed or
+                    (ansible_check_mode and
+                     dynamic_inventories_sources_sync.msg is defined and
+                     'was not found' in dynamic_inventories_sources_sync.msg)
+
+    - name: INVENTORIES - Synchronize constructed inventory sources
+      ansible.controller.inventory_source_update:
+        name: "{{ item.source if item.source | default('') else 'Auto-created source for: ' + item.name }}"
+        inventory: "{{ item.name }}"
+      loop: "{{ controller_objects_inventories_constructed | default([]) }}"
+      loop_control:
+        label: " | inventory: {{ item.name }}"
+      register: constructed_inventories_sources_sync
+      failed_when: >
+                   (not ansible_check_mode and
+                    constructed_inventories_sources_sync.msg is defined) or
+                   (ansible_check_mode and
+                    constructed_inventories_sources_sync.msg is defined and
+                    'was not found' not in constructed_inventories_sources_sync.msg)
+      changed_when: >
+                    constructed_inventories_sources_sync.changed or
+                    (ansible_check_mode and
+                     constructed_inventories_sources_sync.msg is defined and
+                     'was not found' in constructed_inventories_sources_sync.msg)

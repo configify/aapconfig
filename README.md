@@ -199,8 +199,9 @@ The following switches can also be specified as extra variables:
 
 - **replace_passwords** to change passwords for users and credentials
 - **delete_objects** to delete rogue objects
-- **wait_project_sync** to wait for projects to synchronise (note: the task will not fail if project fails to sync)
+- **wait_project_sync** to wait for projects to synchronise (note: automation will report but not fail if project fails to sync)
 - **format_for_25** to export certain objects in a structure ready for import into AAP 2.5
+- **trigger_inventory_sync** to trigger dynamic and constructed inventories synchronization (note: automation will not fail if inventory fails to sync)
 
 When using from command line call the playbook specifying files with variables:
 
