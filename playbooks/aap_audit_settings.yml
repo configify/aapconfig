@@ -9,13 +9,16 @@
     - name: Determine AAP version
       ansible.builtin.set_fact:
         pre_25: "{{ lookup('ansible.controller.controller_api', 'ping').version is version_compare('4.6', '<') | bool }}"
+      when: >
+            controller_ping is not defined and
+            aap_platform | default('aap') != 'awx24'
 
     - name: SETTINGS - Get current settings
       ansible.builtin.set_fact:
         controller_settings_current: "{{ controller_settings_current | default({}) |
                                          combine({item: lookup('ansible.controller.controller_api', 'settings/{{ item }}')}) }}"
       loop: |
-            {% if pre_25 %}
+            {% if (pre_25 is defined and pre_25) or (aap_platform is defined and aap_platform == 'awx24') %}
             {{ controller_config_setting_grp }}
             {% else %}
             {{ controller_config_setting_grp_25 }}
@@ -31,7 +34,9 @@
       ansible.builtin.set_fact:
         controller_settings_ldap: "{{ controller_settings_current.ldap | dict2items |
                                       difference(controller_config_settings_default_ldap | dict2items) | items2dict }}"
-      when: pre_25
+      when: >
+            (pre_25 is defined and pre_25) or
+            (aap_platform is defined and aap_platform == 'awx24')
 
     - name: SETTINGS - Compare current AUTH settings with defaults
       ansible.builtin.set_fact:

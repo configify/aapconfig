@@ -38,6 +38,7 @@
 
 1. Ability to report on configuration drift and optionally delete objects
 1. Ability to export existing AAP configurations and use them for automation after removing double quotes
+1. Ability to export configurations from AWX 24
 1. Support for AAP 2.5 and Gateway
 1. Automation from start to finish including Hub namespaces and collections, and most of the Controller objects including settings, roles, execution environments and many more
 1. AAP objects are created and deleted in the right sequence, so no need to worry about ordering variables
@@ -202,6 +203,7 @@ The following switches can also be specified as extra variables:
 - **wait_project_sync** to wait for projects to synchronise (note: automation will report but not fail if project fails to sync)
 - **format_for_25** to export certain objects in a structure ready for import into AAP 2.5
 - **trigger_inventory_sync** to trigger dynamic and constructed inventories synchronization (note: automation will not fail if inventory fails to sync)
+- **aap_platform** set to 'awx24' to export objects from AWX 25
 
 When using from command line call the playbook specifying files with variables:
 

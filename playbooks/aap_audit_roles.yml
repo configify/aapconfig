@@ -7,9 +7,15 @@
     - name: ROLES - Determine AAP version
       ansible.builtin.set_fact:
         controller_ping: "{{ lookup('ansible.controller.controller_api', 'ping') }}"
+      when: >
+            controller_ping is not defined and
+            aap_platform | default('aap') != 'awx24'
 
     - name: ROLES - Audit roles (pre 2.5)
-      when: controller_ping.version is version_compare('4.6', '<')
+      when: >
+            (controller_ping is defined and
+             controller_ping.version is version_compare('4.6', '<')) or
+            aap_platform | default('aap') == 'awx24'
       block:
         - name: ROLES - Get team roles (pre 2.5)
           ansible.builtin.set_fact:
@@ -180,7 +186,10 @@
             role: "{{ item.1.summary_fields.resource_type_display_name | replace(' ', '') + ' ' + item.1.name }}"
 
     - name: ROLES - Audit roles (2.5)
-      when: controller_ping.version is version_compare('4.6', '>=')
+      when: >
+            controller_ping is defined and
+            controller_ping.version is version_compare('4.6', '>=') | bool and
+            aap_platform | default('aap') != 'awx24'
       block:
         - name: ROLES - Get controller team role assignments (2.5)
           ansible.builtin.set_fact:
@@ -280,7 +289,8 @@
         var: controller_objects_roles
       when: >
             controller_objects_roles is defined and
-            controller_objects_roles
+            controller_objects_roles and
+            not show_vars_at_the_end | default(false)
 
     - name: ROLES - Show gateway roles (formatted)
       ansible.builtin.debug:
