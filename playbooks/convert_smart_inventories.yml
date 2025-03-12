@@ -1,0 +1,49 @@
+---
+- name: INVENTORIES - Get smart inventories in constructred format
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: INVENTORIES - Build list with all smart inventories
+      ansible.builtin.set_fact:
+        controller_objects_inventories_constructed: "{{ controller_objects_inventories_constructed | default([]) +
+                                                        [{'name': item.name + ' migrated',
+                                                          'descr': item.description,
+                                                          'org': item.summary_fields.organization.name,
+                                                          'input': lookup('ansible.controller.controller_api',
+                                                                          'inventories/' +
+                                                                            item.id | string +
+                                                                            '/hosts/',
+                                                                          return_objects=false,
+                                                                          return_all=true,
+                                                                          max_objects=10000).results |
+                                                                   selectattr('summary_fields.inventory.name') |
+                                                                   map(attribute='summary_fields.inventory.name') | unique,
+                                                          'source_vars': {'plugin': 'constructed', 'strict': True},
+                                                          'limit': item.host_filter |
+                                                                   regex_replace(' ?(?:or|and)? ?inventory__name=\\S*', '') |
+                                                                   replace(' or ', ' : ') |
+                                                                   replace(' and ', ' :& ') |
+                                                                   regex_replace('name__startswith=(\\S*)', '\\1*') |
+                                                                   regex_replace('groups__name__icontains=(\\S*)', '*\\1*') |
+                                                                   regex_replace('groups__name__regex=(\\S*)', '~\\1') |
+                                                                   regex_replace('name__icontains=(\\S*)', ' *\\1*') |
+                                                                   regex_replace('name__regex=(\\S*)', ' ~\\1*') |
+                                                                   replace('groups__name=', '') |
+                                                                   replace('name__exact=', '') |
+                                                                   replace('name=', '') |
+                                                                   replace(' ', '') |
+                                                                   regex_replace('^:', ''),
+                                                          'source': ''} |
+                                                        regex_replace('\n', '')] }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'inventories/', return_objects=false, return_all=true).results }}"
+      loop_control:
+        label: " | inventory: {{ item.name }}"
+      when: item.kind == "smart"
+
+    - name: INVENTORIES - Show new constructed inventories
+      ansible.builtin.debug:
+        var: controller_objects_inventories_constructed
+      when: >
+            controller_objects_inventories_constructed is defined and
+            controller_objects_inventories_constructed

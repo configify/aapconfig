@@ -41,6 +41,7 @@
 1. Ability to export configurations from AWX 24
 1. Support for AAP 2.5 and Gateway
 1. Automation from start to finish including Hub namespaces and collections, and most of the Controller objects including settings, roles, execution environments and many more
+1. Playbooks to assist in migration from Smart to Constructed inventories
 1. AAP objects are created and deleted in the right sequence, so no need to worry about ordering variables
 
 
@@ -248,6 +249,21 @@ Monthly frequency can also be adjusted further in two ways:
 
 * **x_day** specifying a day of the month, for example x_day=10 means run on 10th every month
 * **every_x_weekday** containing one of 'first, second, third, fourth or last' followed by a weekday - monday, tuesday etc.
+
+
+### convert_smart_inventories
+
+The playbook exports existing Smart inventories in a format suitable for further import as Constructed inventories. During execution it:
+
+* creates a list of inventories the hosts are part of and adds them to the input field
+* converts parameters from host_filter field and adds them to the limit field
+* adds “migrated” to inventory name
+* adds or copies without changes other fields required for Constructed inventory
+
+
+### compare_inventory_hosts
+
+The playbook is meant to be run after converted Constructed inventories have been imported into AAP. It compares the array of hosts from each Constructed inventory to the hosts from corresponding Smart inventory and reports on the difference if any.
 
 
 ## Available Tags
