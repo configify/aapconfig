@@ -17,7 +17,8 @@ dependencies: {
   ansible.controller: 4.6.7,
   infra.ah_configuration: 2.1.0,
   ansible.platform: 2.5.20241218,
-  ansible.utils: 3.1.0
+  ansible.utils: 3.1.0,
+  ansible.hub: 1.0.0
 }
 
 repository: https://github.com/configify/aapconfig

@@ -19,7 +19,7 @@
         label: " | collection: {{ item.name }}"
 
     - name: COLLECTIONS - Delete rogue published collections
-      infra.ah_configuration.ah_collection:
+      ansible.hub.ah_collection:
         name: "{{ item.name }}"
         namespace: "{{ item.namespace }}"
         version: "{{ item.highest_version.version }}"
@@ -59,7 +59,7 @@
   tags: hub_config_all_cleanup
 
 - name: COLLECTIONS - Delete empty namespaces
-  infra.ah_configuration.ah_namespace:
+  ansible.hub.ah_namespace:
     name: "{{ item.name }}"
     state: absent
   when: >
@@ -77,17 +77,19 @@
   block:
 
     - name: COLLECTIONS - Create namespaces for collections
-      infra.ah_configuration.ah_namespace:
+      ansible.hub.ah_namespace:
         name: "{{ item.namespace }}"
       loop: "{{ hub_objects_collections }}"
       loop_control:
         label: " | collection: {{ item.name }} <- namespace: {{ item.namespace }}"
 
     - name: COLLECTIONS - Upload collections to automation hub
-      infra.ah_configuration.ah_collection:
+      ansible.hub.ah_collection:
         namespace: "{{ item.namespace }}"
         name: "{{ item.name }}"
         path: "/runner/project/collections_tarballs/{{ item.filename }}"
+        version: "{{ item.filename.split('-')[2].split('.tar')[0] }}"
+        auto_approve: false
       loop: "{{ hub_objects_collections }}"
       loop_control:
         label: " | file: {{ item.filename }}"
@@ -103,3 +105,12 @@
                     (ansible_check_mode and
                      collection_upload_result.msg is defined and
                      'Namespace in filename not found' in collection_upload_result.msg)
+
+    - name: COLLECTIONS - Approve uploaded collections
+      ansible.hub.ah_approval:
+        namespace: "{{ item.namespace }}"
+        name: "{{ item.name }}"
+        version: "{{ item.filename.split('-')[2].split('.tar')[0] }}"
+      loop: "{{ hub_objects_collections }}"
+      loop_control:
+        label: " | file: {{ item.filename }}"

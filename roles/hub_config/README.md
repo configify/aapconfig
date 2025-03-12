@@ -4,7 +4,7 @@ This role creates objects in AAP Private Automation Hub
 
 Requirements
 ------------
-The role needs **infra.ah_configuration**  collection
+The role needs **infra.ah_configuration** and **ansible.hub** collections
 
 Role Variables
 --------------

@@ -107,7 +107,7 @@ To see an example of full working configuration please check the repository we u
 
 ### Dependencies
 
-This collection uses **ansible.controller**, **infra.ah_configuration** and **ansible.platform** collections (as well as **ansible.utils** for some filtering). It also needs **awxkit**. When using Hub and AAP these dependencies should be installed automatically.
+This collection uses **ansible.controller**, **infra.ah_configuration**, **ansible.hub** and **ansible.platform** collections (as well as **ansible.utils** for some filtering). It also needs **awxkit**. When using Hub and AAP these dependencies should be installed automatically.
 
 When using from command line install required collections and dependencies with ansible-galaxy command:
 ```
@@ -115,6 +115,7 @@ ansible-galaxy collection install ansible.controller
 ansible-galaxy collection install infra.ah_configuration
 ansible-galaxy collection install ansible.platform
 ansible-galaxy collection install ansible.utils
+ansible-galaxy collection install ansible.hub
 pip install awxkit
 ```
 

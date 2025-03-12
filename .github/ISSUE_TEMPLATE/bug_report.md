@@ -16,6 +16,7 @@ ansible.controller:
 infra.ah_configuration: 
 ansible.platform: 
 ansible.utils: 
+ansible.hub: 
 
 **Steps to Reproduce**
 
