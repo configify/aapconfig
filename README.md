@@ -38,8 +38,10 @@
 
 1. Ability to report on configuration drift and optionally delete objects
 1. Ability to export existing AAP configurations and use them for automation after removing double quotes
+1. Ability to export configurations from AWX 24
 1. Support for AAP 2.5 and Gateway
 1. Automation from start to finish including Hub namespaces and collections, and most of the Controller objects including settings, roles, execution environments and many more
+1. Playbooks to assist in migration from Smart to Constructed inventories
 1. AAP objects are created and deleted in the right sequence, so no need to worry about ordering variables
 
 
@@ -105,7 +107,7 @@ To see an example of full working configuration please check the repository we u
 
 ### Dependencies
 
-This collection uses **ansible.controller**, **infra.ah_configuration** and **ansible.platform** collections (as well as **ansible.utils** for some filtering). It also needs **awxkit**. When using Hub and AAP these dependencies should be installed automatically.
+This collection uses **ansible.controller**, **infra.ah_configuration**, **ansible.hub** and **ansible.platform** collections (as well as **ansible.utils** for some filtering). It also needs **awxkit**. When using Hub and AAP these dependencies should be installed automatically.
 
 When using from command line install required collections and dependencies with ansible-galaxy command:
 ```
@@ -113,6 +115,7 @@ ansible-galaxy collection install ansible.controller
 ansible-galaxy collection install infra.ah_configuration
 ansible-galaxy collection install ansible.platform
 ansible-galaxy collection install ansible.utils
+ansible-galaxy collection install ansible.hub
 pip install awxkit
 ```
 
@@ -123,8 +126,9 @@ Playbooks that interact with AAP Controller need the following parameters (as en
 
 ```
 CONTROLLER_HOST
+CONTROLLER_USERNAME
 CONTROLLER_OAUTH_TOKEN
-CONTROLLER_VERIFY_SSL
+(CONTROLLER_VERIFY_SSL)
 ```
 
 Playbooks that interact with AAP Hub need:
@@ -133,8 +137,7 @@ Playbooks that interact with AAP Hub need:
 AH_HOST
 AH_USERNAME
 AH_PASSWORD
-[AH_API_TOKEN]
-AH_VERIFY_SSL
+(AH_VERIFY_SSL)
 ```
 
 For AAP 2.5, Gateway credentials are also needed to create/change Organizations, Users, Teams and Settings:
@@ -142,7 +145,8 @@ For AAP 2.5, Gateway credentials are also needed to create/change Organizations,
 ```
 GATEWAY_HOSTNAME
 GATEWAY_USERNAME
-GATEWAY_PASSWORD
+GATEWAY_API_TOKEN
+(GATEWAY_VERIFY_SSL)
 ```
 
 When using from command line supply parameters as environment variables on localhost, for example:
@@ -198,7 +202,10 @@ The following switches can also be specified as extra variables:
 
 - **replace_passwords** to change passwords for users and credentials
 - **delete_objects** to delete rogue objects
-- **wait_project_sync** to wait for projects to synchronise (note: the task will not fail if project fails to sync)
+- **wait_project_sync** to wait for projects to synchronise (note: automation will report but not fail if project fails to sync)
+- **format_for_25** to export certain objects in a structure ready for import into AAP 2.5
+- **trigger_inventory_sync** to trigger dynamic and constructed inventories synchronization (note: automation will not fail if inventory fails to sync)
+- **aap_platform** set to 'awx24' to export objects from AWX 25
 
 When using from command line call the playbook specifying files with variables:
 
@@ -245,6 +252,21 @@ Monthly frequency can also be adjusted further in two ways:
 * **every_x_weekday** containing one of 'first, second, third, fourth or last' followed by a weekday - monday, tuesday etc.
 
 
+### convert_smart_inventories
+
+The playbook exports existing Smart inventories in a format suitable for further import as Constructed inventories. During execution it:
+
+* creates a list of inventories the hosts are part of and adds them to the input field
+* converts parameters from host_filter field and adds them to the limit field
+* adds “migrated” to inventory name
+* adds or copies without changes other fields required for Constructed inventory
+
+
+### compare_inventory_hosts
+
+The playbook is meant to be run after converted Constructed inventories have been imported into AAP. It compares the array of hosts from each Constructed inventory to the hosts from corresponding Smart inventory and reports on the difference if any.
+
+
 ## Available Tags
 
 Tags are structured to specify broad tasks first and narrow them down further as required. For example, tag **controller_config_credentials** assumes both **controller_config_credentials_cleanup** and **controller_config_inventories_apply**.
@@ -253,7 +275,7 @@ If the requirement is to configure credentials including cleanup and add/change,
 
 If the requirement is to remove credentials and credential types that are not needed it's enough to specify **controller_config_credentials_cleanup** and **controller_config_credential_types_cleanup**.
 
-Available tags:
+Available configuration tags:
 
 - hub_config
 - hub_config_all_cleanup
@@ -288,42 +310,6 @@ Available tags:
 - controller_config_roles
 - controller_config_roles_apply
 - controller_config_roles_cleanup
-- controller_config_roles_instance_groups (pre 2.5)
-- controller_config_roles_instance_groups_apply (pre 2.5)
-- controller_config_roles_instance_groups_cleanup (pre 2.5)
-- controller_config_roles_instance_groups_teams (pre 2.5)
-- controller_config_roles_instance_groups_teams_apply (pre 2.5)
-- controller_config_roles_instance_groups_teams_cleanup (pre 2.5)
-- controller_config_roles_instance_groups_users (pre 2.5)
-- controller_config_roles_instance_groups_users_apply (pre 2.5)
-- controller_config_roles_instance_groups_users_cleanup (pre 2.5)
-- controller_config_roles_orgs (pre 2.5)
-- controller_config_roles_orgs_apply (pre 2.5)
-- controller_config_roles_orgs_cleanup (pre 2.5)
-- controller_config_roles_orgs_teams (pre 2.5)
-- controller_config_roles_orgs_teams_apply (pre 2.5)
-- controller_config_roles_orgs_teams_cleanup (pre 2.5)
-- controller_config_roles_orgs_users (pre 2.5)
-- controller_config_roles_orgs_users_apply (pre 2.5)
-- controller_config_roles_orgs_users_cleanup (pre 2.5)
-- controller_config_roles_creds (pre 2.5)
-- controller_config_roles_creds_apply (pre 2.5)
-- controller_config_roles_creds_cleanup (pre 2.5)
-- controller_config_roles_creds_teams (pre 2.5)
-- controller_config_roles_creds_teams_apply (pre 2.5)
-- controller_config_roles_creds_teams_cleanup (pre 2.5)
-- controller_config_roles_creds_users (pre 2.5)
-- controller_config_roles_creds_users_apply (pre 2.5)
-- controller_config_roles_creds_users_cleanup (pre 2.5)
-- controller_config_roles_templates (pre 2.5)
-- controller_config_roles_templates_apply (pre 2.5)
-- controller_config_roles_templates_cleanup (pre 2.5)
-- controller_config_roles_templates_teams (pre 2.5)
-- controller_config_roles_templates_teams_apply (pre 2.5)
-- controller_config_roles_templates_teams_cleanup (pre 2.5)
-- controller_config_roles_templates_users (pre 2.5)
-- controller_config_roles_templates_users_apply (pre 2.5)
-- controller_config_roles_templates_users_cleanup (pre 2.5)
 - controller_config_settings
 - controller_config_teams
 - controller_config_teams_apply
@@ -344,6 +330,25 @@ Available tags:
 - controller_config_schedules_apply
 - controller_config_schedules_cleanup
 
+Available export tags:
+
+- export_collections
+- export_authenticators
+- export_credential_types
+- export_credentials
+- export_execution_environments
+- export_instance_groups
+- export_inventories
+- export_notifications
+- export_organizations
+- export_projects
+- export_roles
+- export_schedules
+- export_settings
+- export_teams
+- export_templates
+- export_users
+- export_workflows
 
 ## Variable structure
 
@@ -505,45 +510,40 @@ controller_objects_teams: [
 
 **Audit playbook**: aap_audit_roles.yml
 
-**Variable structure** (pre 2.5):
-
-```
-controller_objects_roles_organization: [
-  {'team': 'Team A', 'role': 'Approve', 'org': 'Org A'},
- 
-  {'user': 'UserA', 'role': 'Project Admin', 'org': 'Org C'}
-]
-
-controller_objects_roles_instance_groups: [
-  {'team': 'Team A', 'role': 'Admin', 'ig': 'Static IG A'},
- 
-  {'user': 'UserC', 'role': 'Use', 'ig': 'Static IG C'}
-]
-
-controller_objects_roles_credential: [
-  {'team': 'Team A', 'role': 'Admin', 'cred': 'Credential Machine A'},
-
-  {'user': 'UserC', 'role': 'Use', 'cred': 'Credential Machine C'}
-]
-
-controller_objects_roles_template: [
-  {'team': 'Team A', 'role': 'Admin', 'template': 'Template A'},
-
-  {'user': 'UserC', 'role': 'Execute', 'template': 'Template C'}
-]
-```
-
-**Variable structure** (2.5 and up):
+**Variable structure**:
 
 ```
 controller_objects_roles: [
-  {'team': 'Team A', 'role': 'JobTemplate Admin', 'object_type': 'jobtemplate', 'object_name': 'Template A'},
- 
-  {'user': 'UserA', 'role': 'JobTemplate Execute', 'object_type': 'jobtemplate', 'object_name': 'Template A'}
-]
+  {'team': 'Team A', 'role': 'JobTemplate Execute', 'object_type': 'jobtemplate', 'object_name': 'Template A'},
+  {'team': 'Team A', 'role': 'Project Update', 'object_type': 'project', 'object_name': 'Project A'},
+  {'team': 'Team A', 'role': 'WorkflowJobTemplate Approve', 'object_type': 'workflowjobtemplate', 'object_name': 'Workflow A'},
+  {'team': 'Team A', 'role': 'Credential Use', 'object_type': 'credential', 'object_name': 'Credential GitHub A'},
+  {'team': 'Team A', 'role': 'Inventory Adhoc', 'object_type': 'inventory', 'object_name': 'Inventory Constructed A'},
+  {'team': 'Team A', 'role': 'InstanceGroup Admin', 'object_type': 'instancegroup', 'object_name': 'Auto IG A'},
 
+  {'team': 'Team C', 'role': 'Organization ExecutionEnvironment Admin', 'object_type': 'organization', 'object_name': 'Org C'},
+  {'team': 'Team C', 'role': 'Organization Audit', 'object_type': 'organization', 'object_name': 'Org C'},
+  {'team': 'Team C', 'role': 'Organization Approval', 'object_type': 'organization', 'object_name': 'Org C'},
+
+  {'user': 'UserA', 'role': 'JobTemplate Execute', 'object_type': 'jobtemplate', 'object_name': 'Template A'},
+  {'user': 'UserA', 'role': 'Project Use', 'object_type': 'project', 'object_name': 'Project A'},
+  {'user': 'UserA', 'role': 'WorkflowJobTemplate Execute', 'object_type': 'workflowjobtemplate', 'object_name': 'Workflow A'},
+  {'user': 'UserA', 'role': 'Credential Admin', 'object_type': 'credential', 'object_name': 'Credential GitHub A'},
+  {'user': 'UserA', 'role': 'Inventory Update', 'object_type': 'inventory', 'object_name': 'Inventory Constructed A'},
+  {'user': 'UserA', 'role': 'InstanceGroup Use', 'object_type': 'instancegroup', 'object_name': 'Auto IG A'},
+
+  {'user': 'UserC', 'role': 'Organization Execute', 'object_type': 'organization', 'object_name': 'Org C'},
+  {'user': 'UserC', 'role': 'Organization Project Admin', 'object_type': 'organization', 'object_name': 'Org C'},
+  {'user': 'UserC', 'role': 'Organization Approval', 'object_type': 'organization', 'object_name': 'Org C'}
+] # type: ignore
+```
+
+**Variable structure** (2.5 addition):
+
+```
 gateway_objects_roles: [
-  {'user': 'UserA', 'role': 'Organization Member', 'object_type': 'organization', 'object_name': 'Org A'}
+  {'user': 'UserA', 'role': 'Organization Member', 'object_type': 'organization', 'object_name': 'Org A'},
+  {'user': 'UserC', 'role': 'Organization Admin', 'object_type': 'organization', 'object_name': 'Org C'}
 ]
 ```
 
@@ -865,14 +865,17 @@ All the issues below are related to Red Hat certified collections. We opened tic
 
 - **Users**: no ability to modify users in AAP 2.5 (see https://issues.redhat.com/browse/AAP-40035)
 
-- **Notifications**: custom messages that haven't been changed (i.e. still default) will show "None" during export. This is an issue with API (see https://issues.redhat.com/browse/AAP-40066)
+- **Notifications**: custom messages that haven't been changed (i.e. still default) will show "None" during export. This is an issue with API
+(see https://issues.redhat.com/browse/AAP-40066)
 
 - **Notifications**: add update_secrets parameter
 (see https://github.com/ansible/awx/issues/15825 and https://github.com/ansible/awx/pull/15826)
 
-- **Authentication**: module ansible.platform.authenticator does not honor check mode (see https://issues.redhat.com/browse/AAP-40037)
+- **Authentication**: module ansible.platform.authenticator does not honor check mode
+(see https://issues.redhat.com/browse/AAP-40037)
 
-- **Roles**: module ansible.platform.role_user_assignment does not honor check mode (see https://issues.redhat.com/browse/AAP-40037)
+- **Roles**: module ansible.platform.role_user_assignment does not honor check mode
+(see https://issues.redhat.com/browse/AAP-40037)
 
 - **Inventories**: because of how variables are handled by ansible.controller collection, automation reports "changed" during the first run and each time after template "saved" in the GUI
 (see https://github.com/ansible/awx/issues/14918 and https://github.com/ansible/awx/pull/15232)
@@ -884,4 +887,7 @@ All the issues below are related to Red Hat certified collections. We opened tic
 (see https://github.com/ansible/awx/issues/14918 and https://github.com/ansible/awx/pull/15232)
 
 - **Inventory hosts**: automation reports "changed" during the first run and each time after template "saved" in the GUI
-  (see https://github.com/ansible/awx/issues/14918 and https://github.com/ansible/awx/pull/15232)
+(see https://github.com/ansible/awx/issues/14918 and https://github.com/ansible/awx/pull/15232)
+
+- **Private Hub**: automation doesn't support oAuth tokens which is a limitation of infra.ah_configuration.ah_api plugin
+(see https://github.com/ansible/galaxy_collection/issues/447)

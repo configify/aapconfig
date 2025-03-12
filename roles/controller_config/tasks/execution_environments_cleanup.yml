@@ -1,7 +1,9 @@
 - name: EXECUTION ENVIRONMENTS - Get all execution environments from AAP
-  ansible.controller.export:
-    execution_environments: 'all'
-  register: aap_ee
+  ansible.builtin.set_fact:
+    aap_ee: "{{ aap_ee | default([]) + [{'name': item.name}] }}"
+  loop: "{{ lookup('ansible.controller.controller_api', 'execution_environments/', return_objects=false, return_all=true).results }}"
+  loop_control:
+    label: " | ee: {{ item.name }}"
 
 - name: EXECUTION ENVIRONMENTS - Notify on rogue execution environments
   ansible.builtin.debug:
@@ -10,7 +12,7 @@
         not delete_objects | default(false) | bool and
         controller_objects_execution_environments | selectattr("name", "equalto", item.name) | length == 0
   changed_when: true
-  loop: "{{ aap_ee.assets.execution_environments }}"
+  loop: "{{ aap_ee | default([]) }}"
   loop_control:
     label: " | ee: {{ item.name }}"
 
@@ -21,6 +23,6 @@
   when: >
         delete_objects | default(false) | bool and
         controller_objects_execution_environments | selectattr("name", "equalto", item.name) | length == 0
-  loop: "{{ aap_ee.assets.execution_environments }}"
+  loop: "{{ aap_ee | default([]) }}"
   loop_control:
     label: " | ee: {{ item.name }}"

@@ -4,25 +4,25 @@
   gather_facts: false
 
   tasks:
-    - name: ORGANIZATIONS - Get all organizations from AAP
-      ansible.controller.export:
-        organizations: 'all'
-      register: aap_organizations
-
     - name: ORGANIZATIONS - Build list with all organizations
       ansible.builtin.set_fact:
         controller_objects_organizations: "{{ controller_objects_organizations | default([]) +
                                               [{'name': item.name,
                                                 'descr': item.description,
-                                                'creds': item.related.galaxy_credentials | selectattr('name') | map(attribute='name')} |
+                                                'creds': lookup('ansible.controller.controller_api',
+                                                                'organizations/' + item.id | string + '/galaxy_credentials/',
+                                                                return_objects=false,
+                                                                return_all=true).results |
+                                                         selectattr('name') | map(attribute='name')} |
                                                  regex_replace('\n', '')] }}"
-      loop: "{{ aap_organizations.assets.organizations }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'organizations/', return_objects=false, return_all=true).results }}"
       loop_control:
         label: " | org: {{ item.name }}"
 
-    - name: ORGANIZATIONS - Show all organizations
+    - name: ORGANIZATIONS - Show organizations (formatted)
       ansible.builtin.debug:
         var: controller_objects_organizations
       when: >
             controller_objects_organizations is defined and
-            controller_objects_organizations
+            controller_objects_organizations and
+            not show_vars_at_the_end | default(false)

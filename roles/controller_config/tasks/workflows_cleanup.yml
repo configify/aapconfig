@@ -1,7 +1,9 @@
 - name: WORKFLOWS - Get all workflows from AAP
-  ansible.controller.export:
-    workflow_job_templates: 'all'
-  register: aap_workflows
+  ansible.builtin.set_fact:
+    aap_workflows: "{{ aap_workflows | default([]) + [{'name': item.name}] }}"
+  loop: "{{ lookup('ansible.controller.controller_api', 'workflow_job_templates/', return_objects=false, return_all=true).results }}"
+  loop_control:
+    label: " | workflow: {{ item.name }}"
 
 - name: WORKFLOWS - Notify on rogue workflows
   ansible.builtin.debug:
@@ -10,7 +12,7 @@
         not delete_objects | default(false) | bool and
         controller_objects_workflows | selectattr("name", "equalto", item.name) | length == 0
   changed_when: true
-  loop: "{{ aap_workflows.assets.workflow_job_templates }}"
+  loop: "{{ aap_workflows | default([]) }}"
   loop_control:
     label: " | workflow: {{ item.name }}"
 
@@ -21,6 +23,6 @@
   when: >
         delete_objects | default(false) | bool and
         controller_objects_workflows | selectattr("name", "equalto", item.name) | length == 0
-  loop: "{{ aap_workflows.assets.workflow_job_templates }}"
+  loop: "{{ aap_workflows | default([]) }}"
   loop_control:
     label: " | workflow: {{ item.name }}"

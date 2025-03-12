@@ -1,7 +1,12 @@
 - name: NOTIFICATIONS - Get all notification profiles from AAP
-  ansible.controller.export:
-    notification_templates: 'all'
-  register: aap_notifications
+  ansible.builtin.set_fact:
+    aap_notifications: "{{ aap_notifications | default([]) +
+                           [{'name': item.name,
+                             'notification_type': item.notification_type,
+                             'org': item.summary_fields.organization.name}] }}"
+  loop: "{{ lookup('ansible.controller.controller_api', 'notification_templates/', return_objects=false, return_all=true).results }}"
+  loop_control:
+    label: " | notification: {{ item.name }}"
 
 - name: NOTIFICATIONS - Notify on rogue notification profiles
   ansible.builtin.debug:
@@ -10,7 +15,7 @@
         not delete_objects | default(false) | bool and
         controller_objects_notification_profiles | selectattr("name", "equalto", item.name) | length == 0
   changed_when: true
-  loop: "{{ aap_notifications.assets.notification_templates }}"
+  loop: "{{ aap_notifications | default([]) }}"
   loop_control:
     label: " | notification: {{ item.name }}"
 
@@ -18,11 +23,11 @@
   ansible.controller.notification_template:
     name: "{{ item.name }}"
     notification_type: "{{ item.notification_type }}"
-    organization: "{{ item.organization.name }}"
+    organization: "{{ item.org }}"
     state: absent
   when: >
         delete_objects | default(false) | bool and
         controller_objects_notification_profiles | selectattr("name", "equalto", item.name) | length == 0
-  loop: "{{ aap_notifications.assets.notification_templates }}"
+  loop: "{{ aap_notifications | default([]) }}"
   loop_control:
     label: " | notification: {{ item.name }}"

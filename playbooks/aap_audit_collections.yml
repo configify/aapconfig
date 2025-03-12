@@ -19,9 +19,10 @@
       loop_control:
         label: " | collection: {{ item.name }}"
 
-    - name: COLLECTIONS - Show all published collections
+    - name: COLLECTIONS - Show published collections (formatted)
       ansible.builtin.debug:
         var: hub_objects_collections
       when: >
             hub_objects_collections is defined and
-            hub_objects_collections
+            hub_objects_collections and
+            not show_vars_at_the_end | default(false)

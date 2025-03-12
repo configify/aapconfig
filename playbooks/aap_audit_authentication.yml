@@ -4,6 +4,13 @@
   gather_facts: false
 
   tasks:
+    - name: AUTH - Determine AAP version
+      ansible.builtin.set_fact:
+        controller_ping: "{{ lookup('ansible.controller.controller_api', 'ping') }}"
+      when: >
+            controller_ping is not defined and
+            aap_platform | default('aap') != 'awx24'
+
     - name: AUTH - Get current authenticators (2.5)
       ansible.builtin.set_fact:
         controller_authentication: "{{ controller_authentication | default([]) +
@@ -16,17 +23,21 @@
                        host=lookup('ansible.builtin.env', 'GATEWAY_HOSTNAME'),
                        username=lookup('ansible.builtin.env', 'GATEWAY_USERNAME'),
                        password=lookup('ansible.builtin.env', 'GATEWAY_PASSWORD'),
+                       oauth_token=lookup('ansible.builtin.env', 'GATEWAY_API_TOKEN'),
                        verify_ssl=lookup('ansible.builtin.env', 'GATEWAY_VERIFY_SSL'),
                        errors='ignore').results }}"
       loop_control:
         label: " | authenticator: {{ item.name }}"
       when: >
-            lookup('ansible.controller.controller_api', 'ping').version is version_compare('4.6', '>=') | bool and
+            controller_ping is defined and
+            controller_ping.version is version_compare('4.6', '>=') | bool and
+            aap_platform | default('aap') != 'awx24' and
             item.type != 'ansible_base.authentication.authenticator_plugins.local'
 
-    - name: AUTH - Show authenticators (2.5)
+    - name: AUTH - Show authenticators (2.5) (formatted)
       ansible.builtin.debug:
         var: controller_authentication
       when: >
             controller_authentication is defined and
-            controller_authentication
+            controller_authentication and
+            not show_vars_at_the_end | default(false)

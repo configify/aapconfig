@@ -1,6 +1,24 @@
-## [1.1.0] - 2025-02-28
+## [2.0.0] - 2025-03-12
 
-First release
+### Added
+- Support for all workflow node types
+- Export format selector for roles
+- Playbook to export all objects
+- Option to trigger synchronization of inventory sources
+- Ability to export from AWX 24
+- Playbook to convert smart inventories to constructed inventories
+
+### Changed
+- Refactored role tasks and playbooks
+- Memory and speed optimizations
+
+### Fixed
+- Support for oAuth tokens
+- Error reporting on project sync
+- Collection approval not working for AAP 2.4
+
+
+## [1.1.0] - 2025-02-28
 
 ### Added
 - Filter for vars conversion

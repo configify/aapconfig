@@ -1,7 +1,11 @@
 - name: SCHEDULES - Get all schedules from AAP
-  ansible.controller.export:
-    schedules: 'all'
-  register: aap_schedules
+  ansible.builtin.set_fact:
+    aap_schedules: "{{ aap_schedules | default([]) +
+                       [{'name': item.name,
+                         'template': item.summary_fields.unified_job_template.name}] }}"
+  loop: "{{ lookup('ansible.controller.controller_api', 'schedules/', return_objects=false, return_all=true).results }}"
+  loop_control:
+    label: " | ee: {{ item.name }}"
 
 - name: SCHEDULES - Notify on rogue schedules
   ansible.builtin.debug:
@@ -10,18 +14,18 @@
         not delete_objects | default(false) | bool and
         controller_objects_schedules | selectattr("name", "equalto", item.name) | length == 0
   changed_when: true
-  loop: "{{ aap_schedules.assets.schedules }}"
+  loop: "{{ aap_schedules | default([]) }}"
   loop_control:
     label: " | schedule: {{ item.name }}"
 
 - name: SCHEDULES - Delete rogue schedules
   ansible.controller.schedule:
     name: "{{ item.name }}"
-    unified_job_template: "{{ item.unified_job_template.name }}"
+    unified_job_template: "{{ item.template }}"
     state: absent
   when: >
         delete_objects | default(false) | bool and
         controller_objects_schedules | selectattr("name", "equalto", item.name) | length == 0
-  loop: "{{ aap_schedules.assets.schedules }}"
+  loop: "{{ aap_schedules | default([]) }}"
   loop_control:
     label: " | schedule: {{ item.name }}"

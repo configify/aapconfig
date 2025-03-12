@@ -4,18 +4,361 @@
   gather_facts: false
 
   tasks:
-    - name: WORKFLOWS - Get all workflows from AAP
-      ansible.controller.export:
-        workflow_job_templates: 'all'
-      register: aap_workflows
+    - name: WORKFLOWS - Get all workflow nodes
+      ansible.builtin.set_fact:
+        workflow_nodes: "{{ lookup('ansible.controller.controller_api', 'workflow_job_template_nodes/', return_objects=false, return_all=true).results }}"
+
+    - name: WORKFLOWS - Build list with approval nodes
+      ansible.builtin.set_fact:
+        controller_objects_workflow_nodes: "{{ controller_objects_workflow_nodes | default([]) +
+                                               [{'workflow': item.summary_fields.workflow_job_template.name,
+                                                 'extra_data': item.extra_data,
+                                                 'scm_branch': item.scm_branch,
+                                                 'job_type': item.job_type,
+                                                 'job_tags': item.job_tags,
+                                                 'skip_tags': item.skip_tags,
+                                                 'limit': item.limit,
+                                                 'diff_mode': item.diff_mode,
+                                                 'verbosity': item.verbosity,
+                                                 'forks': item.forks,
+                                                 'job_slice_count': item.job_slice_count,
+                                                 'timeout': item.timeout,
+                                                 'all_parents_must_converge': item.all_parents_must_converge,
+                                                 'identifier': item.identifier,
+                                                 'execution_environment': item.execution_environment,
+                                                 'inventory': item.inventory,
+                                                 'unified_job_template': {'name': approval_template_in_use.name,
+                                                                          'type': 'workflow_approval'},
+                                                 'related': {'credentials': lookup('ansible.controller.controller_api',
+                                                                                'workflow_job_template_nodes/' +
+                                                                                   item.id | string +
+                                                                                   '/credentials/',
+                                                                                return_objects=false,
+                                                                                return_all=true).results |
+                                                                            ansible.utils.keep_keys(target=['identifier']) |
+                                                                            selectattr('identifier'),
+                                                             'success_nodes': lookup('ansible.controller.controller_api',
+                                                                                     'workflow_job_template_nodes/' +
+                                                                                        item.id | string +
+                                                                                        '/success_nodes/',
+                                                                                     return_objects=false,
+                                                                                     return_all=true).results |
+                                                                              ansible.utils.keep_keys(target=['identifier']) |
+                                                                              ansible.utils.remove_keys(target=['success_nodes']),
+                                                             'failure_nodes': lookup('ansible.controller.controller_api',
+                                                                                     'workflow_job_template_nodes/' +
+                                                                                        item.id | string +
+                                                                                        '/failure_nodes/',
+                                                                                     return_objects=false,
+                                                                                     return_all=true).results |
+                                                                              ansible.utils.keep_keys(target=['identifier']) |
+                                                                              ansible.utils.remove_keys(target=['failure_nodes']),
+                                                             'always_nodes': lookup('ansible.controller.controller_api',
+                                                                                     'workflow_job_template_nodes/' +
+                                                                                        item.id | string +
+                                                                                        '/always_nodes/',
+                                                                                     return_objects=false,
+                                                                                     return_all=true).results |
+                                                                              ansible.utils.keep_keys(target=['identifier']) |
+                                                                              ansible.utils.remove_keys(target=['always_nodes']),
+                                                             'create_approval_template': {'timeout': approval_template_in_use.timeout,
+                                                                                          'name': approval_template_in_use.name,
+                                                                                          'description': approval_template_in_use.description}}}] }}"
+      loop: "{{ workflow_nodes }}"
+      loop_control:
+        label: " | workflow node: {{ item.identifier }}"
+      when: >
+            item.summary_fields.unified_job_template is defined and
+            item.summary_fields.unified_job_template.unified_job_type == 'workflow_approval'
+      vars:
+        approval_template_in_use: "{{ lookup('ansible.controller.controller_api',
+                                             'workflow_approval_templates/' +
+                                                item.summary_fields.unified_job_template.id | string,
+                                             return_objects=false,
+                                             return_all=true) }}"
+
+    - name: WORKFLOWS - Build list with job nodes
+      ansible.builtin.set_fact:
+        controller_objects_workflow_nodes: "{{ controller_objects_workflow_nodes | default([]) +
+                                               [{'workflow': item.summary_fields.workflow_job_template.name,
+                                                 'extra_data': item.extra_data,
+                                                 'scm_branch': item.scm_branch,
+                                                 'job_type': item.job_type,
+                                                 'job_tags': item.job_tags,
+                                                 'skip_tags': item.skip_tags,
+                                                 'limit': item.limit,
+                                                 'diff_mode': item.diff_mode,
+                                                 'verbosity': item.verbosity,
+                                                 'forks': item.forks,
+                                                 'job_slice_count': item.job_slice_count,
+                                                 'timeout': item.timeout,
+                                                 'all_parents_must_converge': item.all_parents_must_converge,
+                                                 'identifier': item.identifier,
+                                                 'execution_environment': item.execution_environment,
+                                                 'inventory': item.inventory,
+                                                 'unified_job_template': {'organization': {'name': job_template_in_use.summary_fields.organization.name,
+                                                                                           'type': 'organization'},
+                                                                          'name': job_template_in_use.name,
+                                                                          'type': job_template_in_use.type},
+                                                 'related': {'credentials': lookup('ansible.controller.controller_api',
+                                                                                'workflow_job_template_nodes/' +
+                                                                                   item.id | string +
+                                                                                   '/credentials/',
+                                                                                return_objects=false,
+                                                                                return_all=true).results |
+                                                                            ansible.utils.keep_keys(target=['identifier']) |
+                                                                            selectattr('identifier'),
+                                                             'success_nodes': lookup('ansible.controller.controller_api',
+                                                                                     'workflow_job_template_nodes/' +
+                                                                                        item.id | string +
+                                                                                        '/success_nodes/',
+                                                                                     return_objects=false,
+                                                                                     return_all=true).results |
+                                                                              ansible.utils.keep_keys(target=['identifier']) |
+                                                                              ansible.utils.remove_keys(target=['success_nodes']),
+                                                             'failure_nodes': lookup('ansible.controller.controller_api',
+                                                                                     'workflow_job_template_nodes/' +
+                                                                                        item.id | string +
+                                                                                        '/failure_nodes/',
+                                                                                     return_objects=false,
+                                                                                     return_all=true).results |
+                                                                              ansible.utils.keep_keys(target=['identifier']) |
+                                                                              ansible.utils.remove_keys(target=['failure_nodes']),
+                                                             'always_nodes': lookup('ansible.controller.controller_api',
+                                                                                     'workflow_job_template_nodes/' +
+                                                                                        item.id | string +
+                                                                                        '/always_nodes/',
+                                                                                     return_objects=false,
+                                                                                     return_all=true).results |
+                                                                              ansible.utils.keep_keys(target=['identifier']) |
+                                                                              ansible.utils.remove_keys(target=['always_nodes'])}}] }}"
+      loop: "{{ workflow_nodes }}"
+      loop_control:
+        label: " | workflow node: {{ item.identifier }}"
+      when: >
+            item.summary_fields.unified_job_template is defined and
+            item.summary_fields.unified_job_template.unified_job_type == 'job'
+      vars:
+        job_template_in_use: "{{ lookup('ansible.controller.controller_api',
+                                        'job_templates/' +
+                                           item.summary_fields.unified_job_template.id | string,
+                                        return_objects=false,
+                                        return_all=true) }}"
+
+    - name: WORKFLOWS - Build list with inventory source nodes
+      ansible.builtin.set_fact:
+        controller_objects_workflow_nodes: "{{ controller_objects_workflow_nodes | default([]) +
+                                               [{'workflow': item.summary_fields.workflow_job_template.name,
+                                                 'extra_data': item.extra_data,
+                                                 'scm_branch': item.scm_branch,
+                                                 'job_type': item.job_type,
+                                                 'job_tags': item.job_tags,
+                                                 'skip_tags': item.skip_tags,
+                                                 'limit': item.limit,
+                                                 'diff_mode': item.diff_mode,
+                                                 'verbosity': item.verbosity,
+                                                 'forks': item.forks,
+                                                 'job_slice_count': item.job_slice_count,
+                                                 'timeout': item.timeout,
+                                                 'all_parents_must_converge': item.all_parents_must_converge,
+                                                 'identifier': item.identifier,
+                                                 'execution_environment': item.execution_environment,
+                                                 'inventory': item.inventory,
+                                                 'unified_job_template': {'name': inventory_in_use.name,
+                                                                          'inventory': {'organization': {'name':
+                                                                                                           inventory_in_use.summary_fields.organization.name,
+                                                                                                         'type': 'organization'},
+                                                                                        'name': inventory_in_use.summary_fields.inventory.name,
+                                                                                        'type': 'inventory'},
+                                                                          'type': 'inventory_source'},
+                                                 'related': {'credentials': lookup('ansible.controller.controller_api',
+                                                                                'workflow_job_template_nodes/' +
+                                                                                   item.id | string +
+                                                                                   '/credentials/',
+                                                                                return_objects=false,
+                                                                                return_all=true).results |
+                                                                            ansible.utils.keep_keys(target=['identifier']) |
+                                                                            selectattr('identifier'),
+                                                             'success_nodes': lookup('ansible.controller.controller_api',
+                                                                                     'workflow_job_template_nodes/' +
+                                                                                        item.id | string +
+                                                                                        '/success_nodes/',
+                                                                                     return_objects=false,
+                                                                                     return_all=true).results |
+                                                                              ansible.utils.keep_keys(target=['identifier']) |
+                                                                              ansible.utils.remove_keys(target=['success_nodes']),
+                                                             'failure_nodes': lookup('ansible.controller.controller_api',
+                                                                                     'workflow_job_template_nodes/' +
+                                                                                        item.id | string +
+                                                                                        '/failure_nodes/',
+                                                                                     return_objects=false,
+                                                                                     return_all=true).results |
+                                                                              ansible.utils.keep_keys(target=['identifier']) |
+                                                                              ansible.utils.remove_keys(target=['failure_nodes']),
+                                                             'always_nodes': lookup('ansible.controller.controller_api',
+                                                                                     'workflow_job_template_nodes/' +
+                                                                                        item.id | string +
+                                                                                        '/always_nodes/',
+                                                                                     return_objects=false,
+                                                                                     return_all=true).results |
+                                                                              ansible.utils.keep_keys(target=['identifier']) |
+                                                                              ansible.utils.remove_keys(target=['always_nodes'])}}] }}"
+      loop: "{{ workflow_nodes }}"
+      loop_control:
+        label: " | workflow node: {{ item.identifier }}"
+      when: >
+            item.summary_fields.unified_job_template is defined and
+            item.summary_fields.unified_job_template.unified_job_type == 'inventory_update'
+      vars:
+        inventory_in_use: "{{ lookup('ansible.controller.controller_api',
+                                     'inventory_sources/' +
+                                        item.summary_fields.unified_job_template.id | string,
+                                     return_objects=false,
+                                     return_all=true) }}"
+
+    - name: WORKFLOWS - Build list with project nodes
+      ansible.builtin.set_fact:
+        controller_objects_workflow_nodes: "{{ controller_objects_workflow_nodes | default([]) +
+                                               [{'workflow': item.summary_fields.workflow_job_template.name,
+                                                 'extra_data': item.extra_data,
+                                                 'scm_branch': item.scm_branch,
+                                                 'job_type': item.job_type,
+                                                 'job_tags': item.job_tags,
+                                                 'skip_tags': item.skip_tags,
+                                                 'limit': item.limit,
+                                                 'diff_mode': item.diff_mode,
+                                                 'verbosity': item.verbosity,
+                                                 'forks': item.forks,
+                                                 'job_slice_count': item.job_slice_count,
+                                                 'timeout': item.timeout,
+                                                 'all_parents_must_converge': item.all_parents_must_converge,
+                                                 'identifier': item.identifier,
+                                                 'execution_environment': item.execution_environment,
+                                                 'inventory': item.inventory,
+                                                 'unified_job_template': {'organization': {'name': project_in_use.summary_fields.organization.name,
+                                                                                           'type': 'organization'},
+                                                                          'name': project_in_use.name,
+                                                                          'type': 'project'},
+                                                 'related': {'credentials': lookup('ansible.controller.controller_api',
+                                                                                'workflow_job_template_nodes/' +
+                                                                                   item.id | string +
+                                                                                   '/credentials/',
+                                                                                return_objects=false,
+                                                                                return_all=true).results |
+                                                                            ansible.utils.keep_keys(target=['identifier']) |
+                                                                            selectattr('identifier'),
+                                                             'success_nodes': lookup('ansible.controller.controller_api',
+                                                                                     'workflow_job_template_nodes/' +
+                                                                                        item.id | string +
+                                                                                        '/success_nodes/',
+                                                                                     return_objects=false,
+                                                                                     return_all=true).results |
+                                                                              ansible.utils.keep_keys(target=['identifier']) |
+                                                                              ansible.utils.remove_keys(target=['success_nodes']),
+                                                             'failure_nodes': lookup('ansible.controller.controller_api',
+                                                                                     'workflow_job_template_nodes/' +
+                                                                                        item.id | string +
+                                                                                        '/failure_nodes/',
+                                                                                     return_objects=false,
+                                                                                     return_all=true).results |
+                                                                              ansible.utils.keep_keys(target=['identifier']) |
+                                                                              ansible.utils.remove_keys(target=['failure_nodes']),
+                                                             'always_nodes': lookup('ansible.controller.controller_api',
+                                                                                     'workflow_job_template_nodes/' +
+                                                                                        item.id | string +
+                                                                                        '/always_nodes/',
+                                                                                     return_objects=false,
+                                                                                     return_all=true).results |
+                                                                              ansible.utils.keep_keys(target=['identifier']) |
+                                                                              ansible.utils.remove_keys(target=['always_nodes'])}}] }}"
+      loop: "{{ workflow_nodes }}"
+      loop_control:
+        label: " | workflow node: {{ item.identifier }}"
+      when: >
+            item.summary_fields.unified_job_template is defined and
+            item.summary_fields.unified_job_template.unified_job_type == 'project_update'
+      vars:
+        project_in_use: "{{ lookup('ansible.controller.controller_api',
+                                   'projects/' +
+                                      item.summary_fields.unified_job_template.id | string,
+                                   return_objects=false,
+                                   return_all=true) }}"
+
+    - name: WORKFLOWS - Build list with workflow nodes
+      ansible.builtin.set_fact:
+        controller_objects_workflow_nodes: "{{ controller_objects_workflow_nodes | default([]) +
+                                               [{'workflow': item.summary_fields.workflow_job_template.name,
+                                                 'extra_data': item.extra_data,
+                                                 'scm_branch': item.scm_branch,
+                                                 'job_type': item.job_type,
+                                                 'job_tags': item.job_tags,
+                                                 'skip_tags': item.skip_tags,
+                                                 'limit': item.limit,
+                                                 'diff_mode': item.diff_mode,
+                                                 'verbosity': item.verbosity,
+                                                 'forks': item.forks,
+                                                 'job_slice_count': item.job_slice_count,
+                                                 'timeout': item.timeout,
+                                                 'all_parents_must_converge': item.all_parents_must_converge,
+                                                 'identifier': item.identifier,
+                                                 'execution_environment': item.execution_environment,
+                                                 'inventory': item.inventory,
+                                                 'unified_job_template': {'organization': {'name': workflow_in_use.summary_fields.organization.name,
+                                                                                           'type': 'organization'},
+                                                                          'name': workflow_in_use.name,
+                                                                          'type': 'workflow_job_template'},
+                                                 'related': {'credentials': lookup('ansible.controller.controller_api',
+                                                                                'workflow_job_template_nodes/' +
+                                                                                   item.id | string +
+                                                                                   '/credentials/',
+                                                                                return_objects=false,
+                                                                                return_all=true).results |
+                                                                            ansible.utils.keep_keys(target=['identifier']) |
+                                                                            selectattr('identifier'),
+                                                             'success_nodes': lookup('ansible.controller.controller_api',
+                                                                                     'workflow_job_template_nodes/' +
+                                                                                        item.id | string +
+                                                                                        '/success_nodes/',
+                                                                                     return_objects=false,
+                                                                                     return_all=true).results |
+                                                                              ansible.utils.keep_keys(target=['identifier']) |
+                                                                              ansible.utils.remove_keys(target=['success_nodes']),
+                                                             'failure_nodes': lookup('ansible.controller.controller_api',
+                                                                                     'workflow_job_template_nodes/' +
+                                                                                        item.id | string +
+                                                                                        '/failure_nodes/',
+                                                                                     return_objects=false,
+                                                                                     return_all=true).results |
+                                                                              ansible.utils.keep_keys(target=['identifier']) |
+                                                                              ansible.utils.remove_keys(target=['failure_nodes']),
+                                                             'always_nodes': lookup('ansible.controller.controller_api',
+                                                                                     'workflow_job_template_nodes/' +
+                                                                                        item.id | string +
+                                                                                        '/always_nodes/',
+                                                                                     return_objects=false,
+                                                                                     return_all=true).results |
+                                                                              ansible.utils.keep_keys(target=['identifier']) |
+                                                                              ansible.utils.remove_keys(target=['always_nodes'])}}] }}"
+      loop: "{{ workflow_nodes }}"
+      loop_control:
+        label: " | workflow node: {{ item.identifier }}"
+      when: >
+            item.summary_fields.unified_job_template is defined and
+            item.summary_fields.unified_job_template.unified_job_type == 'workflow_job'
+      vars:
+        workflow_in_use: "{{ lookup('ansible.controller.controller_api',
+                                    'workflow_job_templates/' +
+                                       item.summary_fields.unified_job_template.id | string,
+                                    return_objects=false,
+                                    return_all=true) }}"
 
     - name: WORKFLOWS - Build list with all workflows
       ansible.builtin.set_fact:
         controller_objects_workflows: "{{ controller_objects_workflows | default([]) +
                                           [{'name': item.name,
                                             'descr': item.description,
-                                            'org': item.organization.name,
-                                            'inventory': item.inventory.name,
+                                            'org': item.summary_fields.organization.name | default(''),
+                                            'inventory': item.summary_fields.inventory.name | default(''),
                                             'allow_simultaneous': item.allow_simultaneous,
                                             'ask_inventory_on_launch': item.ask_inventory_on_launch,
                                             'ask_labels_on_launch': item.ask_labels_on_launch,
@@ -24,7 +367,8 @@
                                             'ask_skip_tags_on_launch': item.ask_skip_tags_on_launch,
                                             'ask_tags_on_launch': item.ask_tags_on_launch,
                                             'ask_variables_on_launch': item.ask_variables_on_launch,
-                                            'extra_vars': item.extra_vars,
+                                            'extra_vars': {} if not item.extra_vars or item.extra_vars == '---'
+                                                             else item.extra_vars | from_yaml,
                                             'job_tags': item.job_tags | regex_replace('None', ''),
                                             'limit': item.limit | regex_replace('None', ''),
                                             'scm_branch': item.scm_branch | regex_replace('None', ''),
@@ -32,29 +376,48 @@
                                             'survey_enabled': item.survey_enabled | bool,
                                             'webhook_credential': item.webhook_credential,
                                             'webhook_service': item.webhook_service,
-                                            'extra_vars': {} if not item.extra_vars or item.extra_vars == '---'
-                                                             else item.extra_vars | from_yaml,
-                                            'notifications_on_start': item.related.notification_templates_started |
+                                            'notifications_on_start': lookup('ansible.controller.controller_api',
+                                                                             'workflow_job_templates/' +
+                                                                               item.id | string +
+                                                                               '/notification_templates_started/',
+                                                                             return_objects=false,
+                                                                             return_all=true).results |
                                                                         selectattr('name') | map(attribute='name'),
-                                            'notifications_on_success': item.related.notification_templates_success |
+                                            'notifications_on_success': lookup('ansible.controller.controller_api',
+                                                                               'workflow_job_templates/' +
+                                                                                 item.id | string +
+                                                                                 '/notification_templates_success/',
+                                                                               return_objects=false,
+                                                                               return_all=true).results |
                                                                           selectattr('name') | map(attribute='name'),
-                                            'notifications_on_failure': item.related.notification_templates_error |
+                                            'notifications_on_failure': lookup('ansible.controller.controller_api',
+                                                                               'workflow_job_templates/' +
+                                                                                 item.id | string +
+                                                                                 '/notification_templates_error/',
+                                                                               return_objects=false,
+                                                                               return_all=true).results |
                                                                           selectattr('name') | map(attribute='name'),
-                                            'notifications_on_approval': item.related.notification_templates_approvals |
+                                            'notifications_on_approval': lookup('ansible.controller.controller_api',
+                                                                                'workflow_job_templates/' +
+                                                                                  item.id | string +
+                                                                                  '/notification_templates_approvals/',
+                                                                                return_objects=false,
+                                                                                return_all=true).results |
                                                                           selectattr('name') | map(attribute='name'),
-                                            'nodes': item.related.workflow_nodes |
-                                                     ansible.utils.remove_keys(target=['natural_key',
-                                                                                       'workflow_job_template']) |
+                                            'nodes': controller_objects_workflow_nodes |
+                                                     selectattr('workflow', 'equalto', item.name) |
+                                                     ansible.utils.remove_keys(target=['workflow']) |
                                                      configify.aapconfig.remove_empty_fields(fields=['inventory',
                                                                                                      'execution_environment'])} |
                                               regex_replace('\n', '') | regex_replace('None', \"''\")] }}"
-      loop: "{{ aap_workflows.assets.workflow_job_templates }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'workflow_job_templates/', return_objects=false, return_all=true).results }}"
       loop_control:
         label: " | workflow: {{ item.name }}"
 
-    - name: WORKFLOWS - Show all workflows
+    - name: WORKFLOWS - Show workflows (formatted)
       ansible.builtin.debug:
         var: controller_objects_workflows
       when: >
             controller_objects_workflows is defined and
-            controller_objects_workflows
+            controller_objects_workflows and
+            not show_vars_at_the_end | default(false)

@@ -4,25 +4,21 @@
   gather_facts: false
 
   tasks:
-    - name: TEAMS - Get all teams from AAP
-      ansible.controller.export:
-        teams: 'all'
-      register: aap_teams
-
     - name: TEAMS - Build list with all teams
       ansible.builtin.set_fact:
         controller_objects_teams: "{{ controller_objects_teams | default([]) +
                                       [{'name': item.name,
                                         'descr': item.description,
-                                        'org': item.organization.name} |
+                                        'org': item.summary_fields.organization.name} |
                                          regex_replace('\n', '')] }}"
-      loop: "{{ aap_teams.assets.teams }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'teams/', return_objects=false, return_all=true).results }}"
       loop_control:
         label: " | team: {{ item.name }}"
 
-    - name: TEAMS - Show all teams
+    - name: TEAMS - Show teams (formatted)
       ansible.builtin.debug:
         var: controller_objects_teams
       when: >
             controller_objects_teams is defined and
-            controller_objects_teams
+            controller_objects_teams and
+            not show_vars_at_the_end | default(false)

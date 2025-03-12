@@ -1,0 +1,63 @@
+---
+- name: INVENTORIES - Compare inventory hosts
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: INVENTORIES - Build list with constructed and smart inventories
+      ansible.builtin.set_fact:
+        controller_objects_inventories: "{{ controller_objects_inventories | default([]) +
+                                                          [{'name': item.name,
+                                                            'id': item.id,
+                                                            'kind': item.kind}] }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'inventories/', return_objects=false, return_all=true).results }}"
+      loop_control:
+        label: " | inventory: {{ item.name }}"
+      when: >
+            item.kind == 'constructed' or
+            item.kind == 'smart'
+
+    - name: INVENTORIES - Build list with host difference
+      ansible.builtin.set_fact:
+        controller_objects_inventory_host_difference: "{{ controller_objects_inventory_host_difference | default([]) +
+                                                          [{'name': item.name,
+                                                            'host_difference_minus': host_difference_minus,
+                                                            'host_difference_plus': host_difference_plus} |
+                                                           regex_replace('\n', '')] }}"
+      loop: "{{ controller_objects_inventories }}"
+      loop_control:
+        label: " | inventory: {{ item.name }}"
+      when: >
+            item.kind == 'smart' and
+            'migrated' not in item.name and
+            constructed_id is defined and
+            (host_difference_minus | length != 0 or
+             host_difference_plus | length != 0)
+      vars:
+        hosts_smart: "{{ lookup('ansible.controller.controller_api',
+                                 'inventories/' +
+                                   item.id | string +
+                                   '/hosts/',
+                                 return_objects=false,
+                                 return_all=true,
+                                 max_objects=10000).results |
+                         map(attribute='name') }}"
+        constructed_id: "{{ (controller_objects_inventories |
+                             selectattr('name', 'equalto', item.name + ' migrated'))[0].id }}"
+        hosts_constructed: "{{ lookup('ansible.controller.controller_api',
+                                      'inventories/' +
+                                        constructed_id | string +
+                                        '/hosts/',
+                                      return_objects=false,
+                                      return_all=true,
+                                      max_objects=10000).results |
+                               map(attribute='name') }}"
+        host_difference_minus: "{{ hosts_smart | difference(hosts_constructed) }}"
+        host_difference_plus: "{{ hosts_constructed | difference(hosts_smart) }}"
+
+    - name: INVENTORIES - Show host difference
+      ansible.builtin.debug:
+        var: controller_objects_inventory_host_difference
+      when: >
+            controller_objects_inventory_host_difference is defined and
+            controller_objects_inventory_host_difference

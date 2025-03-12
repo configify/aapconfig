@@ -30,30 +30,6 @@
     - controller_config_notifications_cleanup
     - controller_config_all_cleanup
 
-- name: ROLES - CLEANUP (pre 2.5)
-  ansible.builtin.import_tasks: roles_cleanup.yml
-  when: >
-        controller_ping.version is version_compare('4.6', '<') and
-        (controller_objects_roles_organization is defined or
-         controller_objects_roles_instance_groups is defined or
-         controller_objects_roles_credential is defined or
-         controller_objects_roles_template is defined)
-  tags:
-    - controller_config_roles
-    - controller_config_roles_cleanup
-    - controller_config_all_cleanup
-
-- name: ROLES - CLEANUP (2.5)
-  ansible.builtin.import_tasks: roles_25_cleanup.yml
-  when: >
-        controller_ping.version is version_compare('4.6', '>=') and
-        (controller_objects_roles is defined or
-         gateway_objects_roles is defined)
-  tags:
-    - controller_config_roles
-    - controller_config_roles_cleanup
-    - controller_config_all_cleanup
-
 - name: SCHEDULES - CLEANUP
   ansible.builtin.import_tasks: schedules_cleanup.yml
   when: controller_objects_schedules is defined
@@ -146,6 +122,16 @@
   tags:
     - controller_config_users
     - controller_config_users_cleanup
+    - controller_config_all_cleanup
+
+- name: ROLES - CLEANUP
+  ansible.builtin.import_tasks: roles_cleanup.yml
+  when: >
+        controller_objects_roles is defined or
+        gateway_objects_roles is defined
+  tags:
+    - controller_config_roles
+    - controller_config_roles_cleanup
     - controller_config_all_cleanup
 
 - name: USERS - CREATION/MODIFICATION
@@ -252,30 +238,6 @@
     - controller_config_templates_apply
     - controller_config_all_apply
 
-- name: ROLES - CREATION/MODIFICATION (pre 2.5)
-  ansible.builtin.import_tasks: roles.yml
-  when: >
-        controller_ping.version is version_compare('4.6', '<') and
-        (controller_objects_roles_organization is defined or
-         controller_objects_roles_instance_groups is defined or
-         controller_objects_roles_credential is defined or
-         controller_objects_roles_template is defined)
-  tags:
-    - controller_config_roles
-    - controller_config_roles_apply
-    - controller_config_all_apply
-
-- name: ROLES - CREATION/MODIFICATION (2.5)
-  ansible.builtin.import_tasks: roles_25.yml
-  when: >
-        controller_ping.version is version_compare('4.6', '>=') and
-        (controller_objects_roles is defined or
-         gateway_objects_roles is defined)
-  tags:
-    - controller_config_roles
-    - controller_config_roles_apply
-    - controller_config_all_apply
-
 - name: SCHEDULES - CREATION/MODIFICATION
   ansible.builtin.import_tasks: schedules.yml
   when: controller_objects_schedules is defined
@@ -290,4 +252,14 @@
   tags:
     - controller_config_workflows
     - controller_config_workflows_apply
+    - controller_config_all_apply
+
+- name: ROLES - CREATION/MODIFICATION
+  ansible.builtin.import_tasks: roles.yml
+  when: >
+        controller_objects_roles is defined or
+        gateway_objects_roles is defined
+  tags:
+    - controller_config_roles
+    - controller_config_roles_apply
     - controller_config_all_apply

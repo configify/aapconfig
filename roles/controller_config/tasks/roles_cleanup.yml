@@ -1,489 +1,247 @@
-- name: ROLES - Instance group roles (pre 2.5)
-  when: controller_objects_roles_instance_groups is defined
-  tags:
-    - controller_config_roles_instance_groups
-    - controller_config_roles_instance_groups_cleanup
+- name: ROLES - Cleanup (pre 2.5)
+  when: controller_ping.version is version_compare('4.6', '<')
   block:
-    - name: ROLES - Get all team roles from AAP (pre 2.5)
+    - name: ROLES - Get team roles (pre 2.5)
       ansible.builtin.set_fact:
-        aap_ig_team_roles: "{{ aap_ig_team_roles | default([]) +
-                               [{'name': item.name,
-                                 'roles': lookup('ansible.controller.controller_api', 'teams/' + item.id | string + '/roles',
-                                                 return_objects=false,
-                                                 return_all=true).results}] }}"
-      loop: "{{ lookup('ansible.controller.controller_api', 'teams/',
-                       return_objects=false,
-                       return_all=true).results }}"
+        controller_objects_existing_team_roles: "{{ controller_objects_existing_team_roles | default([]) +
+                                                    [{'team': item.name,
+                                                      'roles': lookup('ansible.controller.controller_api',
+                                                                      'teams/' +
+                                                                         item.id | string +
+                                                                         '/roles/',
+                                                                      return_objects=false,
+                                                                      return_all=true).results}] }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'teams/', return_objects=false, return_all=true).results }}"
       loop_control:
         label: " | team: {{ item.name }}"
 
-    - name: ROLES - Notify on rogue instance group roles for teams (pre 2.5)
-      ansible.builtin.debug:
-        msg: "Shouldn't be there"
-      when: >
-            not delete_objects | default(false) | bool and
-            item.1.summary_fields.resource_name is defined and
-            item.1.name is defined and
-            item.1.summary_fields.resource_type == 'instance_group' and
-            controller_objects_roles_instance_groups |
-              selectattr("team", "defined") |
-                selectattr("team", "equalto", item.0.name) |
-                selectattr("role", "equalto", item.1.name) |
-                selectattr("ig", "equalto", item.1.summary_fields.resource_name) | length == 0
-      changed_when: true
-      loop: "{{ aap_ig_team_roles | default([]) | subelements('roles') }}"
-      loop_control:
-        label: " | team: {{ item.0.name }} ->
-                   role: {{ item.1.name }} ->
-                   {{ item.1.summary_fields.resource_type | default('N/A') }}: {{ item.1.summary_fields.resource_name | default('N/A') }}"
-      tags:
-        - controller_config_roles_instance_groups_teams
-        - controller_config_roles_instance_groups_teams_cleanup
-
-    - name: ROLES - Delete rogue instance group roles for teams (pre 2.5)
-      ansible.controller.role:
-        team: "{{ item.0.name }}"
-        role: "{{ item.1.name | lower }}"
-        instance_groups: "{{ item.1.summary_fields.resource_name }}"
-        state: absent
-      when: >
-            delete_objects | default(false) | bool and
-            item.1.summary_fields.resource_name is defined and
-            item.1.name is defined and
-            item.1.summary_fields.resource_type == 'instance_group' and
-            controller_objects_roles_instance_groups |
-              selectattr("team", "defined") |
-                selectattr("team", "equalto", item.0.name) |
-                selectattr("role", "equalto", item.1.name) |
-                selectattr("ig", "equalto", item.1.summary_fields.resource_name) | length == 0
-      changed_when: true
-      loop: "{{ aap_ig_team_roles | default([]) | subelements('roles') }}"
-      loop_control:
-        label: " | team: {{ item.0.name }} ->
-                   role: {{ item.1.name }} ->
-                   {{ item.1.summary_fields.resource_type | default('N/A') }}: {{ item.1.summary_fields.resource_name | default('N/A') }}"
-      tags:
-        - controller_config_roles_instance_groups_teams
-        - controller_config_roles_instance_groups_teams_cleanup
-
-    - name: ROLES - Get instance groups (pre 2.5)
+    - name: ROLES - Build list with team roles (pre 2.5)
       ansible.builtin.set_fact:
-        aap_instance_groups: "{{ lookup('ansible.controller.controller_api', 'instance_groups', return_objects=false).results }}"
-      check_mode: false
-      tags:
-        - controller_config_roles_instance_groups_teams
-        - controller_config_roles_instance_groups_teams_cleanup
-        - controller_config_roles_instance_groups_users
-        - controller_config_roles_instance_groups_users_cleanup
+        controller_objects_existing_roles: "{{ controller_objects_existing_roles | default([]) +
+                                               [{'team': item.0.team,
+                                                 'role': item.1.summary_fields.resource_type_display_name | replace(' ', '') + ' ' + item.1.name,
+                                                 'object_type': object_type,
+                                                 'object_name': item.1.summary_fields.resource_name}] }}"
+      loop: "{{ controller_objects_existing_team_roles | default([]) | subelements('roles') }}"
+      loop_control:
+        label: " | team: {{ item.0.team }} ->
+                   role: {{ item.1.name }} ->
+                   {{ object_type }}: {{ item.1.summary_fields.resource_name }}"
+      vars:
+        object_type: "{{ item.1.summary_fields.resource_type | replace('_', '') }}"
 
-    - name: ROLES - Get instance groups acl (pre 2.5)
+    - name: ROLES - Get user roles (pre 2.5)
       ansible.builtin.set_fact:
-        aap_instance_groups_acl: "{{ aap_instance_groups_acl | default([]) +
-                                     lookup('ansible.controller.controller_api', 'instance_groups/' + item.id | string + '/access_list',
-                                            return_objects=false).results }}"
-      loop: "{{ aap_instance_groups }}"
+        controller_objects_existing_user_roles: "{{ controller_objects_existing_user_roles | default([]) +
+                                                    [{'user': item.username,
+                                                      'roles': lookup('ansible.controller.controller_api',
+                                                                      'users/' +
+                                                                         item.id | string +
+                                                                         '/roles/',
+                                                                      return_objects=false,
+                                                                      return_all=true).results}] }}"
+      when: not item.is_superuser
+      loop: "{{ lookup('ansible.controller.controller_api', 'users/', return_objects=false, return_all=true).results }}"
       loop_control:
-        label: " | ig: {{ item.name }}"
+        label: " | user: {{ item.username }}"
 
-    - name: ROLES - Notify on rogue instance group roles for users (pre 2.5)
+    - name: ROLES - Build list with user roles (pre 2.5)
+      ansible.builtin.set_fact:
+        controller_objects_existing_roles: "{{ controller_objects_existing_roles | default([]) +
+                                               [{'user': item.0.user,
+                                                 'role': item.1.summary_fields.resource_type_display_name | replace(' ', '') + ' ' + item.1.name,
+                                                 'object_type': object_type,
+                                                 'object_name': item.1.summary_fields.resource_name}] }}"
+      when: item.1.summary_fields.resource_type is defined
+      loop: "{{ controller_objects_existing_user_roles | default([]) | subelements('roles') }}"
+      loop_control:
+        label: " | user: {{ item.0.user }} ->
+                   role: {{ item.1.name }} ->
+                   {{ object_type }}: {{ item.1.summary_fields.resource_name | default('N/A') }}"
+      vars:
+        object_type: "{{ item.1.summary_fields.resource_type | default('N/A') | replace('_', '') }}"
+
+    - name: ROLES - Notify on rogue roles (pre 2.5)
       ansible.builtin.debug:
         msg: "Shouldn't be there"
       when: >
             not delete_objects | default(false) | bool and
-            item.0.summary_fields.direct_access and
-            item.1.role.team_name is not defined and
-            controller_objects_roles_instance_groups |
-              selectattr("user", "defined") |
-                selectattr("user", "equalto", item.0.username) |
-                selectattr("role", "equalto", item.1.role.name) |
-                selectattr("ig", "equalto", item.1.role.resource_name) | length == 0
-      changed_when: true
-      loop: "{{ aap_instance_groups_acl | default([]) | subelements('summary_fields.direct_access') }}"
-      loop_control:
-        label: " | team: {{ item.1.role.team_name | default(item.0.username) }} (user: {{ item.0.username }}) ->
-                   role: {{ item.1.role.name }} ->
-                   ig: {{ item.1.role.resource_name }}"
-      tags:
-        - controller_config_roles_instance_groups_users
-        - controller_config_roles_instance_groups_users_cleanup
-
-    - name: ROLES - Delete rogue instance group roles for users (pre 2.5)
-      ansible.controller.role:
-        user: "{{ item.0.username }}"
-        role: "{{ item.1.role.name | lower }}"
-        instance_groups: "{{ item.1.role.resource_name }}"
-        state: absent
-      when: >
-            delete_objects | default(false) | bool and
-            item.0.summary_fields.direct_access and
-            item.1.role.team_name is not defined and
-            controller_objects_roles_instance_groups |
-              selectattr("user", "defined") |
-                selectattr("user", "equalto", item.0.username) |
-                selectattr("role", "equalto", item.1.role.name) |
-                selectattr("ig", "equalto", item.1.role.resource_name) | length == 0
-      loop: "{{ aap_instance_groups_acl | default([]) | subelements('summary_fields.direct_access') }}"
-      loop_control:
-        label: " | team: {{ item.1.role.team_name | default(item.0.username) }} (user: {{ item.0.username }}) ->
-                   role: {{ item.1.role.name }} ->
-                   ig: {{ item.1.role.resource_name }}"
-      tags:
-        - controller_config_roles_instance_groups_users
-        - controller_config_roles_instance_groups_users_cleanup
-
-- name: ROLES - Get all teams from AAP (pre 2.5)
-  ansible.controller.export:
-    teams: 'all'
-  when: >
-        controller_objects_roles_organization is defined or
-        controller_objects_roles_credential is defined or
-        controller_objects_roles_template is defined
-  register: aap_teams
-  tags:
-    - controller_config_roles_orgs
-    - controller_config_roles_orgs_cleanup
-    - controller_config_roles_orgs_teams
-    - controller_config_roles_orgs_teams_cleanup
-    - controller_config_roles_creds
-    - controller_config_roles_creds_cleanup
-    - controller_config_roles_creds_teams
-    - controller_config_roles_creds_teams_cleanup
-    - controller_config_roles_templates
-    - controller_config_roles_templates_cleanup
-    - controller_config_roles_templates_teams
-    - controller_config_roles_templates_teams_cleanup
-
-- name: ROLES - Organizational roles for teams (pre 2.5)
-  when: controller_objects_roles_organization is defined
-  tags:
-    - controller_config_roles_orgs
-    - controller_config_roles_orgs_cleanup
-    - controller_config_roles_orgs_teams
-    - controller_config_roles_orgs_teams_cleanup
-  block:
-    - name: ROLES - Notify on rogue organization roles for teams (pre 2.5)
-      ansible.builtin.debug:
-        msg: "Shouldn't be there"
-      when: >
-            not delete_objects | default(false) | bool and
-            aap_teams is defined and
-            item.0.related.roles is defined and
-            item.1.content_object and
-            item.1.content_object.type == "organization" and
-            controller_objects_roles_organization |
+            controller_objects_roles |
               selectattr("team", "defined") |
-                selectattr("team", "equalto", item.0.name) |
-                selectattr("role", "equalto", item.1.name) |
-                selectattr("org", "equalto", item.1.content_object.name) | length == 0
+              selectattr("team", "equalto", item.team | default('')) |
+              selectattr("role", "equalto", item.role) |
+              selectattr("object_name", "equalto", item.object_name) | length == 0 and
+            controller_objects_roles |
+              selectattr("user", "defined") |
+              selectattr("user", "equalto", item.user | default('')) |
+              selectattr("role", "equalto", item.role) |
+              selectattr("object_name", "equalto", item.object_name) | length == 0
       changed_when: true
-      loop: "{{ aap_teams.assets.teams | default([]) | subelements('related.roles') | default([]) }}"
+      loop: "{{ controller_objects_existing_roles | default([]) }}"
       loop_control:
-        label: " | team: {{ item.0.name }} ->
-                   role: {{ item.1.name }} ->
-                   {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
+        label: " | team/user: {{ item.team | default(item.user) }} ->
+                   role: {{ item.role.split(' ')[1:] | join(' ') }} ->
+                   {{ item.object_type }}: {{ item.object_name }}"
 
-    - name: ROLES - Delete rogue organization roles for teams (pre 2.5)
+    - name: ROLES - Delete rogue roles (pre 2.5)
       ansible.controller.role:
-        team: "{{ item.0.name }}"
-        role: "{{ item.1.name | lower | replace(' ', '_') | replace('approve', 'approval') }}"
-        organization: "{{ item.1.content_object.name }}"
+        team: "{{ item.team | default(omit) }}"
+        user: "{{ item.user | default(omit) }}"
+        role: "{{ item.role.split(' ')[1:] | join('_') | lower | replace('approve', 'approval') | replace('ad_hoc', 'adhoc') }}"
+        instance_groups: "{{ omit if item.object_type != 'instancegroup' else item.object_name }}"
+        organizations: "{{ omit if item.object_type != 'organization' else item.object_name }}"
+        credentials: "{{ omit if item.object_type != 'credential' else item.object_name }}"
+        job_templates: "{{ omit if item.object_type != 'jobtemplate' else item.object_name }}"
+        projects: "{{ omit if item.object_type != 'project' else item.object_name }}"
+        workflows: "{{ omit if item.object_type != 'workflowjobtemplate' else item.object_name }}"
+        inventories: "{{ omit if item.object_type != 'inventory' else item.object_name }}"
         state: absent
       when: >
             delete_objects | default(false) | bool and
-            item.0.related.roles is defined and
-            item.1.content_object and
-            item.1.content_object.type == "organization" and
-            controller_objects_roles_organization |
+            controller_objects_roles |
               selectattr("team", "defined") |
-                selectattr("team", "equalto", item.0.name) |
-                selectattr("role", "equalto", item.1.name) |
-                selectattr("org", "equalto", item.1.content_object.name) | length == 0
-      loop: "{{ aap_teams.assets.teams | default([]) | subelements('related.roles') }}"
+              selectattr("team", "equalto", item.team | default('')) |
+              selectattr("role", "equalto", item.role) |
+              selectattr("object_name", "equalto", item.object_name) | length == 0 and
+            controller_objects_roles |
+              selectattr("user", "defined") |
+              selectattr("user", "equalto", item.user | default('')) |
+              selectattr("role", "equalto", item.role) |
+              selectattr("object_name", "equalto", item.object_name) | length == 0
+      changed_when: true
+      loop: "{{ controller_objects_existing_roles | default([]) }}"
       loop_control:
-        label: " | team: {{ item.0.name }} ->
-                   role: {{ item.1.name }} ->
-                   {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
+        label: " | team/user: {{ item.team | default(item.user) }} ->
+                   role: {{ item.role.split(' ')[1:] | join(' ') }} ->
+                   {{ item.object_type }}: {{ item.object_name }}"
 
-- name: ROLES - Credential roles for teams (pre 2.5)
-  when: controller_objects_roles_credential is defined
-  tags:
-    - controller_config_roles_creds
-    - controller_config_roles_creds_cleanup
-    - controller_config_roles_creds_teams
-    - controller_config_roles_creds_teams_cleanup
+- name: ROLES - Cleanup (2.5)
+  when: controller_ping.version is version_compare('4.6', '>=')
   block:
-    - name: ROLES - Notify on rogue credential roles for teams (pre 2.5)
+    - name: ROLES - Build list with gateway user roles (2.5)
+      ansible.builtin.set_fact:
+        gateway_objects_roles_users: "{{ lookup('ansible.platform.gateway_api', 'role_user_assignments',
+                                                return_objects=false,
+                                                host=lookup('ansible.builtin.env', 'GATEWAY_HOSTNAME'),
+                                                username=lookup('ansible.builtin.env', 'GATEWAY_USERNAME'),
+                                                password=lookup('ansible.builtin.env', 'GATEWAY_PASSWORD'),
+                                                oauth_token=lookup('ansible.builtin.env', 'GATEWAY_API_TOKEN'),
+                                                verify_ssl=lookup('ansible.builtin.env', 'GATEWAY_VERIFY_SSL')).results }}"
+
+    - name: ROLES - Notify on rogue gateway user roles (2.5)
       ansible.builtin.debug:
         msg: "Shouldn't be there"
       when: >
             not delete_objects | default(false) | bool and
-            item.0.related.roles is defined and
-            item.1.content_object and
-            item.1.content_object.type == "credential" and
-            controller_objects_roles_credential |
-              selectattr("team", "defined") |
-                selectattr("team", "equalto", item.0.name) |
-                selectattr("role", "equalto", item.1.name) |
-                selectattr("cred", "equalto", item.1.content_object.name) | length == 0
+            gateway_objects_roles |
+              selectattr("user", "defined") |
+                selectattr("user", "equalto", item.summary_fields.user.username) |
+                  selectattr("role", "equalto", item.summary_fields.role_definition.name) |
+                    selectattr("object_name", "equalto", item.summary_fields.content_object.name) | length == 0
       changed_when: true
-      loop: "{{ aap_teams.assets.teams | default([]) | subelements('related.roles') }}"
+      loop: "{{ gateway_objects_roles_users | default([]) }}"
       loop_control:
-        label: " | team: {{ item.0.name }} ->
-                   role: {{ item.1.name }} ->
-                   {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
+        label: " | user: {{ item.summary_fields.user.username }} ->
+                   role: {{ item.summary_fields.role_definition.name }} ->
+                   {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
 
-    - name: ROLES - Delete rogue credential roles for teams (pre 2.5)
-      ansible.controller.role:
-        team: "{{ item.0.name }}"
-        role: "{{ item.1.name | lower | replace(' ', '_') | replace('approve', 'approval') }}"
-        credential: "{{ item.1.content_object.name }}"
+    - name: ROLES - Delete rogue gateway user roles (2.5)
+      ansible.platform.role_user_assignment:
+        role_definition: "{{ item.summary_fields.role_definition.name }}"
+        object_id: "{{ item.summary_fields.content_object.id }}"
+        user: "{{ item.summary_fields.user.username }}"
         state: absent
       when: >
             delete_objects | default(false) | bool and
-            item.0.related.roles is defined and
-            item.1.content_object and
-            item.1.content_object.type == "credential" and
-            controller_objects_roles_credential |
-              selectattr("team", "defined") |
-                selectattr("team", "equalto", item.0.name) |
-                selectattr("role", "equalto", item.1.name) |
-                selectattr("cred", "equalto", item.1.content_object.name) | length == 0
-      loop: "{{ aap_teams.assets.teams | default([]) | subelements('related.roles') }}"
+            gateway_objects_roles |
+              selectattr("user", "defined") |
+                selectattr("user", "equalto", item.summary_fields.user.username) |
+                  selectattr("role", "equalto", item.summary_fields.role_definition.name) |
+                    selectattr("object_name", "equalto", item.summary_fields.content_object.name) | length == 0
+      loop: "{{ gateway_objects_roles_users | default([]) }}"
       loop_control:
-        label: " | team: {{ item.0.name }} ->
-                   role: {{ item.1.name }} ->
-                   {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
+        label: " | user: {{ item.summary_fields.user.username }} ->
+                   role: {{ item.summary_fields.role_definition.name }} ->
+                   {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
 
-- name: ROLES - Template roles for teams (pre 2.5)
-  when: controller_objects_roles_template is defined
-  tags:
-    - controller_config_roles_templates
-    - controller_config_roles_templates_cleanup
-    - controller_config_roles_templates_teams
-    - controller_config_roles_templates_teams_cleanup
-  block:
-    - name: ROLES - Notify on rogue template roles for teams (pre 2.5)
+    - name: ROLES - Build list with controller team roles (2.5)
+      ansible.builtin.set_fact:
+        controller_objects_roles_teams: "{{ lookup('ansible.controller.controller_api', 'role_team_assignments', return_objects=false).results }}"
+
+    - name: ROLES - Notify on rogue controller team roles (2.5)
       ansible.builtin.debug:
         msg: "Shouldn't be there"
       when: >
             not delete_objects | default(false) | bool and
-            item.0.related.roles is defined and
-            item.1.content_object and
-            item.1.content_object.type == "job_template" and
-            controller_objects_roles_template |
+            controller_objects_roles |
               selectattr("team", "defined") |
-                selectattr("team", "equalto", item.0.name) |
-                selectattr("role", "equalto", item.1.name) |
-                selectattr("template", "equalto", item.1.content_object.name) | length == 0
+                selectattr("team", "equalto", item.summary_fields.team.name) |
+                  selectattr("role", "equalto", item.summary_fields.role_definition.name) |
+                    selectattr("object_name", "equalto", item.summary_fields.content_object.name) | length == 0
       changed_when: true
-      loop: "{{ aap_teams.assets.teams | default([]) | subelements('related.roles') }}"
+      loop: "{{ controller_objects_roles_teams | default([]) }}"
       loop_control:
-        label: " | team: {{ item.0.name }} ->
-                   role: {{ item.1.name }} ->
-                   {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
+        label: " | team: {{ item.summary_fields.team.name }} ->
+                   role: {{ item.summary_fields.role_definition.name }} ->
+                   {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
 
-    - name: ROLES - Delete rogue template roles for teams (pre 2.5)
-      ansible.controller.role:
-        team: "{{ item.0.name }}"
-        role: "{{ item.1.name | lower | replace(' ', '_') | replace('approve', 'approval') }}"
-        job_templates: "{{ item.1.content_object.name }}"
+    - name: ROLES - Delete rogue controller team roles (2.5)
+      ansible.controller.role_team_assignment:
+        role_definition: "{{ item.summary_fields.role_definition.name }}"
+        object_id: "{{ item.summary_fields.content_object.id }}"
+        team: "{{ item.summary_fields.team.name }}"
         state: absent
       when: >
             delete_objects | default(false) | bool and
-            item.0.related.roles is defined and
-            item.1.content_object and
-            item.1.content_object.type == "job_template" and
-            controller_objects_roles_template |
+            controller_objects_roles |
               selectattr("team", "defined") |
-                selectattr("team", "equalto", item.0.name) |
-                selectattr("role", "equalto", item.1.name) |
-                selectattr("template", "equalto", item.1.content_object.name) | length == 0
-      loop: "{{ aap_teams.assets.teams | default([]) | subelements('related.roles') }}"
+                selectattr("team", "equalto", item.summary_fields.team.name) |
+                  selectattr("role", "equalto", item.summary_fields.role_definition.name) |
+                    selectattr("object_name", "equalto", item.summary_fields.content_object.name) | length == 0
+      loop: "{{ controller_objects_roles_teams | default([]) }}"
       loop_control:
-        label: " | team: {{ item.0.name }} ->
-                   role: {{ item.1.name }} ->
-                   {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
+        label: " | team: {{ item.summary_fields.team.name }} ->
+                   role: {{ item.summary_fields.role_definition.name }} ->
+                   {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
 
-- name: ROLES - Get all users from AAP
-  ansible.controller.export:
-    users: 'all'
-  when: >
-        controller_objects_roles_organization is defined or
-        controller_objects_roles_credential is defined or
-        controller_objects_roles_template is defined
-  register: aap_users
-  tags:
-    - controller_config_roles_orgs
-    - controller_config_roles_orgs_cleanup
-    - controller_config_roles_orgs_users
-    - controller_config_roles_orgs_users_cleanup
-    - controller_config_roles_creds
-    - controller_config_roles_creds_cleanup
-    - controller_config_roles_creds_users
-    - controller_config_roles_creds_users_cleanup
-    - controller_config_roles_templates
-    - controller_config_roles_templates_cleanup
-    - controller_config_roles_templates_users
-    - controller_config_roles_templates_users_cleanup
+    - name: ROLES - Build list with controller user roles (2.5)
+      ansible.builtin.set_fact:
+        controller_objects_roles_users: "{{ lookup('ansible.controller.controller_api', 'role_user_assignments', return_objects=false).results }}"
 
-- name: ROLES - Organizational roles for users (pre 2.5)
-  when: controller_objects_roles_organization is defined
-  tags:
-    - controller_config_roles_orgs
-    - controller_config_roles_orgs_cleanup
-    - controller_config_roles_orgs_users
-    - controller_config_roles_orgs_users_cleanup
-  block:
-    - name: ROLES - Notify on rogue organization roles for users (pre 2.5)
+    - name: ROLES - Notify on rogue controller user roles (2.5)
       ansible.builtin.debug:
         msg: "Shouldn't be there"
       when: >
             not delete_objects | default(false) | bool and
-            item.0.related.roles is defined and
-            not item.0.is_superuser and
-            not item.0.is_system_auditor and
-            item.1.content_object and
-            item.1.content_object.type == "organization" and
-            controller_objects_roles_organization |
+            item.content_type and
+            controller_objects_roles |
               selectattr("user", "defined") |
-                selectattr("user", "equalto", item.0.username) |
-                selectattr("role", "equalto", item.1.name) |
-                selectattr("org", "equalto", item.1.content_object.name | default('')) | length == 0
+                selectattr("user", "equalto", item.summary_fields.user.username) |
+                  selectattr("role", "equalto", item.summary_fields.role_definition.name) |
+                    selectattr("object_name", "equalto", item.summary_fields.content_object.name) | length == 0
       changed_when: true
-      loop: "{{ aap_users.assets.users | default([]) | subelements('related.roles') }}"
+      loop: "{{ controller_objects_roles_users | default([]) }}"
       loop_control:
-        label: " | user: {{ item.0.username }} ->
-                   role: {{ item.1.name }} ->
-                   {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
+        label: " | user: {{ item.summary_fields.user.username }} ->
+                   role: {{ item.summary_fields.role_definition.name }} ->
+                   {{ (item.content_type | string).split('.')[1] | default('N/A') }}: {{ item.summary_fields.content_object.name | default('N/A') }} }}"
 
-    - name: ROLES - Delete rogue organization roles for users (pre 2.5)
-      ansible.controller.role:
-        user: "{{ item.0.username }}"
-        role: "{{ item.1.name | lower | replace(' ', '_') | replace('approve', 'approval') }}"
-        organization: "{{ item.1.content_object.name }}"
+    - name: ROLES - Delete rogue controller user roles (2.5)
+      ansible.controller.role_user_assignment:
+        role_definition: "{{ item.summary_fields.role_definition.name }}"
+        object_id: "{{ item.summary_fields.content_object.id }}"
+        user: "{{ item.summary_fields.user.username }}"
         state: absent
       when: >
             delete_objects | default(false) | bool and
-            item.0.related.roles is defined and
-            not item.0.is_superuser and
-            not item.0.is_system_auditor and
-            item.1.content_object and
-            item.1.content_object.type == "organization" and
-            controller_objects_roles_organization |
+            item.content_type and
+            controller_objects_roles |
               selectattr("user", "defined") |
-                selectattr("user", "equalto", item.0.username) |
-                selectattr("role", "equalto", item.1.name) |
-                selectattr("org", "equalto", item.1.content_object.name | default('')) | length == 0
-      loop: "{{ aap_users.assets.users | default([]) | subelements('related.roles') }}"
+                selectattr("user", "equalto", item.summary_fields.user.username) |
+                  selectattr("role", "equalto", item.summary_fields.role_definition.name) |
+                    selectattr("object_name", "equalto", item.summary_fields.content_object.name) | length == 0
+      loop: "{{ controller_objects_roles_users | default([]) }}"
       loop_control:
-        label: " | user: {{ item.0.username }} ->
-                   role: {{ item.1.name }} ->
-                   {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
-
-- name: ROLES - Credential roles for users (pre 2.5)
-  when: controller_objects_roles_credential is defined
-  tags:
-    - controller_config_roles_creds
-    - controller_config_roles_creds_cleanup
-    - controller_config_roles_creds_users
-    - controller_config_roles_creds_users_cleanup
-  block:
-    - name: ROLES - Notify on rogue credential roles for users (pre 2.5)
-      ansible.builtin.debug:
-        msg: "Shouldn't be there"
-      when: >
-            not delete_objects | default(false) | bool and
-            item.0.related.roles is defined and
-            not item.0.is_superuser and
-            not item.0.is_system_auditor and
-            item.1.content_object and
-            item.1.content_object.type == "credential" and
-            controller_objects_roles_credential |
-              selectattr("user", "defined") |
-                selectattr("user", "equalto", item.0.username) |
-                selectattr("role", "equalto", item.1.name) |
-                selectattr("cred", "equalto", item.1.content_object.name | default('')) | length == 0
-      changed_when: true
-      loop: "{{ aap_users.assets.users | default([]) | subelements('related.roles') }}"
-      loop_control:
-        label: " | user: {{ item.0.username }} ->
-                   role: {{ item.1.name }} ->
-                   {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
-
-    - name: ROLES - Delete rogue credential roles for users (pre 2.5)
-      ansible.controller.role:
-        user: "{{ item.0.username }}"
-        role: "{{ item.1.name | lower | replace(' ', '_') | replace('approve', 'approval') }}"
-        credentials: "{{ item.1.content_object.name }}"
-        state: absent
-      when: >
-            delete_objects | default(false) | bool and
-            item.0.related.roles is defined and
-            not item.0.is_superuser and
-            not item.0.is_system_auditor and
-            item.1.content_object and
-            item.1.content_object.type == "credential" and
-            controller_objects_roles_credential |
-              selectattr("user", "defined") |
-                selectattr("user", "equalto", item.0.username) |
-                selectattr("role", "equalto", item.1.name) |
-                selectattr("cred", "equalto", item.1.content_object.name | default('')) | length == 0
-      loop: "{{ aap_users.assets.users | default([]) | subelements('related.roles') }}"
-      loop_control:
-        label: " | user: {{ item.0.username }} ->
-                   role: {{ item.1.name }} ->
-                   {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
-
-- name: ROLES - Template roles for users (pre 2.5)
-  when: controller_objects_roles_template is defined
-  tags:
-    - controller_config_roles_templates
-    - controller_config_roles_templates_cleanup
-    - controller_config_roles_templates_users
-    - controller_config_roles_templates_users_cleanup
-  block:
-    - name: ROLES - Notify on rogue template roles for users (pre 2.5)
-      ansible.builtin.debug:
-        msg: "Shouldn't be there"
-      when: >
-            not delete_objects | default(false) | bool and
-            item.0.related.roles is defined and
-            not item.0.is_superuser and
-            not item.0.is_system_auditor and
-            item.1.content_object and
-            item.1.content_object.type == "job_template" and
-            controller_objects_roles_template |
-              selectattr("user", "defined") |
-                selectattr("user", "equalto", item.0.username) |
-                selectattr("role", "equalto", item.1.name) |
-                selectattr("template", "equalto", item.1.content_object.name | default('')) | length == 0
-      changed_when: true
-      loop: "{{ aap_users.assets.users | default([]) | subelements('related.roles') }}"
-      loop_control:
-        label: " | user: {{ item.0.username }} ->
-                   role: {{ item.1.name }} ->
-                   {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
-
-    - name: ROLES - Delete rogue template roles for users (pre 2.5)
-      ansible.controller.role:
-        user: "{{ item.0.username }}"
-        role: "{{ item.1.name | lower | replace(' ', '_') | replace('approve', 'approval') }}"
-        job_templates: "{{ item.1.content_object.name }}"
-        state: absent
-      when: >
-            delete_objects | default(false) | bool and
-            item.0.related.roles is defined and
-            not item.0.is_superuser and
-            not item.0.is_system_auditor and
-            item.1.content_object and
-            item.1.content_object.type == "job_template" and
-            controller_objects_roles_template |
-              selectattr("user", "defined") |
-                selectattr("user", "equalto", item.0.username) |
-                selectattr("role", "equalto", item.1.name) |
-                selectattr("template", "equalto", item.1.content_object.name | default('')) | length == 0
-      loop: "{{ aap_users.assets.users | default([]) | subelements('related.roles') }}"
-      loop_control:
-        label: " | user: {{ item.0.username }} ->
-                   role: {{ item.1.name }} ->
-                   {{ item.1.content_object.type | default('N/A') }}: {{ item.1.content_object.name | default('N/A') }}"
+        label: " | user: {{ item.summary_fields.user.username }} ->
+                   role: {{ item.summary_fields.role_definition.name }} ->
+                   {{ (item.content_type | string).split('.')[1] | default('N/A') }}: {{ item.summary_fields.content_object.name | default('N/A') }} }}"
