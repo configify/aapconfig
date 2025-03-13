@@ -261,6 +261,7 @@ The playbook exports existing Smart inventories in a format suitable for further
 * adds “migrated” to inventory name
 * adds or copies without changes other fields required for Constructed inventory
 
+Please, review values in the limit fields for correctness. If there are any '=', you will need convert the filters manually.
 
 ### compare_inventory_hosts
 
