@@ -685,10 +685,12 @@ See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat 
 ```
 controller_objects_projects: [
   {'name': 'Project with Creds A', 'type': 'git', 'branch': '', 'scm_clean': False, 'scm_delete': False, 'scm_update': False,
-   'org': 'Org A', 'cred': 'Credential GitHub A', 'url': 'https://github.com/configify/hi.git'},
+   'org': 'Org A', 'cred': 'Credential GitHub A', 'url': 'https://github.com/configify/hi.git',
+   'notifications_on_start': [], 'notifications_on_success': [], 'notifications_on_failure': []},
 
   {'name': 'Project C', 'type': 'git', 'branch': '', 'scm_clean': False, 'scm_delete': False, 'scm_update': False,
-   'org': 'Org C', 'url': 'https://github.com/configify/hi.git'}
+   'org': 'Org C', 'url': 'https://github.com/configify/hi.git',
+   'notifications_on_start': [], 'notifications_on_success': [], 'notifications_on_failure': []}
 ]
 ```
 
