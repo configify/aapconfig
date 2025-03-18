@@ -42,7 +42,7 @@
     use_fact_cache: "{{ item.use_fact_cache }}"
     verbosity: "{{ item.verbosity }}"
     survey_spec: "{{ item.survey }}"
-    webhook_credential: "{{ omit if item.webhook_credential == 'None' else item.webhook_credential }}"
+    webhook_credential: "{{ omit if item.webhook_credential == '' else item.webhook_credential }}"
     webhook_service: "{{ omit if item.webhook_service == '' else item.webhook_service }}"
     credentials: "{{ item.creds }}"
     notification_templates_error: "{{ item.notifications_on_failure }}"

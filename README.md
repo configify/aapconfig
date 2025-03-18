@@ -728,7 +728,7 @@ controller_objects_templates: [
    'skip_tags': '', 'start_at_task': '', 'survey_enabled': False, 'timeout': 0, 'use_fact_cache': False, 'verbosity': 0,
    'extra_vars': {},
    'survey': {},
-   'webhook_service': '', 'webhook_credential': None,
+   'webhook_service': '', 'webhook_credential': '',
    'creds': ['Credential Machine A'],
    'notifications_on_start': ['Notification Email A', 'Notification Slack A'], 'notifications_on_success': [], 'notifications_on_failure': ['Notification Slack A']}
 ]
