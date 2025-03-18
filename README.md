@@ -8,9 +8,12 @@
   - [Connection variables](#Connection-variables)
 - [Available playbooks](#Available-playbooks)
   - [aap_create_hub_token.yml](#aap_create_hub_token)
+  - [aap_audit_unused_objects.yml](#aap_audit_unused_objects)
   - [aap_audit_...yml](#aap_audit_...)
   - [aap_configure.yml](#aap_configure)
   - [aap_create_rrule.yml](#aap_create_rrule)
+  - [convert_smart_inventories.yml](#convert_smart_inventories)
+  - [compare_inventory_hosts.yml](#compare_inventory_hosts)
 - [Available Tags](#Available-Tags)
 - [Variable structure](#Variable-structure)
   - [Hub collections](#Hub-collections)
@@ -187,6 +190,17 @@ Parameters for Gateway will also need to be supplied in a custom credential.
 ### aap_create_hub_token
 
 Use this playbook to create API token for Private Hub. Running this playbook will reset any existing Private Hub tokens for this user.
+
+
+### aap_audit_unused_objects
+
+Use this playbook to report on unused objects:
+
+- credentials not used in credentials, templates, workflows, orgs and projects
+- custom credential types not used by credentials
+- projects not used in templates, workflows and dynamic inventories
+- notification profiles not used in templates, workflows and projects
+- inventories not used in templates, workflows, workflow nodes and constructed inventories
 
 
 ### aap_audit_...
