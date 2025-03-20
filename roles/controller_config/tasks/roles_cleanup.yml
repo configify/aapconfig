@@ -143,7 +143,8 @@
       loop_control:
         label: " | user: {{ item.summary_fields.user.username }} ->
                    role: {{ item.summary_fields.role_definition.name }} ->
-                   {{ (item.content_type | string).split('.')[1] | default('platform') }}: {{ item.summary_fields.content_object.name | default('Platform') }} }}"
+                   {{ (item.content_type | string).split('.')[1] | default('platform') }}:
+                   {{ item.summary_fields.content_object.name | default('Platform') }}"
 
     - name: ROLES - Delete rogue gateway user roles (2.5)
       ansible.platform.role_user_assignment:
@@ -162,7 +163,8 @@
       loop_control:
         label: " | user: {{ item.summary_fields.user.username }} ->
                    role: {{ item.summary_fields.role_definition.name }} ->
-                   {{ (item.content_type | string).split('.')[1] | default('platform') }}: {{ item.summary_fields.content_object.name | default('Platform') }} }}"
+                   {{ (item.content_type | string).split('.')[1] | default('platform') }}:
+                   {{ item.summary_fields.content_object.name | default('Platform') }}"
 
     - name: ROLES - Build list with controller team roles (2.5)
       ansible.builtin.set_fact:
@@ -183,7 +185,8 @@
       loop_control:
         label: " | team: {{ item.summary_fields.team.name }} ->
                    role: {{ item.summary_fields.role_definition.name }} ->
-                   {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
+                   {{ item.content_type.split('.')[1] }}:
+                   {{ item.summary_fields.content_object.name }}"
 
     - name: ROLES - Delete rogue controller team roles (2.5)
       ansible.controller.role_team_assignment:
@@ -202,7 +205,8 @@
       loop_control:
         label: " | team: {{ item.summary_fields.team.name }} ->
                    role: {{ item.summary_fields.role_definition.name }} ->
-                   {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
+                   {{ item.content_type.split('.')[1] }}:
+                   {{ item.summary_fields.content_object.name }}"
 
     - name: ROLES - Build list with controller user roles (2.5)
       ansible.builtin.set_fact:
@@ -224,7 +228,8 @@
       loop_control:
         label: " | user: {{ item.summary_fields.user.username }} ->
                    role: {{ item.summary_fields.role_definition.name }} ->
-                   {{ (item.content_type | string).split('.')[1] | default('controller') }}: {{ item.summary_fields.content_object.name | default('Controller') }} }}"
+                   {{ (item.content_type | string).split('.')[1] | default('controller') }}:
+                   {{ item.summary_fields.content_object.name | default('Controller') }}"
 
     - name: ROLES - Delete rogue controller user roles (2.5)
       ansible.controller.role_user_assignment:
@@ -244,4 +249,5 @@
       loop_control:
         label: " | user: {{ item.summary_fields.user.username }} ->
                    role: {{ item.summary_fields.role_definition.name }} ->
-                   {{ (item.content_type | string).split('.')[1] | default('controller') }}: {{ item.summary_fields.content_object.name | default('Controller') }} }}"
+                   {{ (item.content_type | string).split('.')[1] | default('controller') }}:
+                   {{ item.summary_fields.content_object.name | default('Controller') }}"

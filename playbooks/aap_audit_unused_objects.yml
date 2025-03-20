@@ -90,7 +90,7 @@
       loop_control:
         label: " | workflow node: {{ item.identifier }}"
 
-    - name: Build list of workflow node projects 
+    - name: Build list of workflow node projects
       ansible.builtin.set_fact:
         aap_workflow_node_projects: "{{ aap_workflow_nodes | default([]) +
                                         [lookup('ansible.controller.controller_api',
