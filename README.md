@@ -134,6 +134,12 @@ CONTROLLER_OAUTH_TOKEN
 (CONTROLLER_VERIFY_SSL)
 ```
 
+For AAP 2.4 Controller specify API endpoint:
+
+```
+CONTROLLER_OPTIONAL_API_URLPATTERN_PREFIX=/api/
+```
+
 Playbooks that interact with AAP Hub need:
 
 ```
@@ -183,6 +189,13 @@ To supply parameters needed for Hub:
 
 Parameters for Gateway will also need to be supplied in a custom credential.
 
+Correct API endpoint for AAP 2.4 can be configured from **Settings | Job settings | Edit | Extra Environment Variables**:
+
+```
+{
+    "CONTROLLER_OPTIONAL_API_URLPATTERN_PREFIX": "/api/"
+}
+```
 
 ## Available playbooks
 
