@@ -280,7 +280,9 @@
       when: >
             gateway_objects_roles is defined and
             gateway_objects_roles
-      tags: export_roles
+      tags:
+        - export_roles
+        - export_users
 
     - name: SCHEDULES - Show all schedules (formatted)
       ansible.builtin.debug:

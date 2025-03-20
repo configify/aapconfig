@@ -137,18 +137,18 @@
               selectattr("user", "defined") |
                 selectattr("user", "equalto", item.summary_fields.user.username) |
                   selectattr("role", "equalto", item.summary_fields.role_definition.name) |
-                    selectattr("object_name", "equalto", item.summary_fields.content_object.name) | length == 0
+                    selectattr("object_name", "equalto", item.summary_fields.content_object.name | default('Platform')) | length == 0
       changed_when: true
       loop: "{{ gateway_objects_roles_users | default([]) }}"
       loop_control:
         label: " | user: {{ item.summary_fields.user.username }} ->
                    role: {{ item.summary_fields.role_definition.name }} ->
-                   {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
+                   {{ (item.content_type | string).split('.')[1] | default('platform') }}: {{ item.summary_fields.content_object.name | default('Platform') }} }}"
 
     - name: ROLES - Delete rogue gateway user roles (2.5)
       ansible.platform.role_user_assignment:
         role_definition: "{{ item.summary_fields.role_definition.name }}"
-        object_id: "{{ item.summary_fields.content_object.id }}"
+        object_id: "{{ omit if item.summary_fields.content_object is not defined else item.summary_fields.content_object.id }}"
         user: "{{ item.summary_fields.user.username }}"
         state: absent
       when: >
@@ -157,12 +157,12 @@
               selectattr("user", "defined") |
                 selectattr("user", "equalto", item.summary_fields.user.username) |
                   selectattr("role", "equalto", item.summary_fields.role_definition.name) |
-                    selectattr("object_name", "equalto", item.summary_fields.content_object.name) | length == 0
+                    selectattr("object_name", "equalto", item.summary_fields.content_object.name | default('Platform')) | length == 0
       loop: "{{ gateway_objects_roles_users | default([]) }}"
       loop_control:
         label: " | user: {{ item.summary_fields.user.username }} ->
                    role: {{ item.summary_fields.role_definition.name }} ->
-                   {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
+                   {{ (item.content_type | string).split('.')[1] | default('platform') }}: {{ item.summary_fields.content_object.name | default('Platform') }} }}"
 
     - name: ROLES - Build list with controller team roles (2.5)
       ansible.builtin.set_fact:
@@ -224,7 +224,7 @@
       loop_control:
         label: " | user: {{ item.summary_fields.user.username }} ->
                    role: {{ item.summary_fields.role_definition.name }} ->
-                   {{ (item.content_type | string).split('.')[1] | default('N/A') }}: {{ item.summary_fields.content_object.name | default('N/A') }} }}"
+                   {{ (item.content_type | string).split('.')[1] | default('controller') }}: {{ item.summary_fields.content_object.name | default('Controller') }} }}"
 
     - name: ROLES - Delete rogue controller user roles (2.5)
       ansible.controller.role_user_assignment:
@@ -244,4 +244,4 @@
       loop_control:
         label: " | user: {{ item.summary_fields.user.username }} ->
                    role: {{ item.summary_fields.role_definition.name }} ->
-                   {{ (item.content_type | string).split('.')[1] | default('N/A') }}: {{ item.summary_fields.content_object.name | default('N/A') }} }}"
+                   {{ (item.content_type | string).split('.')[1] | default('controller') }}: {{ item.summary_fields.content_object.name | default('Controller') }} }}"
