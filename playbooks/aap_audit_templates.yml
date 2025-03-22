@@ -55,7 +55,10 @@
                                             'extra_vars': {} if not item.extra_vars or item.extra_vars == '---'
                                                              else item.extra_vars | from_yaml,
                                             'webhook_service': item.webhook_service,
-                                            'webhook_credential': item.webhook_credential,
+                                            'webhook_credential': '' if not item.webhook_credential else
+                                                                  (lookup('ansible.controller.controller_api', 'credentials/' +
+                                                                                                               item.webhook_credential | string +
+                                                                                                               '/')).name,
                                             'creds': item.summary_fields.credentials | selectattr('name') | map(attribute='name'),
                                             'notifications_on_start': lookup('ansible.controller.controller_api',
                                                                              'job_templates/' + item.id | string + '/notification_templates_started/',

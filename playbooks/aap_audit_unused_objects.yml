@@ -5,169 +5,351 @@
 
   tasks:
     - name: Get all credentials from AAP
-      ansible.controller.export:
-        credentials: 'all'
-      register: aap_credentials
+      ansible.builtin.set_fact:
+        aap_credentials: "{{ aap_credentials | default([]) +
+                             [{'name': item.name,
+                              'type': item.summary_fields.credential_type.name}] }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'credentials/', return_objects=false, return_all=true).results }}"
+      loop_control:
+        label: " | credential: {{ item.name }}"
+      when: not item.managed
+
+    - name: Get all custom credential types from AAP
+      ansible.builtin.set_fact:
+        aap_credential_types: "{{ aap_credential_types | default([]) + [item.name] }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'credential_types/', return_objects=false, return_all=true).results }}"
+      loop_control:
+        label: " | credential type: {{ item.name }}"
+      when: not item.managed
+
+    - name: Build list of unused credential types
+      ansible.builtin.set_fact:
+        unused_credential_types: "{{ unused_credential_types | default([]) + [item] }}"
+      when: aap_credentials | selectattr('type', '==', item) | length == 0
+      loop: "{{ aap_credential_types | default([]) }}"
+      loop_control:
+        label: " | credential type: {{ item }}"
 
     - name: Get all templates from AAP
-      ansible.controller.export:
-        job_templates: 'all'
-      register: aap_templates
-
-    - name: Build list of credentials used in templates
       ansible.builtin.set_fact:
-        credentials_in_templates: "{{ credentials_in_templates | default([]) + item.related.credentials }}"
-      loop: "{{ aap_templates.assets.job_templates }}"
+        aap_templates: "{{ aap_templates | default([]) +
+                           [{'name': item.name,
+                             'credentials': item.summary_fields.credentials | selectattr('name') | map(attribute='name'),
+                             'webhook_credential': '' if not item.webhook_credential else
+                                                   (lookup('ansible.controller.controller_api', 'credentials/' +
+                                                                                                item.webhook_credential | string +
+                                                                                                '/')).name,
+                             'project': item.summary_fields.project.name | default(''),
+                             'inventory': item.summary_fields.inventory.name | default(''),
+                             'notifications': lookup('ansible.controller.controller_api',
+                                                              'job_templates/' + item.id | string + '/notification_templates_started/',
+                                                              return_objects=false,
+                                                              return_all=true).results |
+                                                       selectattr('name') | map(attribute='name') +
+                                              lookup('ansible.controller.controller_api',
+                                                                'job_templates/' + item.id | string + '/notification_templates_success/',
+                                                                return_objects=false,
+                                                                return_all=true).results |
+                                                           selectattr('name') | map(attribute='name') +
+                                              lookup('ansible.controller.controller_api',
+                                                                'job_templates/' + item.id | string + '/notification_templates_error/',
+                                                                return_objects=false,
+                                                                return_all=true).results |
+                                                           selectattr('name') | map(attribute='name')}] }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'job_templates/', return_objects=false, return_all=true).results }}"
       loop_control:
         label: " | template: {{ item.name }}"
 
-    - name: Find credentials not used in templates
+    - name: Get all organization credentials from AAP
       ansible.builtin.set_fact:
-        unused_credentials_in_templates: "{{ unused_credentials_in_templates | default([]) + [item.name] }}"
-      when: >
-            item.credential_type.name != "Container Registry" and
-            item.credential_type.name != "Source Control" and
-            item.credential_type.name != "Ansible Galaxy/Automation Hub API Token" and
-            credentials_in_templates | selectattr("name", "equalto", item.name) | length == 0
-      loop: "{{ aap_credentials.assets.credentials }}"
-      loop_control:
-        label: " | credential: {{ item.name }}"
-
-    - name: Get all projects from AAP
-      ansible.controller.export:
-        projects: 'all'
-      register: aap_projects
-
-    - name: Build list of credentials used in projects
-      ansible.builtin.set_fact:
-        credentials_in_projects: "{{ credentials_in_projects | default([]) + [item.credential] }}"
-      when: item.credential
-      loop: "{{ aap_projects.assets.projects }}"
-      loop_control:
-        label: " | project: {{ item.name }}"
-
-    - name: Find credentials not used in projects
-      ansible.builtin.set_fact:
-        unused_credentials_in_projects: "{{ unused_credentials_in_projects | default([]) + [item.name] }}"
-      when: >
-            item.credential_type.name == "Source Control" and
-            credentials_in_projects | selectattr("name", "equalto", item.name) | length == 0
-      loop: "{{ aap_credentials.assets.credentials }}"
-      loop_control:
-        label: " | credential: {{ item.name }}"
-
-    - name: Get all organizations from AAP
-      ansible.controller.export:
-        organizations: 'all'
-      register: aap_organizations
-
-    - name: Build list of credentials used in organizations
-      ansible.builtin.set_fact:
-        credentials_in_organizations: "{{ credentials_in_organizations | default([]) + item.related.galaxy_credentials }}"
-      loop: "{{ aap_organizations.assets.organizations }}"
+        aap_organization_credentials: "{{ aap_organization_credentials | default([]) +
+                                          lookup('ansible.controller.controller_api',
+                                                  'organizations/' + item.id | string + '/galaxy_credentials/',
+                                                  return_objects=false,
+                                                  return_all=true).results |
+                                           selectattr('name') | map(attribute='name') }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'organizations/', return_objects=false, return_all=true).results }}"
       loop_control:
         label: " | org: {{ item.name }}"
 
-    - name: Find credentials not used in organizations
+    - name: Get all workflow nodes from AAP
       ansible.builtin.set_fact:
-        unused_credentials_in_organizations: "{{ unused_credentials_in_organizations | default([]) + [item.name] }}"
+        aap_workflow_nodes: "{{ aap_workflow_nodes | default([]) +
+                                               [{'identifier': item.identifier,
+                                                 'inventory': item.summary_fields.inventory.name | default(''),
+                                                 'unified_template': item.summary_fields.unified_job_template | default(''),
+                                                 'credentials': lookup('ansible.controller.controller_api',
+                                                                                'workflow_job_template_nodes/' +
+                                                                                   item.id | string +
+                                                                                   '/credentials/',
+                                                                                return_objects=false,
+                                                                                return_all=true).results |
+                                                                            ansible.utils.keep_keys(target=['name']) |
+                                                                            selectattr('name')}] }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'workflow_job_template_nodes/', return_objects=false, return_all=true).results }}"
+      loop_control:
+        label: " | workflow node: {{ item.identifier }}"
+
+    - name: Build list of workflow node projects
+      ansible.builtin.set_fact:
+        aap_workflow_node_projects: "{{ aap_workflow_nodes | default([]) +
+                                        [lookup('ansible.controller.controller_api',
+                                               'projects/' +
+                                                  item.unified_template.id | string,
+                                               return_objects=false,
+                                               return_all=true).name] }}"
+      loop: "{{ aap_workflow_nodes | default([]) }}"
+      loop_control:
+        label: " | workflow node: {{ item.identifier }}"
       when: >
-            item.credential_type.name == "Ansible Galaxy/Automation Hub API Token" and
-            credentials_in_organizations | selectattr("name", "equalto", item.name) | length == 0
-      loop: "{{ aap_credentials.assets.credentials }}"
+            item.unified_template and
+            item.unified_template.unified_job_type == 'project_update'
+
+    - name: Get all workflows from AAP
+      ansible.builtin.set_fact:
+        aap_workflows: "{{ aap_workflows | default([]) +
+                           [{'name': item.name,
+                             'inventory': item.summary_fields.inventory.name | default(''),
+                             'webhook_credential': '' if not item.webhook_credential else
+                                                   (lookup('ansible.controller.controller_api', 'credentials/' +
+                                                                                                item.webhook_credential | string +
+                                                                                                '/')).name,
+                             'notifications': lookup('ansible.controller.controller_api',
+                                                              'workflow_job_templates/' +
+                                                                item.id | string +
+                                                                '/notification_templates_started/',
+                                                              return_objects=false,
+                                                              return_all=true).results |
+                                                         selectattr('name') | map(attribute='name') +
+                                              lookup('ansible.controller.controller_api',
+                                                                'workflow_job_templates/' +
+                                                                  item.id | string +
+                                                                  '/notification_templates_success/',
+                                                                return_objects=false,
+                                                                return_all=true).results |
+                                                           selectattr('name') | map(attribute='name') +
+                                              lookup('ansible.controller.controller_api',
+                                                                'workflow_job_templates/' +
+                                                                  item.id | string +
+                                                                  '/notification_templates_error/',
+                                                                return_objects=false,
+                                                                return_all=true).results |
+                                                           selectattr('name') | map(attribute='name') +
+                                              lookup('ansible.controller.controller_api',
+                                                                 'workflow_job_templates/' +
+                                                                   item.id | string +
+                                                                   '/notification_templates_approvals/',
+                                                                 return_objects=false,
+                                                                 return_all=true).results |
+                                                           selectattr('name') | map(attribute='name')}] }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'workflow_job_templates/', return_objects=false, return_all=true).results }}"
       loop_control:
-        label: " | credential: {{ item.name }}"
+        label: " | workflow: {{ item.name }}"
 
-    - name: Build full list of unused credentials
+    - name: Build list of template credentials
       ansible.builtin.set_fact:
-        unused_credentials_in_templates_projects_organizations: "{{ unused_credentials_in_templates_projects_organizations | default([]) +
-                                                                    [unused_credentials_in_templates | default([])] +
-                                                                    [unused_credentials_in_projects | default([])] +
-                                                                    [unused_credentials_in_organizations | default([])] }}"
-
-    - name: Get all custom credential types from AAP
-      ansible.controller.export:
-        credential_types: 'all'
-      register: aap_credential_types
-
-    - name: Build list of credential types used in credentials
-      ansible.builtin.set_fact:
-        cred_types_in_credentials: "{{ cred_types_in_credentials | default([]) + [item.credential_type.name] }}"
-      loop: "{{ aap_credentials.assets.credentials }}"
-      loop_control:
-        label: " | credential: {{ item.name }}"
-
-    - name: Find custom credential types not used in credentials
-      ansible.builtin.set_fact:
-        unused_credential_types_in_credentials: "{{ unused_credential_types_in_credentials | default([]) + [item.name] }}"
-      when: item.name not in cred_types_in_credentials
-      loop: "{{ aap_credential_types.assets.credential_types }}"
-      loop_control:
-        label: " | credential type: {{ item.name }}"
-
-    - name: Build list of projects used in templates
-      ansible.builtin.set_fact:
-        projects_in_templates: "{{ projects_in_templates | default([]) + [item.project.name] }}"
-      when: item.project.name is defined
-      loop: "{{ aap_templates.assets.job_templates }}"
+        aap_template_credentials: "{{ aap_template_credentials | default([]) + item.credentials }}"
+      loop: "{{ aap_templates | default([]) }}"
       loop_control:
         label: " | template: {{ item.name }}"
 
-    - name: Find projects not used in templates
+    - name: Build list of workflow nodes credentials
       ansible.builtin.set_fact:
-        unused_projects_in_templates: "{{ unused_projects_in_templates | default([]) + [item.name] }}"
-      when: item.name not in projects_in_templates
-      loop: "{{ aap_projects.assets.projects }}"
+        aap_workflow_nodes_credentials: "{{ aap_workflow_nodes_credentials | default([]) + item.credentials }}"
+      loop: "{{ aap_workflow_nodes | default([]) }}"
+      loop_control:
+        label: " | workflow node: {{ item.identifier }}"
+
+    - name: Get all inventory source projects from AAP
+      ansible.builtin.set_fact:
+        aap_inventory_source_projects: "{{ aap_inventory_source_projects | default([]) +
+                                           [item.summary_fields.source_project.name | default('')] }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'inventory_sources', return_all=true, return_objects=false).results }}"
+      loop_control:
+        label: " | inventory source: {{ item.name }}"
+
+    - name: Get all credential sources from AAP
+      ansible.builtin.set_fact:
+        aap_credential_sources: "{{ aap_credential_sources | default([]) +
+                                    [item.summary_fields.source_credential.name] }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'credential_input_sources/', return_objects=false, return_all=true).results }}"
+      loop_control:
+        label: " | {{ item.summary_fields.target_credential.name }} <-
+                   {{ item.summary_fields.source_credential.name }}"
+
+    - name: Get all projects from AAP
+      ansible.builtin.set_fact:
+        aap_projects: |
+                      {% if item.summary_fields.credential is not defined %}
+                      {{ aap_projects | default([]) +
+                         [{'name': item.name,
+                           'notifications': lookup('ansible.controller.controller_api',
+                                                            'projects/' + item.id | string + '/notification_templates_started/',
+                                                            return_objects=false,
+                                                            return_all=true).results |
+                                                     selectattr('name') | map(attribute='name') +
+                                            lookup('ansible.controller.controller_api',
+                                                              'projects/' + item.id | string + '/notification_templates_success/',
+                                                              return_objects=false,
+                                                              return_all=true).results |
+                                                         selectattr('name') | map(attribute='name') +
+                                            lookup('ansible.controller.controller_api',
+                                                              'projects/' + item.id | string + '/notification_templates_error/',
+                                                              return_objects=false,
+                                                              return_all=true).results |
+                                                         selectattr('name') | map(attribute='name')}] }}
+                      {% else %}
+                      {{ aap_projects | default([]) +
+                         [{'name': item.name,
+                           'credential': item.summary_fields.credential.name,
+                           'notifications': lookup('ansible.controller.controller_api',
+                                                            'projects/' + item.id | string + '/notification_templates_started/',
+                                                            return_objects=false,
+                                                            return_all=true).results |
+                                                     selectattr('name') | map(attribute='name') +
+                                            lookup('ansible.controller.controller_api',
+                                                              'projects/' + item.id | string + '/notification_templates_success/',
+                                                              return_objects=false,
+                                                              return_all=true).results |
+                                                         selectattr('name') | map(attribute='name') +
+                                            lookup('ansible.controller.controller_api',
+                                                              'projects/' + item.id | string + '/notification_templates_error/',
+                                                              return_objects=false,
+                                                              return_all=true).results |
+                                                         selectattr('name') | map(attribute='name')}] }}
+                      {% endif %}
+      loop: "{{ lookup('ansible.controller.controller_api', 'projects/', return_objects=false, return_all=true).results }}"
       loop_control:
         label: " | project: {{ item.name }}"
 
-    - name: Get all users from AAP
-      ansible.controller.export:
-        users: 'all'
-      register: aap_users
-
-    - name: Find extra auditor roles
+    - name: Build list of unused credentials
       ansible.builtin.set_fact:
-        extra_auditor_roles: "{{ extra_auditor_roles | default([]) +
-                                 [{'user': item.0.username,
-                                   'role': item.1.name,
-                                   'object_type': item.1.content_object.type,
-                                   'object': item.1.content_object.name} |
-                                   regex_replace('\n', '')] }}"
+        unused_credentials: "{{ unused_credentials | default([]) + [item.name] }}"
       when: >
-            item.0.is_system_auditor and
-            item.1.name != "Member" and
-            item.1.name != "System Auditor"
-      loop: "{{ aap_users.assets.users | subelements('related.roles') }}"
+            aap_templates | selectattr('webhook_credential', '==', item.name) | length == 0 and
+            item.name not in aap_template_credentials | default([]) and
+            aap_projects | selectattr('credential', 'defined') | selectattr('credential', '==', item.name) | length == 0 and
+            item.name not in aap_organization_credentials | default([]) and
+            item.name not in aap_workflow_nodes_credentials | default([]) and
+            item.name not in aap_credential_sources | default([]) and
+            aap_workflows | selectattr('webhook_credential', '==', item.name) | length == 0
+      loop: "{{ aap_credentials | default([]) }}"
       loop_control:
-        label: " | user: {{ item.0.username }} ->
-                   role: {{ item.1.name }} ->
-                   object: {{ item.1.content_object.name | default('') }}"
+        label: " | credential: {{ item.name }}"
 
-    - name: List unused credentials
-      ansible.builtin.debug:
-        var: unused_credentials_in_templates_projects_organizations
+    - name: Build list of unused projects
+      ansible.builtin.set_fact:
+        unused_projects: "{{ unused_projects | default([]) + [item.name] }}"
       when: >
-            unused_credentials_in_templates_projects_organizations is defined and
-            unused_credentials_in_templates_projects_organizations
+            aap_templates | selectattr('project', '==', item.name) | length == 0 and
+            item.name not in aap_workflow_node_projects | default([]) and
+            item.name not in aap_inventory_source_projects | default([])
+      loop: "{{ aap_projects | default([]) }}"
+      loop_control:
+        label: " | template: {{ item.name }}"
 
-    - name: List unused custom credential types
-      ansible.builtin.debug:
-        var: unused_credential_types_in_credentials
-      when: >
-            unused_credential_types_in_credentials is defined and
-            unused_credential_types_in_credentials
+    - name: Get all notification profiles from AAP
+      ansible.builtin.set_fact:
+        aap_notification_profiles: "{{ aap_notification_profiles | default([]) + [item.name] }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'notification_templates/', return_objects=false, return_all=true).results }}"
+      loop_control:
+        label: " | notification profile: {{ item.name }}"
 
-    - name: List unused projects
-      ansible.builtin.debug:
-        var: unused_projects_in_templates
-      when: >
-            unused_projects_in_templates is defined and
-            unused_projects_in_templates
+    - name: Build list of project notifications
+      ansible.builtin.set_fact:
+        aap_project_notifications: "{{ aap_project_notifications | default([]) + item.notifications }}"
+      loop: "{{ aap_projects | default([]) }}"
+      loop_control:
+        label: " | project: {{ item.name }}"
 
-    - name: List extra auditor roles
-      ansible.builtin.debug:
-        var: extra_auditor_roles
+    - name: Build list of workflow notifications
+      ansible.builtin.set_fact:
+        aap_workflow_notifications: "{{ aap_workflow_notifications | default([]) + item.notifications }}"
+      loop: "{{ aap_workflows | default([]) }}"
+      loop_control:
+        label: " | workflow: {{ item.name }}"
+
+    - name: Build list of template notifications
+      ansible.builtin.set_fact:
+        aap_template_notifications: "{{ aap_template_notifications | default([]) + item.notifications }}"
+      loop: "{{ aap_templates | default([]) }}"
+      loop_control:
+        label: " | template: {{ item.name }}"
+
+    - name: Build list of unused notification profiles
+      ansible.builtin.set_fact:
+        unused_notification_profiles: "{{ unused_notification_profiles | default([]) + [item] }}"
       when: >
-            extra_auditor_roles is defined and
-            extra_auditor_roles
+            item not in aap_project_notifications | default([]) and
+            item not in aap_workflow_notifications | default([]) and
+            item not in aap_template_notifications | default([])
+      loop: "{{ aap_notification_profiles | default([]) }}"
+      loop_control:
+        label: " | template: {{ item }}"
+
+    - name: Get all inventories from AAP
+      ansible.builtin.set_fact:
+        aap_inventories: "{{ aap_inventories | default([]) +
+                             [{'name': item.name,
+                               'input': [] if item.kind != 'constructed' else
+                                        (lookup('ansible.controller.controller_api',
+                                                'inventories/' + item.id | string + '/input_inventories/',
+                                                return_objects=false,
+                                                return_all=true)).results | map(attribute='name')}] }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'inventories', return_objects=false, return_all=true).results }}"
+      loop_control:
+        label: " | inventory: {{ item.name }}"
+
+    - name: Build list of constructed inventory inputs
+      ansible.builtin.set_fact:
+        aap_inventory_inputs: "{{ aap_inventory_inputs | default([]) + item.input }}"
+      loop: "{{ aap_inventories | default([]) }}"
+      loop_control:
+        label: " | inventory: {{ item.name }}"
+
+    - name: Build list of unused inventories
+      ansible.builtin.set_fact:
+        unused_inventories: "{{ unused_inventories | default([]) + [item.name] }}"
+      when: >
+            item.name not in aap_inventory_inputs | default([]) and
+            aap_templates | selectattr('inventory', '==', item.name) | length == 0 and
+            aap_workflow_nodes | selectattr('inventory', '==', item.name) | length == 0 and
+            aap_workflows | selectattr('inventory', '==', item.name) | length == 0
+      loop: "{{ aap_inventories | default([]) }}"
+      loop_control:
+        label: " | inventory: {{ item.name }}"
+
+    - name: List credentials not used in credentials, templates, workflows, orgs and projects
+      ansible.builtin.debug:
+        var: unused_credentials
+      when: >
+            unused_credentials is defined and
+            unused_credentials
+
+    - name: List custom credential types not used by credentials
+      ansible.builtin.debug:
+        var: unused_credential_types
+      when: >
+            unused_credential_types is defined and
+            unused_credential_types
+
+    - name: List projects not used in templates, workflows and dynamic inventories
+      ansible.builtin.debug:
+        var: unused_projects
+      when: >
+            unused_projects is defined and
+            unused_projects
+
+    - name: List notification profiles not used in templates, workflows and projects
+      ansible.builtin.debug:
+        var: unused_notification_profiles
+      when: >
+            unused_notification_profiles is defined and
+            unused_notification_profiles
+
+    - name: List inventories not used in templates, workflows, workflow nodes and constructed inventories
+      ansible.builtin.debug:
+        var: unused_inventories
+      when: >
+            unused_inventories is defined and
+            unused_inventories

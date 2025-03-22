@@ -26,7 +26,7 @@
                                                  'all_parents_must_converge': item.all_parents_must_converge,
                                                  'identifier': item.identifier,
                                                  'execution_environment': item.execution_environment,
-                                                 'inventory': item.inventory,
+                                                 'inventory': item.summary_fields.inventory.name | default(''),
                                                  'unified_job_template': {'name': approval_template_in_use.name,
                                                                           'type': 'workflow_approval'},
                                                  'related': {'credentials': lookup('ansible.controller.controller_api',
@@ -95,7 +95,7 @@
                                                  'all_parents_must_converge': item.all_parents_must_converge,
                                                  'identifier': item.identifier,
                                                  'execution_environment': item.execution_environment,
-                                                 'inventory': item.inventory,
+                                                 'inventory': item.summary_fields.inventory.name | default(''),
                                                  'unified_job_template': {'organization': {'name': job_template_in_use.summary_fields.organization.name,
                                                                                            'type': 'organization'},
                                                                           'name': job_template_in_use.name,
@@ -163,7 +163,7 @@
                                                  'all_parents_must_converge': item.all_parents_must_converge,
                                                  'identifier': item.identifier,
                                                  'execution_environment': item.execution_environment,
-                                                 'inventory': item.inventory,
+                                                 'inventory': item.summary_fields.inventory.name | default(''),
                                                  'unified_job_template': {'name': inventory_in_use.name,
                                                                           'inventory': {'organization': {'name':
                                                                                                            inventory_in_use.summary_fields.organization.name,
@@ -234,7 +234,7 @@
                                                  'all_parents_must_converge': item.all_parents_must_converge,
                                                  'identifier': item.identifier,
                                                  'execution_environment': item.execution_environment,
-                                                 'inventory': item.inventory,
+                                                 'inventory': item.summary_fields.inventory.name | default(''),
                                                  'unified_job_template': {'organization': {'name': project_in_use.summary_fields.organization.name,
                                                                                            'type': 'organization'},
                                                                           'name': project_in_use.name,
@@ -302,7 +302,7 @@
                                                  'all_parents_must_converge': item.all_parents_must_converge,
                                                  'identifier': item.identifier,
                                                  'execution_environment': item.execution_environment,
-                                                 'inventory': item.inventory,
+                                                 'inventory': item.summary_fields.inventory.name | default(''),
                                                  'unified_job_template': {'organization': {'name': workflow_in_use.summary_fields.organization.name,
                                                                                            'type': 'organization'},
                                                                           'name': workflow_in_use.name,
@@ -374,7 +374,10 @@
                                             'scm_branch': item.scm_branch | regex_replace('None', ''),
                                             'skip_tags': item.skip_tags | regex_replace('None', ''),
                                             'survey_enabled': item.survey_enabled | bool,
-                                            'webhook_credential': item.webhook_credential,
+                                            'webhook_credential': '' if not item.webhook_credential else
+                                                                  (lookup('ansible.controller.controller_api', 'credentials/' +
+                                                                                                               item.webhook_credential | string +
+                                                                                                               '/')).name,
                                             'webhook_service': item.webhook_service,
                                             'notifications_on_start': lookup('ansible.controller.controller_api',
                                                                              'workflow_job_templates/' +

@@ -22,14 +22,6 @@
     - controller_config_workflows_cleanup
     - controller_config_all_cleanup
 
-- name: NOTIFICATIONS - CLEANUP
-  ansible.builtin.import_tasks: notifications_cleanup.yml
-  when: controller_objects_notification_profiles is defined
-  tags:
-    - controller_config_notifications
-    - controller_config_notifications_cleanup
-    - controller_config_all_cleanup
-
 - name: SCHEDULES - CLEANUP
   ansible.builtin.import_tasks: schedules_cleanup.yml
   when: controller_objects_schedules is defined
@@ -64,6 +56,14 @@
   tags:
     - controller_config_projects
     - controller_config_projects_cleanup
+    - controller_config_all_cleanup
+
+- name: NOTIFICATIONS - CLEANUP
+  ansible.builtin.import_tasks: notifications_cleanup.yml
+  when: controller_objects_notification_profiles is defined
+  tags:
+    - controller_config_notifications
+    - controller_config_notifications_cleanup
     - controller_config_all_cleanup
 
 - name: EXECUTION ENVIRONMENTS - CLEANUP

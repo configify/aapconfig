@@ -54,10 +54,37 @@
         label: " | user: {{ item.username }}"
       when: not item.external_account | default(item.managed)
 
+    - name: USERS - Build list with auditor roles (pre 2.5 in 2.5 format)
+      ansible.builtin.set_fact:
+        gateway_objects_roles: "{{ gateway_objects_roles | default([]) +
+                                   [{'user': item.username,
+                                     'role': 'Platform Auditor',
+                                     'object_type': 'platform',
+                                     'object_name': 'Platform'} |
+                                     regex_replace('\n', '')] }}"
+      loop: "{{ aap_users }}"
+      loop_control:
+        label: " | user: {{ item.username }}"
+      when: >
+            format_for_25 | default(false) and
+            ((controller_ping is defined and
+              controller_ping.version is version_compare('4.6', '<')) or
+             aap_platform | default('aap') == 'awx24') and
+            item.is_system_auditor
+
     - name: USERS - Show users (formatted)
       ansible.builtin.debug:
         var: controller_objects_users
       when: >
             controller_objects_users is defined and
             controller_objects_users and
+            not show_vars_at_the_end | default(false)
+
+    - name: ROLES - Show gateway roles (formatted)
+      ansible.builtin.debug:
+        var: gateway_objects_roles
+      when: >
+            format_for_25 | default(false) and
+            gateway_objects_roles is defined and
+            gateway_objects_roles and
             not show_vars_at_the_end | default(false)

@@ -1,9 +1,24 @@
-- name: SETTINGS - Create or modify authenticators (2.5)
+- name: AUTH - Create or modify authenticators (2.5)
   ansible.platform.authenticator:
     name: "{{ item.name }}"
     type: "{{ item.type }}"
     enabled: "{{ item.enabled }}"
-    configuration: "{{ item.configuration }}"
-  loop: "{{ controller_authentication }}"
+    configuration: "{{ item.configuration | replace('$encrypted$', 'HIDDEN') }}"
+  loop: "{{ controller_authentication | default([]) }}"
   loop_control:
     label: " | authenticator: {{ item.name }}"
+
+- name: AUTH - Create or modify authenticator maps (2.5)
+  ansible.platform.authenticator_map:
+    name: "{{ item.name }}"
+    authenticator: "{{ item.authenticator }}"
+    revoke: "{{ item.revoke }}"
+    map_type: "{{ item.map_type }}"
+    role: "{{ omit if not item.role else item.role }}"
+    organization: "{{ omit if not item.organization else item.organization }}"
+    team: "{{ omit if not item.team else item.team }}"
+    triggers: "{{ item.triggers }}"
+    order: "{{ omit if not item.order else item.order }}"
+  loop: "{{ controller_authenticator_maps | default([]) }}"
+  loop_control:
+    label: " | authenticator map: {{ item.name }}"

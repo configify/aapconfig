@@ -8,17 +8,15 @@
   tasks:
     - name: Determine AAP version
       ansible.builtin.set_fact:
-        pre_25: "{{ lookup('ansible.controller.controller_api', 'ping').version is version_compare('4.6', '<') | bool }}"
-      when: >
-            controller_ping is not defined and
-            aap_platform | default('aap') != 'awx24'
+        pre_25: "{{ (controller_ping | default(lookup('ansible.controller.controller_api', 'ping'))).version is version_compare('4.6', '<') | bool }}"
+      when: aap_platform | default('aap') != 'awx24'
 
     - name: SETTINGS - Get current settings
       ansible.builtin.set_fact:
         controller_settings_current: "{{ controller_settings_current | default({}) |
                                          combine({item: lookup('ansible.controller.controller_api', 'settings/{{ item }}')}) }}"
       loop: |
-            {% if (pre_25 is defined and pre_25) or (aap_platform is defined and aap_platform == 'awx24') %}
+            {% if pre_25 | default(false) or aap_platform | default('aap') == 'awx24' %}
             {{ controller_config_setting_grp }}
             {% else %}
             {{ controller_config_setting_grp_25 }}
@@ -30,31 +28,275 @@
       ansible.builtin.include_vars:
         dir: "../roles/controller_config/defaults/main/"
 
-    - name: SETTINGS - Compare current LDAP settings with defaults (pre 2.5)
-      ansible.builtin.set_fact:
-        controller_settings_ldap: "{{ controller_settings_current.ldap | dict2items |
-                                      difference(controller_config_settings_default_ldap | dict2items) | items2dict }}"
-      when: >
-            (pre_25 is defined and pre_25) or
-            (aap_platform is defined and aap_platform == 'awx24')
-
-    - name: SETTINGS - Compare current AUTH settings with defaults
+    - name: SETTINGS - Compare current AUTH settings to defaults
       ansible.builtin.set_fact:
         controller_settings_authentication: "{{ controller_settings_current.authentication | dict2items |
                                                 difference(controller_config_settings_default_authentication | dict2items) | items2dict }}"
 
-    - name: SETTINGS - Compare current JOBS settings with defaults
+    - name: SETTINGS - Compare current JOBS settings to defaults
       ansible.builtin.set_fact:
         controller_settings_jobs: "{{ controller_settings_current.jobs | dict2items |
                                                 difference(controller_config_settings_default_jobs | dict2items) | items2dict }}"
 
-    - name: SETTINGS - Show custom LDAP settings (pre 2.5) (formatted)
-      ansible.builtin.debug:
-        var: controller_settings_ldap
+    - name: SETTINGS - Export LDAP settings (pre 2.5)
       when: >
-            controller_settings_ldap is defined and
-            controller_settings_ldap and
-            not show_vars_at_the_end | default(false)
+            pre_25 | default('') or
+            aap_platform | default('aap') == 'awx24'
+      block:
+        - name: SETTINGS - Compare current LDAP settings to defaults (pre 2.5)
+          ansible.builtin.set_fact:
+            controller_settings_ldap: "{{ controller_settings_current.ldap | dict2items |
+                                          difference(controller_config_settings_default_ldap | dict2items) | items2dict }}"
+
+        - name: SETTINGS - Export LDAP settings in 2.5 format (pre 2.5 in 2.5 format)
+          when: format_for_25 | default(false)
+          block:
+            - name: SETTINGS - Export LDAP_0 settings (pre 2.5 in 2.5 format)
+              when: controller_settings_ldap.AUTH_LDAP_SERVER_URI is defined
+              block:
+                - name: SETTINGS - Convert current LDAP_0 settings to 2.5 format (pre 2.5 in 2.5 format)
+                  ansible.builtin.set_fact:
+                    controller_authentication: "{{ controller_authentication | default([]) +
+                                                   [{'name': 'Auth_LDAP',
+                                                     'enabled': true,
+                                                     'type': 'ansible_base.authentication.authenticator_plugins.ldap',
+                                                     'configuration':
+                                                      {'SERVER_URI': [controller_settings_ldap.AUTH_LDAP_SERVER_URI],
+                                                       'BIND_DN': controller_settings_ldap.AUTH_LDAP_BIND_DN | default(omit),
+                                                       'BIND_PASSWORD': controller_settings_ldap.AUTH_LDAP_BIND_PASSWORD | default(omit),
+                                                       'CONNECTION_OPTIONS': controller_settings_ldap.AUTH_LDAP_CONNECTION_OPTIONS | default({}),
+                                                       'GROUP_SEARCH': controller_settings_ldap.AUTH_LDAP_GROUP_SEARCH | default(omit),
+                                                       'GROUP_TYPE': controller_settings_ldap.AUTH_LDAP_GROUP_TYPE | default('MemberDNGroupType'),
+                                                       'GROUP_TYPE_PARAMS': controller_settings_ldap.AUTH_LDAP_GROUP_TYPE_PARAMS |
+                                                                            default({'member_attr': 'member', 'name_attr': 'cn'}),
+                                                       'START_TLS': controller_settings_ldap.AUTH_LDAP_START_TLS | default(false),
+                                                       'USER_ATTR_MAP': controller_settings_ldap.AUTH_LDAP_USER_ATTR_MAP |
+                                                                        default({'email': 'mail', 'first_name': 'givenName', 'last_name': 'sn'}),
+                                                       'USER_DN_TEMPLATE': controller_settings_ldap.AUTH_LDAP_USER_DN_TEMPLATE | default(omit),
+                                                       'USER_SEARCH': controller_settings_ldap.AUTH_LDAP_USER_SEARCH | default(omit),
+                                                       'CONNECTION_OPTIONS': {}}}] }}"
+
+                - name: SETTINGS - Convert current LDAP_0 team maps to 2.5 format (pre 2.5 in 2.5 format)
+                  ansible.builtin.set_fact:
+                    controller_authenticator_maps: "{{ controller_authenticator_maps | default([]) +
+                                                       [{'name': 'Auth_LDAP_team_' + item.key + '_map',
+                                                         'authenticator': 'Auth_LDAP',
+                                                         'order': 0,
+                                                         'map_type': 'team',
+                                                         'role': 'Team Member',
+                                                         'organization': item.value.organization,
+                                                         'team': item.key,
+                                                         'revoke': item.value.remove | default(false),
+                                                         'triggers': {'groups': {'has_or': item.value.users}}} |
+                                                        regex_replace('\n', '')] }}"
+                  loop: "{{ controller_settings_ldap.AUTH_LDAP_TEAM_MAP | dict2items }}"
+                  loop_control:
+                    label: " | team map: Auth_LDAP - {{ item.key }}"
+                  when: controller_settings_ldap.AUTH_LDAP_TEAM_MAP
+
+                - name: SETTINGS - Convert current LDAP_0 org maps to 2.5 format (pre 2.5 in 2.5 format)
+                  ansible.builtin.set_fact:
+                    controller_authenticator_maps: "{{ controller_authenticator_maps | default([]) +
+                                                       ([] if item.value.users | default([]) | length == 0 else
+                                                        [{'name': 'Auth_LDAP_org_' + item.key + '_user_map',
+                                                          'authenticator': 'Auth_LDAP',
+                                                          'order': 0,
+                                                          'map_type': 'organization',
+                                                          'role': 'Organization Member',
+                                                          'organization': item.key,
+                                                          'team': '',
+                                                          'revoke': item.value.remove_users | default(false),
+                                                          'triggers': {'groups': {'has_or': item.value.users}}} |
+                                                         regex_replace('\n', '')]) +
+                                                       ([] if item.value.admins | default([]) | length == 0 else
+                                                        [{'name': 'Auth_LDAP_org_' + item.key + '_admin_map',
+                                                          'authenticator': 'Auth_LDAP',
+                                                          'order': 0,
+                                                          'map_type': 'organization',
+                                                          'role': 'Organization Admin',
+                                                          'organization': item.key,
+                                                          'team': '',
+                                                          'revoke': item.value.remove_admins | default(false),
+                                                          'triggers': {'groups': {'has_or': item.value.admins}}} |
+                                                         regex_replace('\n', '')]) }}"
+                  loop: "{{ controller_settings_ldap.AUTH_LDAP_ORGANIZATION_MAP | dict2items }}"
+                  loop_control:
+                    label: " | org map: Auth_LDAP - {{ item.key }}"
+                  when: controller_settings_ldap.AUTH_LDAP_ORGANIZATION_MAP
+
+            - name: SETTINGS - Export LDAP_1 settings (pre 2.5 in 2.5 format)
+              when: controller_settings_ldap.AUTH_LDAP_1_SERVER_URI is defined
+              block:
+                - name: SETTINGS - Convert current LDAP_1 settings to 2.5 format (pre 2.5 in 2.5 format)
+                  ansible.builtin.set_fact:
+                    controller_authentication: "{{ controller_authentication | default([]) +
+                                                   [{'name': 'Auth_LDAP_1',
+                                                     'enabled': true,
+                                                     'type': 'ansible_base.authentication.authenticator_plugins.ldap',
+                                                     'configuration':
+                                                      {'SERVER_URI': [controller_settings_ldap.AUTH_LDAP_1_SERVER_URI],
+                                                       'BIND_DN': controller_settings_ldap.AUTH_LDAP_1_BIND_DN | default(omit),
+                                                       'BIND_PASSWORD': controller_settings_ldap.AUTH_LDAP_1_BIND_PASSWORD | default(omit),
+                                                       'CONNECTION_OPTIONS': controller_settings_ldap.AUTH_LDAP_1_CONNECTION_OPTIONS | default({}),
+                                                       'GROUP_SEARCH': controller_settings_ldap.AUTH_LDAP_1_GROUP_SEARCH | default(omit),
+                                                       'GROUP_TYPE': controller_settings_ldap.AUTH_LDAP_1_GROUP_TYPE | default('MemberDNGroupType'),
+                                                       'GROUP_TYPE_PARAMS': controller_settings_ldap.AUTH_LDAP_1_GROUP_TYPE_PARAMS |
+                                                                            default({'member_attr': 'member', 'name_attr': 'cn'}),
+                                                       'START_TLS': controller_settings_ldap.AUTH_LDAP_1_START_TLS | default(false),
+                                                       'USER_ATTR_MAP': controller_settings_ldap.AUTH_LDAP_1_USER_ATTR_MAP |
+                                                                        default({'email': 'mail', 'first_name': 'givenName', 'last_name': 'sn'}),
+                                                       'USER_DN_TEMPLATE': controller_settings_ldap.AUTH_LDAP_1_USER_DN_TEMPLATE | default(omit),
+                                                       'USER_SEARCH': controller_settings_ldap.AUTH_LDAP_1_USER_SEARCH | default(omit),
+                                                       'CONNECTION_OPTIONS': {}}}] }}"
+
+                - name: SETTINGS - Convert current LDAP_1 team maps to 2.5 format (pre 2.5 in 2.5 format)
+                  ansible.builtin.set_fact:
+                    controller_authenticator_maps: "{{ controller_authenticator_maps | default([]) +
+                                                       [{'name': 'Auth_LDAP_1_team_' + item.key + '_map',
+                                                         'authenticator': 'Auth_LDAP_1',
+                                                         'order': 0,
+                                                         'map_type': 'team',
+                                                         'role': 'Team Member',
+                                                         'organization': item.value.organization,
+                                                         'team': item.key,
+                                                         'revoke': item.value.remove | default(false),
+                                                         'triggers': {'groups': {'has_or': item.value.users}}} |
+                                                        regex_replace('\n', '')] }}"
+                  loop: "{{ controller_settings_ldap.AUTH_LDAP_1_TEAM_MAP | dict2items }}"
+                  loop_control:
+                    label: " | team map: Auth_LDAP_1 - {{ item.key }}"
+                  when: controller_settings_ldap.AUTH_LDAP_1_TEAM_MAP
+
+                - name: SETTINGS - Convert current LDAP_1 org maps to 2.5 format (pre 2.5 in 2.5 format)
+                  ansible.builtin.set_fact:
+                    controller_authenticator_maps: "{{ controller_authenticator_maps | default([]) +
+                                                       ([] if item.value.users | default([]) | length == 0 else
+                                                        [{'name': 'Auth_LDAP_1_org_' + item.key + '_user_map',
+                                                          'authenticator': 'Auth_LDAP_1',
+                                                          'order': 0,
+                                                          'map_type': 'organization',
+                                                          'role': 'Organization Member',
+                                                          'organization': item.key,
+                                                          'team': '',
+                                                          'revoke': item.value.remove_users | default(false),
+                                                          'triggers': {'groups': {'has_or': item.value.users}}} |
+                                                         regex_replace('\n', '')]) +
+                                                       ([] if item.value.admins | default([]) | length == 0 else
+                                                        [{'name': 'Auth_LDAP_1_org_' + item.key + '_admin_map',
+                                                          'authenticator': 'Auth_LDAP_1',
+                                                          'order': 0,
+                                                          'map_type': 'organization',
+                                                          'role': 'Organization Admin',
+                                                          'organization': item.key,
+                                                          'team': '',
+                                                          'revoke': item.value.remove_admins | default(false),
+                                                          'triggers': {'groups': {'has_or': item.value.admins}}} |
+                                                         regex_replace('\n', '')]) }}"
+                  loop: "{{ controller_settings_ldap.AUTH_LDAP_1_ORGANIZATION_MAP | dict2items }}"
+                  loop_control:
+                    label: " | org map: Auth_LDAP_1 - {{ item.key }}"
+                  when: controller_settings_ldap.AUTH_LDAP_1_ORGANIZATION_MAP
+
+            - name: SETTINGS - Export LDAP_2 settings (pre 2.5 in 2.5 format)
+              when: controller_settings_ldap.AUTH_LDAP_2_SERVER_URI is defined
+              block:
+                - name: SETTINGS - Convert current LDAP_2 settings to 2.5 format (pre 2.5 in 2.5 format)
+                  ansible.builtin.set_fact:
+                    controller_authentication: "{{ controller_authentication | default([]) +
+                                                   [{'name': 'Auth_LDAP_2',
+                                                     'enabled': true,
+                                                     'type': 'ansible_base.authentication.authenticator_plugins.ldap',
+                                                     'configuration':
+                                                      {'SERVER_URI': [controller_settings_ldap.AUTH_LDAP_2_SERVER_URI],
+                                                       'BIND_DN': controller_settings_ldap.AUTH_LDAP_2_BIND_DN | default(omit),
+                                                       'BIND_PASSWORD': controller_settings_ldap.AUTH_LDAP_2_BIND_PASSWORD | default(omit),
+                                                       'CONNECTION_OPTIONS': controller_settings_ldap.AUTH_LDAP_2_CONNECTION_OPTIONS | default({}),
+                                                       'GROUP_SEARCH': controller_settings_ldap.AUTH_LDAP_2_GROUP_SEARCH | default(omit),
+                                                       'GROUP_TYPE': controller_settings_ldap.AUTH_LDAP_2_GROUP_TYPE | default('MemberDNGroupType'),
+                                                       'GROUP_TYPE_PARAMS': controller_settings_ldap.AUTH_LDAP_2_GROUP_TYPE_PARAMS |
+                                                                            default({'member_attr': 'member', 'name_attr': 'cn'}),
+                                                       'START_TLS': controller_settings_ldap.AUTH_LDAP_2_START_TLS | default(false),
+                                                       'USER_ATTR_MAP': controller_settings_ldap.AUTH_LDAP_2_USER_ATTR_MAP |
+                                                                        default({'email': 'mail', 'first_name': 'givenName', 'last_name': 'sn'}),
+                                                       'USER_DN_TEMPLATE': controller_settings_ldap.AUTH_LDAP_2_USER_DN_TEMPLATE | default(omit),
+                                                       'USER_SEARCH': controller_settings_ldap.AUTH_LDAP_2_USER_SEARCH | default(omit),
+                                                       'CONNECTION_OPTIONS': {}}}] }}"
+
+                - name: SETTINGS - Convert current LDAP_2 team maps to 2.5 format (pre 2.5 in 2.5 format)
+                  ansible.builtin.set_fact:
+                    controller_authenticator_maps: "{{ controller_authenticator_maps | default([]) +
+                                                       [{'name': 'Auth_LDAP_2_team_' + item.key + '_map',
+                                                         'authenticator': 'Auth_LDAP_2',
+                                                         'order': 0,
+                                                         'map_type': 'team',
+                                                         'role': 'Team Member',
+                                                         'organization': item.value.organization,
+                                                         'team': item.key,
+                                                         'revoke': item.value.remove | default(false),
+                                                         'triggers': {'groups': {'has_or': item.value.users}}} |
+                                                        regex_replace('\n', '')] }}"
+                  loop: "{{ controller_settings_ldap.AUTH_LDAP_2_TEAM_MAP | dict2items }}"
+                  loop_control:
+                    label: " | team map: Auth_LDAP_2 - {{ item.key }}"
+                  when: controller_settings_ldap.AUTH_LDAP_2_TEAM_MAP
+
+                - name: SETTINGS - Convert current LDAP_2 org maps to 2.5 format (pre 2.5 in 2.5 format)
+                  ansible.builtin.set_fact:
+                    controller_authenticator_maps: "{{ controller_authenticator_maps | default([]) +
+                                                       ([] if item.value.users | default([]) | length == 0 else
+                                                        [{'name': 'Auth_LDAP_2_org_' + item.key + '_user_map',
+                                                          'authenticator': 'Auth_LDAP_2',
+                                                          'order': 0,
+                                                          'map_type': 'organization',
+                                                          'role': 'Organization Member',
+                                                          'organization': item.key,
+                                                          'team': '',
+                                                          'revoke': item.value.remove_users | default(false),
+                                                          'triggers': {'groups': {'has_or': item.value.users}}} |
+                                                         regex_replace('\n', '')]) +
+                                                       ([] if item.value.admins | default([]) | length == 0 else
+                                                        [{'name': 'Auth_LDAP_2_org_' + item.key + '_admin_map',
+                                                          'authenticator': 'Auth_LDAP_2',
+                                                          'order': 0,
+                                                          'map_type': 'organization',
+                                                          'role': 'Organization Admin',
+                                                          'organization': item.key,
+                                                          'team': '',
+                                                          'revoke': item.value.remove_admins | default(false),
+                                                          'triggers': {'groups': {'has_or': item.value.admins}}} |
+                                                         regex_replace('\n', '')]) }}"
+                  loop: "{{ controller_settings_ldap.AUTH_LDAP_2_ORGANIZATION_MAP | dict2items }}"
+                  loop_control:
+                    label: " | org map: Auth_LDAP_2 - {{ item.key }}"
+                  when: controller_settings_ldap.AUTH_LDAP_2_ORGANIZATION_MAP
+
+            - name: SETTINGS - Clear LDAP settings (pre 2.5 in 2.5 format)
+              ansible.builtin.set_fact:
+                controller_settings_ldap: []
+
+            - name: AUTH - Show authenticators (2.5) (formatted)
+              ansible.builtin.debug:
+                var: controller_authentication
+              when: >
+                    controller_authentication is defined and
+                    controller_authentication and
+                    not show_vars_at_the_end | default(false)
+
+            - name: AUTH - Show authenticator maps (2.5) (formatted)
+              ansible.builtin.debug:
+                var: controller_authenticator_maps
+              when: >
+                    controller_authenticator_maps is defined and
+                    controller_authenticator_maps and
+                    not show_vars_at_the_end | default(false)
+
+        - name: SETTINGS - Show custom LDAP settings (pre 2.5) (formatted)
+          ansible.builtin.debug:
+            var: controller_settings_ldap
+          when: >
+                controller_settings_ldap is defined and
+                controller_settings_ldap and
+                not show_vars_at_the_end | default(false)
 
     - name: SETTINGS - Show custom AUTH settings (formatted)
       ansible.builtin.debug:

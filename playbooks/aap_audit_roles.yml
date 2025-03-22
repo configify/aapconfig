@@ -231,7 +231,8 @@
           loop_control:
             label: " | user: {{ item.summary_fields.user.username }} ->
                        role: {{ item.summary_fields.role_definition.name }} ->
-                       {{ (item.content_type | string).split('.')[1] | default('N/A') }}: {{ item.summary_fields.content_object.name | default('N/A') }} }}"
+                       {{ (item.content_type | string).split('.')[1] | default('controller') }}:
+                       {{ item.summary_fields.content_object.name | default('Controller') }}"
           when: item.content_type
 
         - name: ROLES - Get gateway team role assignments
@@ -275,14 +276,15 @@
             gateway_objects_roles: "{{ gateway_objects_roles | default([]) +
                                        [{'user': item.summary_fields.user.username,
                                          'role': item.summary_fields.role_definition.name,
-                                         'object_type': item.content_type.split('.')[1],
-                                         'object_name': item.summary_fields.content_object.name} |
+                                         'object_type': ('aap.platform' if not item.content_type else item.content_type).split('.')[1],
+                                         'object_name': item.summary_fields.content_object.name | default('Platform')} |
                                         regex_replace('\n', '')] }}"
           loop: "{{ gateway_user_role_assignments }}"
           loop_control:
             label: " | user: {{ item.summary_fields.user.username }} ->
                        role: {{ item.summary_fields.role_definition.name }} ->
-                       {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
+                       {{ (item.content_type | string).split('.')[1] | default('platform') }}:
+                       {{ item.summary_fields.content_object.name | default('Platform') }}"
 
     - name: ROLES - Show controller roles (formatted)
       ansible.builtin.debug:

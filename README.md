@@ -8,15 +8,19 @@
   - [Connection variables](#Connection-variables)
 - [Available playbooks](#Available-playbooks)
   - [aap_create_hub_token.yml](#aap_create_hub_token)
+  - [aap_audit_unused_objects.yml](#aap_audit_unused_objects)
   - [aap_audit_...yml](#aap_audit_...)
   - [aap_configure.yml](#aap_configure)
   - [aap_create_rrule.yml](#aap_create_rrule)
+  - [convert_smart_inventories.yml](#convert_smart_inventories)
+  - [compare_inventory_hosts.yml](#compare_inventory_hosts)
 - [Available Tags](#Available-Tags)
 - [Variable structure](#Variable-structure)
   - [Hub collections](#Hub-collections)
   - [Execution environments](#Execution-environments)
   - [Notification profiles](#Notification-profiles)
   - [Settings](#Settings)
+  - [Authentication and mappings](#Authentication-and-mappings)
   - [Users](#Users)
   - [Teams](#Teams)
   - [Roles](#Roles)
@@ -37,8 +41,9 @@
 ## Advantages
 
 1. Ability to report on configuration drift and optionally delete objects
-1. Ability to export existing AAP configurations and use them for automation after removing double quotes
+1. Ability to export existing AAP configurations and use them for automation after minor adjustments
 1. Ability to export configurations from AWX 24
+1. Ability to export configurations from AAP 2.4 in the format suitable for AAP 2.5
 1. Support for AAP 2.5 and Gateway
 1. Automation from start to finish including Hub namespaces and collections, and most of the Controller objects including settings, roles, execution environments and many more
 1. Playbooks to assist in migration from Smart to Constructed inventories
@@ -131,6 +136,12 @@ CONTROLLER_OAUTH_TOKEN
 (CONTROLLER_VERIFY_SSL)
 ```
 
+For AAP 2.4 Controller specify API endpoint:
+
+```
+CONTROLLER_OPTIONAL_API_URLPATTERN_PREFIX=/api/
+```
+
 Playbooks that interact with AAP Hub need:
 
 ```
@@ -180,6 +191,13 @@ To supply parameters needed for Hub:
 
 Parameters for Gateway will also need to be supplied in a custom credential.
 
+Correct API endpoint for AAP 2.4 can be configured from **Settings | Job settings | Edit | Extra Environment Variables**:
+
+```
+{
+    "CONTROLLER_OPTIONAL_API_URLPATTERN_PREFIX": "/api/"
+}
+```
 
 ## Available playbooks
 
@@ -187,6 +205,17 @@ Parameters for Gateway will also need to be supplied in a custom credential.
 ### aap_create_hub_token
 
 Use this playbook to create API token for Private Hub. Running this playbook will reset any existing Private Hub tokens for this user.
+
+
+### aap_audit_unused_objects
+
+Use this playbook to report on unused objects:
+
+- credentials not used in credentials, templates, workflows, orgs and projects
+- custom credential types not used by credentials
+- projects not used in templates, workflows and dynamic inventories
+- notification profiles not used in templates, workflows and projects
+- inventories not used in templates, workflows, workflow nodes and constructed inventories
 
 
 ### aap_audit_...
@@ -261,6 +290,7 @@ The playbook exports existing Smart inventories in a format suitable for further
 * adds “migrated” to inventory name
 * adds or copies without changes other fields required for Constructed inventory
 
+Please, review values in the limit fields for correctness. If there are any '=', you will need convert the filters manually.
 
 ### compare_inventory_hosts
 
@@ -428,46 +458,122 @@ See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat 
 **Variable structure**:
 
 ```
-controller_settings_ldap: {
-  "AUTH_LDAP_1_START_TLS": true,
-  "AUTH_LDAP_BIND_DN": "CN=josie,CN=users,DC=example,DC=com"
+controller_settings_authentication: {
+    'AUTHENTICATION_BACKENDS': [
+      'awx.sso.backends.LDAPBackend',
+      'awx.sso.backends.TACACSPlusBackend',
+      'awx.main.backends.AWXModelBackend'
+  ]
 }
-
-controller_authentication: [
-  {
-    "configuration": {
-      "CONNECTION_OPTIONS": {},
-      "GROUP_TYPE": "MemberDNGroupType",
-      "GROUP_TYPE_PARAMS": {
-        "member_attr": "member",
-        "name_attr": "cn"
-      },
-      "SERVER_URI": [
-        "ldap://examplea"
-      ],
-      "START_TLS": false,
-      "USER_ATTR_MAP": {
-        "email": "a@example.com"
-      }
-    },
-    "enabled": true,
-    "name": "Auth LDAP A",
-    "type": "ansible_base.authentication.authenticator_plugins.ldap"
-  }
-]
 
 controller_settings_jobs: {
   "GALAXY_IGNORE_CERTS": true,
   "AWX_ISOLATION_SHOW_PATHS": []
 } # type: ignore
+
+controller_settings_ldap: {
+        'AUTH_LDAP_BIND_DN': 'CN=user,CN=users,DC=examplec,DC=com',
+        'AUTH_LDAP_BIND_PASSWORD': '$encrypted$',
+        'AUTH_LDAP_GROUP_SEARCH': [
+            'DC=examplec,DC=com',
+            'SCOPE_SUBTREE',
+            '(objectClass=group)'
+        ],
+        'AUTH_LDAP_1_SERVER_URI': 'ldap://examplec',
+        'AUTH_LDAP_1_START_TLS': true,
+        'AUTH_LDAP_ORGANIZATION_MAP': {
+            'Org B': {
+                'admins': [
+                    'CN=orgbadm,OU=Users,DC=example,DC=com'
+                ],
+                'remove_admins': true,
+                'remove_users': true,
+                'users': [
+                    'CN=orgb,OU=Users,DC=example,DC=com'
+                ]
+            },
+            'Org C': {
+                'admins': [],
+                'users': [
+                    'CN=orgc,OU=Users,DC=example,DC=com',
+                    'CN=orgc2,OU=Users,DC=example,DC=com'
+                ]
+            }
+        },
+        'AUTH_LDAP_TEAM_MAP': {
+            'Team B': {
+                'organization': 'Org B',
+                'remove': true,
+                'users': [
+                    'CN=teamb,OU=Users,DC=example,DC=com'
+                ]
+            },
+            'Team C': {
+                'organization': 'Org C',
+                'users': [
+                    'CN=teamb,OU=Users,DC=example,DC=com',
+                    'CN=teamb2,OU=Users,DC=example,DC=com'
+                ]
+            }
+        }
+}
 ```
 
 Note:
 
-* **controller_settings_ldap** is a pre 2.5 setting while **controller_authentication** is applicable to 2.5 and later
-* **controller_authentication** settings will be created/changed even in check mode
+* **controller_settings_ldap** - LDAP configuration, which includes team and organization mappings, is a part of settings in AAP 2.4, while in AAP 2.5 these configurations are separate objects and are handled by separate playbooks/tasks
+
+
+### Authentication and mappings
+
+**Audit playbook**: aap_audit_authentication.yml
+
+**Variable structure**:
+
+```
+controller_authentication: [
+        {
+            'configuration': {
+                'CONNECTION_OPTIONS': {},
+                'GROUP_TYPE': 'MemberDNGroupType',
+                'GROUP_TYPE_PARAMS': {
+                    'member_attr': 'member',
+                    'name_attr': 'cn'
+                },
+                'SERVER_URI': [
+                    'ldap://exampleb'
+                ],
+                'START_TLS': false,
+                'USER_ATTR_MAP': {
+                    'email': 'mail',
+                    'first_name': 'givenName',
+                    'last_name': 'sn'
+                }
+            },
+            'enabled': true,
+            'name': 'Auth_LDAP',
+            'type': 'ansible_base.authentication.authenticator_plugins.ldap'
+        }
+]
+
+controller_authenticator_maps: [
+  {'name': 'Auth_LDAP_team_Team B_map', 'authenticator': 'Auth_LDAP', 'order': 0,
+   'map_type': 'team', 'role': 'Team Member', 'organization': 'Org B', 'team': 'Team B', 'revoke': True,
+   'triggers': {'groups': {'has_or': ['CN=teamb,OU=Users,DC=example,DC=com']}}},
+
+  {'name': 'Auth_LDAP_org_Org C_user_map', 'authenticator': 'Auth_LDAP', 'order': 0,
+   'map_type': 'organization', 'role': 'Organization Member', 'organization': 'Org C', 'team': '', 'revoke': False,
+   'triggers': {'groups': {'has_or': ['CN=orgc,OU=Users,DC=example,DC=com', 'CN=orgc2,OU=Users,DC=example,DC=com']}}}
+]
+```
+
+Note:
+
+* these configurations are applicable to 2.5 and later
+* **controller_authentication** objects will be created/changed even in check mode
 
 See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat PRs/tickets.
+
 
 ### Users
 
@@ -684,10 +790,12 @@ See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat 
 ```
 controller_objects_projects: [
   {'name': 'Project with Creds A', 'type': 'git', 'branch': '', 'scm_clean': False, 'scm_delete': False, 'scm_update': False,
-   'org': 'Org A', 'cred': 'Credential GitHub A', 'url': 'https://github.com/configify/hi.git'},
+   'org': 'Org A', 'cred': 'Credential GitHub A', 'url': 'https://github.com/configify/hi.git',
+   'notifications_on_start': [], 'notifications_on_success': [], 'notifications_on_failure': []},
 
   {'name': 'Project C', 'type': 'git', 'branch': '', 'scm_clean': False, 'scm_delete': False, 'scm_update': False,
-   'org': 'Org C', 'url': 'https://github.com/configify/hi.git'}
+   'org': 'Org C', 'url': 'https://github.com/configify/hi.git',
+   'notifications_on_start': [], 'notifications_on_success': [], 'notifications_on_failure': []}
 ]
 ```
 
@@ -711,7 +819,7 @@ controller_objects_templates: [
    'skip_tags': '', 'start_at_task': '', 'survey_enabled': False, 'timeout': 0, 'use_fact_cache': False, 'verbosity': 0,
    'extra_vars': {},
    'survey': {},
-   'webhook_service': '', 'webhook_credential': None,
+   'webhook_service': '', 'webhook_credential': '',
    'creds': ['Credential Machine A'],
    'notifications_on_start': ['Notification Email A', 'Notification Slack A'], 'notifications_on_success': [], 'notifications_on_failure': ['Notification Slack A']}
 ]

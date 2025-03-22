@@ -70,7 +70,8 @@
     - name: ROLES - Create user gateway roles (2.5)
       ansible.platform.role_user_assignment:
         role_definition: "{{ item.role }}"
-        object_id: "{{ lookup('ansible.controller.controller_api',
+        object_id: "{{ omit if item.object_name == 'Platform' else
+                       lookup('ansible.controller.controller_api',
                               controller_config_type_to_api_mapping[item.object_type],
                               return_objects=false,
                               return_all=true).results |

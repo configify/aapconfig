@@ -144,7 +144,19 @@
       when: >
             controller_authentication is defined and
             controller_authentication
-      tags: export_authenticators
+      tags:
+        - export_authenticators
+        - export_settings
+
+    - name: AUTH - Show authenticator maps (2.5) (formatted)
+      ansible.builtin.debug:
+        var: controller_authenticator_maps
+      when: >
+            controller_authenticator_maps is defined and
+            controller_authenticator_maps
+      tags:
+        - export_authenticators
+        - export_settings
 
     - name: USERS - Show all users (formatted)
       ansible.builtin.debug:
@@ -280,7 +292,9 @@
       when: >
             gateway_objects_roles is defined and
             gateway_objects_roles
-      tags: export_roles
+      tags:
+        - export_roles
+        - export_users
 
     - name: SCHEDULES - Show all schedules (formatted)
       ansible.builtin.debug:
