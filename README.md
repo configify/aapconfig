@@ -20,6 +20,7 @@
   - [Execution environments](#Execution-environments)
   - [Notification profiles](#Notification-profiles)
   - [Settings](#Settings)
+  - [Authentication and mappings](#Authentication-and-mappings)
   - [Users](#Users)
   - [Teams](#Teams)
   - [Roles](#Roles)
@@ -40,8 +41,9 @@
 ## Advantages
 
 1. Ability to report on configuration drift and optionally delete objects
-1. Ability to export existing AAP configurations and use them for automation after removing double quotes
+1. Ability to export existing AAP configurations and use them for automation after minor adjustments
 1. Ability to export configurations from AWX 24
+1. Ability to export configurations from AAP 2.4 in the format suitable for AAP 2.5
 1. Support for AAP 2.5 and Gateway
 1. Automation from start to finish including Hub namespaces and collections, and most of the Controller objects including settings, roles, execution environments and many more
 1. Playbooks to assist in migration from Smart to Constructed inventories
@@ -456,46 +458,122 @@ See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat 
 **Variable structure**:
 
 ```
-controller_settings_ldap: {
-  "AUTH_LDAP_1_START_TLS": true,
-  "AUTH_LDAP_BIND_DN": "CN=josie,CN=users,DC=example,DC=com"
+controller_settings_authentication: {
+    'AUTHENTICATION_BACKENDS': [
+      'awx.sso.backends.LDAPBackend',
+      'awx.sso.backends.TACACSPlusBackend',
+      'awx.main.backends.AWXModelBackend'
+  ]
 }
-
-controller_authentication: [
-  {
-    "configuration": {
-      "CONNECTION_OPTIONS": {},
-      "GROUP_TYPE": "MemberDNGroupType",
-      "GROUP_TYPE_PARAMS": {
-        "member_attr": "member",
-        "name_attr": "cn"
-      },
-      "SERVER_URI": [
-        "ldap://examplea"
-      ],
-      "START_TLS": false,
-      "USER_ATTR_MAP": {
-        "email": "a@example.com"
-      }
-    },
-    "enabled": true,
-    "name": "Auth LDAP A",
-    "type": "ansible_base.authentication.authenticator_plugins.ldap"
-  }
-]
 
 controller_settings_jobs: {
   "GALAXY_IGNORE_CERTS": true,
   "AWX_ISOLATION_SHOW_PATHS": []
 } # type: ignore
+
+controller_settings_ldap: {
+        'AUTH_LDAP_BIND_DN': 'CN=user,CN=users,DC=examplec,DC=com',
+        'AUTH_LDAP_BIND_PASSWORD': '$encrypted$',
+        'AUTH_LDAP_GROUP_SEARCH': [
+            'DC=examplec,DC=com',
+            'SCOPE_SUBTREE',
+            '(objectClass=group)'
+        ],
+        'AUTH_LDAP_1_SERVER_URI': 'ldap://examplec',
+        'AUTH_LDAP_1_START_TLS': true,
+        'AUTH_LDAP_ORGANIZATION_MAP': {
+            'Org B': {
+                'admins': [
+                    'CN=orgbadm,OU=Users,DC=example,DC=com'
+                ],
+                'remove_admins': true,
+                'remove_users': true,
+                'users': [
+                    'CN=orgb,OU=Users,DC=example,DC=com'
+                ]
+            },
+            'Org C': {
+                'admins': [],
+                'users': [
+                    'CN=orgc,OU=Users,DC=example,DC=com',
+                    'CN=orgc2,OU=Users,DC=example,DC=com'
+                ]
+            }
+        },
+        'AUTH_LDAP_TEAM_MAP': {
+            'Team B': {
+                'organization': 'Org B',
+                'remove': true,
+                'users': [
+                    'CN=teamb,OU=Users,DC=example,DC=com'
+                ]
+            },
+            'Team C': {
+                'organization': 'Org C',
+                'users': [
+                    'CN=teamb,OU=Users,DC=example,DC=com',
+                    'CN=teamb2,OU=Users,DC=example,DC=com'
+                ]
+            }
+        }
+}
 ```
 
 Note:
 
-* **controller_settings_ldap** is a pre 2.5 setting while **controller_authentication** is applicable to 2.5 and later
-* **controller_authentication** settings will be created/changed even in check mode
+* **controller_settings_ldap** - LDAP configuration, which includes team and organization mappings, is a part of settings in AAP 2.4, while in AAP 2.5 these configurations are separate objects and are handled by separate playbooks/tasks
+
+
+### Authentication and mappings
+
+**Audit playbook**: aap_audit_authentication.yml
+
+**Variable structure**:
+
+```
+controller_authentication: [
+        {
+            'configuration': {
+                'CONNECTION_OPTIONS': {},
+                'GROUP_TYPE': 'MemberDNGroupType',
+                'GROUP_TYPE_PARAMS': {
+                    'member_attr': 'member',
+                    'name_attr': 'cn'
+                },
+                'SERVER_URI': [
+                    'ldap://exampleb'
+                ],
+                'START_TLS': false,
+                'USER_ATTR_MAP': {
+                    'email': 'mail',
+                    'first_name': 'givenName',
+                    'last_name': 'sn'
+                }
+            },
+            'enabled': true,
+            'name': 'Auth_LDAP',
+            'type': 'ansible_base.authentication.authenticator_plugins.ldap'
+        }
+]
+
+controller_authenticator_maps: [
+  {'name': 'Auth_LDAP_team_Team B_map', 'authenticator': 'Auth_LDAP', 'order': 0,
+   'map_type': 'team', 'role': 'Team Member', 'organization': 'Org B', 'team': 'Team B', 'revoke': True,
+   'triggers': {'groups': {'has_or': ['CN=teamb,OU=Users,DC=example,DC=com']}}},
+
+  {'name': 'Auth_LDAP_org_Org C_user_map', 'authenticator': 'Auth_LDAP', 'order': 0,
+   'map_type': 'organization', 'role': 'Organization Member', 'organization': 'Org C', 'team': '', 'revoke': False,
+   'triggers': {'groups': {'has_or': ['CN=orgc,OU=Users,DC=example,DC=com', 'CN=orgc2,OU=Users,DC=example,DC=com']}}}
+]
+```
+
+Note:
+
+* these configurations are applicable to 2.5 and later
+* **controller_authentication** objects will be created/changed even in check mode
 
 See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat PRs/tickets.
+
 
 ### Users
 
