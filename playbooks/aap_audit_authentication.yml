@@ -34,10 +34,46 @@
             aap_platform | default('aap') != 'awx24' and
             item.type != 'ansible_base.authentication.authenticator_plugins.local'
 
+    - name: AUTH - Get current authenticator mappings (2.5)
+      ansible.builtin.set_fact:
+        controller_authenticator_maps: "{{ controller_authenticator_maps | default([]) +
+                                           [{'name': item.name,
+                                             'authenticator': item.summary_fields.authenticator.name,
+                                             'order': item.order,
+                                             'map_type': item.map_type,
+                                             'role': '' if not item.role else item.role,
+                                             'organization': '' if not item.organization else item.organization,
+                                             'team': '' if not item.team else item.team,
+                                             'revoke': item.revoke,
+                                             'triggers': item.triggers} |
+                                           regex_replace('\n', '')] }}"
+      loop: "{{ lookup('ansible.platform.gateway_api', 'authenticator_maps',
+                       return_objects=false,
+                       host=lookup('ansible.builtin.env', 'GATEWAY_HOSTNAME'),
+                       username=lookup('ansible.builtin.env', 'GATEWAY_USERNAME'),
+                       password=lookup('ansible.builtin.env', 'GATEWAY_PASSWORD'),
+                       oauth_token=lookup('ansible.builtin.env', 'GATEWAY_API_TOKEN'),
+                       verify_ssl=lookup('ansible.builtin.env', 'GATEWAY_VERIFY_SSL'),
+                       errors='ignore').results }}"
+      loop_control:
+        label: " | authenticator map: {{ item.name }}"
+      when: >
+            controller_ping is defined and
+            controller_ping.version is version_compare('4.6', '>=') | bool and
+            aap_platform | default('aap') != 'awx24'
+
     - name: AUTH - Show authenticators (2.5) (formatted)
       ansible.builtin.debug:
         var: controller_authentication
       when: >
             controller_authentication is defined and
             controller_authentication and
+            not show_vars_at_the_end | default(false)
+
+    - name: AUTH - Show authenticator maps (2.5) (formatted)
+      ansible.builtin.debug:
+        var: controller_authenticator_maps
+      when: >
+            controller_authenticator_maps is defined and
+            controller_authenticator_maps and
             not show_vars_at_the_end | default(false)
