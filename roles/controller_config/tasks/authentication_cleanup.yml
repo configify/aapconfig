@@ -2,9 +2,7 @@
   ansible.builtin.set_fact:
     controller_authentication_current: "{{ controller_authentication_current | default([]) +
                                   [{'name': item.name,
-                                    'type': item.type,
-                                    'enabled': item.enabled,
-                                    'configuration': item.configuration}] }}"
+                                    'type': item.type}] }}"
   loop: "{{ lookup('ansible.platform.gateway_api', 'authenticators',
                    return_objects=false,
                    host=lookup('ansible.builtin.env', 'GATEWAY_HOSTNAME'),
@@ -39,3 +37,44 @@
   loop: "{{ controller_authentication_current | default([]) }}"
   loop_control:
     label: " | authenticator: {{ item.name }}"
+
+- name: AUTH - Get current authenticator mappings (2.5)
+  ansible.builtin.set_fact:
+    controller_authenticator_maps_current: "{{ controller_authenticator_maps_current | default([]) +
+                                               [{'name': item.name,
+                                                 'authenticator': item.summary_fields.authenticator.name}] }}"
+  loop: "{{ lookup('ansible.platform.gateway_api', 'authenticator_maps',
+                   return_objects=false,
+                   host=lookup('ansible.builtin.env', 'GATEWAY_HOSTNAME'),
+                   username=lookup('ansible.builtin.env', 'GATEWAY_USERNAME'),
+                   password=lookup('ansible.builtin.env', 'GATEWAY_PASSWORD'),
+                   oauth_token=lookup('ansible.builtin.env', 'GATEWAY_API_TOKEN'),
+                   verify_ssl=lookup('ansible.builtin.env', 'GATEWAY_VERIFY_SSL'),
+                   errors='ignore').results }}"
+  loop_control:
+    label: " | authenticator map: {{ item.name }}"
+
+- name: SETTINGS - Notify on rogue authenticator mappings (2.5)
+  ansible.builtin.debug:
+    msg: "Shouldn't be there"
+  when: >
+        not delete_objects | default(false) | bool and
+        controller_authenticator_maps | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("authenticator", "equalto", item.authenticator) | length == 0
+  changed_when: true
+  loop: "{{ controller_authenticator_maps_current | default([]) }}"
+  loop_control:
+    label: " | authenticator map: {{ item.name }}"
+
+- name: SETTINGS - Remove rogue authenticator mappings (2.5)
+  ansible.platform.authenticator_map:
+    name: "{{ item.name }}"
+    authenticator: "{{ item.authenticator }}"
+    state: absent
+  when: >
+        delete_objects | default(false) | bool and
+        controller_authenticator_maps | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("authenticator", "equalto", item.authenticator) | length == 0
+  loop: "{{ controller_authenticator_maps_current | default([]) }}"
+  loop_control:
+    label: " | authenticator map: {{ item.name }}"
