@@ -1,3 +1,20 @@
+## [2.1.0] - 2025-03-22
+
+### Added
+- Notifications for projects
+- Authentication team and org mappings for 2.5
+- LDAP and mapping export in 2.5 format
+
+### Changed
+- Refactored unused objects playbook
+
+### Fixed
+- Webhook credential and inventories for templates and workflows
+- Credential owner export for 2.5
+- Auditor roles for 2.5
+- Documentation on API endpoint for 2.4
+
+
 ## [2.0.0] - 2025-03-12
 
 ### Added
