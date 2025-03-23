@@ -6,9 +6,7 @@
   tasks:
     - name: PROJECTS - Build list with all projects
       ansible.builtin.set_fact:
-        controller_objects_projects: |
-                                      {% if item.summary_fields.credential is not defined %}
-                                      {{ controller_objects_projects | default([]) +
+        controller_objects_projects: "{{ controller_objects_projects | default([]) +
                                          [{'name': item.name,
                                            'type': item.scm_type,
                                            'branch': item.scm_branch,
@@ -16,6 +14,7 @@
                                            'scm_delete': item.scm_delete_on_update,
                                            'scm_update': item.scm_update_on_launch,
                                            'org': item.summary_fields.organization.name | default(''),
+                                           'cred': item.summary_fields.credential.name | default(''),
                                            'url': item.scm_url,
                                            'notifications_on_start': lookup('ansible.controller.controller_api',
                                                                              'projects/' + item.id | string + '/notification_templates_started/',
@@ -31,34 +30,7 @@
                                                                                'projects/' + item.id | string + '/notification_templates_error/',
                                                                                return_objects=false,
                                                                                return_all=true).results |
-                                                                          selectattr('name') | map(attribute='name')} | regex_replace('\n', '')] }}
-                                      {% else %}
-                                      {{ controller_objects_projects | default([]) +
-                                         [{'name': item.name,
-                                           'type': item.scm_type,
-                                           'branch': item.scm_branch,
-                                           'scm_clean': item.scm_clean,
-                                           'scm_delete': item.scm_delete_on_update,
-                                           'scm_update': item.scm_update_on_launch,
-                                           'org': item.summary_fields.organization.name | default(''),
-                                           'cred': item.summary_fields.credential.name,
-                                           'url': item.scm_url,
-                                           'notifications_on_start': lookup('ansible.controller.controller_api',
-                                                                             'projects/' + item.id | string + '/notification_templates_started/',
-                                                                             return_objects=false,
-                                                                             return_all=true).results |
-                                                                      selectattr('name') | map(attribute='name'),
-                                            'notifications_on_success': lookup('ansible.controller.controller_api',
-                                                                               'projects/' + item.id | string + '/notification_templates_success/',
-                                                                               return_objects=false,
-                                                                               return_all=true).results |
-                                                                          selectattr('name') | map(attribute='name'),
-                                            'notifications_on_failure': lookup('ansible.controller.controller_api',
-                                                                               'projects/' + item.id | string + '/notification_templates_error/',
-                                                                               return_objects=false,
-                                                                               return_all=true).results |
-                                                                          selectattr('name') | map(attribute='name')} | regex_replace('\n', '')] }}
-                                      {% endif %}
+                                                                          selectattr('name') | map(attribute='name')} | regex_replace('\n', '')] }}"
       loop: "{{ lookup('ansible.controller.controller_api', 'projects/', return_objects=false, return_all=true).results }}"
       loop_control:
         label: " | project: {{ item.name }}"

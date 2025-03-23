@@ -9,7 +9,7 @@
         scm_delete_on_update: "{{ item.scm_delete }}"
         scm_update_on_launch: "{{ item.scm_update }}"
         organization: "{{ item.org }}"
-        credential: "{{ item.cred | default(omit) }}"
+        credential: "{{ omit if not item.cred else item.cred }}"
         scm_url: "{{ item.url }}"
         wait: "{{ wait_project_sync | default(false) }}"
         notification_templates_error: "{{ item.notifications_on_failure }}"

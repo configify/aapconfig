@@ -794,10 +794,16 @@ controller_objects_projects: [
    'notifications_on_start': [], 'notifications_on_success': [], 'notifications_on_failure': []},
 
   {'name': 'Project C', 'type': 'git', 'branch': '', 'scm_clean': False, 'scm_delete': False, 'scm_update': False,
-   'org': 'Org C', 'url': 'https://github.com/configify/hi.git',
+   'org': 'Org C', 'cred': '', 'url': 'https://github.com/configify/hi.git',
    'notifications_on_start': [], 'notifications_on_success': [], 'notifications_on_failure': []}
 ]
 ```
+
+Note:
+
+* currently there is no ability to remove credential from a project
+
+See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat PRs/tickets.
 
 ### Templates
 
