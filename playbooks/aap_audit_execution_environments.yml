@@ -6,22 +6,12 @@
   tasks:
     - name: EXECUTION ENVIRONMENTS - Build list with all execution environments
       ansible.builtin.set_fact:
-        controller_objects_execution_environments: |
-                                                   {% if not item.pull %}
-                                                   {{ controller_objects_execution_environments | default([]) +
+        controller_objects_execution_environments: "{{ controller_objects_execution_environments | default([]) +
                                                        [{'name': item.name,
                                                          'descr': item.description,
                                                          'image': item.image,
-                                                         'pull': 'missing'} |
-                                                          regex_replace('\n', '')] }}
-                                                   {% else %}
-                                                   {{ controller_objects_execution_environments | default([]) +
-                                                       [{'name': item.name,
-                                                         'descr': item.description,
-                                                         'image': item.image,
-                                                         'pull': item.pull} |
-                                                          regex_replace('\n', '')] }}
-                                                   {% endif %}
+                                                         'pull': 'missing' if not item.pull else item.pull} |
+                                                          regex_replace('\n', '')] }}"
       loop: "{{ lookup('ansible.controller.controller_api', 'execution_environments/', return_objects=false, return_all=true).results }}"
       loop_control:
         label: " | ee: {{ item.name }}"
