@@ -190,20 +190,12 @@
             controller_objects_credential_types
       tags: export_credential_types
 
-    - name: CREDENTIALS - Show organizational credentials (formatted)
+    - name: CREDENTIALS - Show credentials (formatted)
       ansible.builtin.debug:
-        var: controller_objects_credentials_organizational
+        var: controller_objects_credentials
       when: >
-            controller_objects_credentials_organizational is defined and
-            controller_objects_credentials_organizational
-      tags: export_credentials
-
-    - name: CREDENTIALS - Show personal credentials (formatted)
-      ansible.builtin.debug:
-        var: controller_objects_credentials_personal
-      when: >
-            controller_objects_credentials_personal is defined and
-            controller_objects_credentials_personal
+            controller_objects_credentials is defined and
+            controller_objects_credentials
       tags: export_credentials
 
     - name: ORGANIZATIONS - Show all organizations (formatted)

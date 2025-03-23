@@ -702,12 +702,12 @@ See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat 
 **Variable structure**:
 
 ```
-controller_objects_credentials_organizational: [
+controller_objects_credentials: [
   {'name': 'Credential Machine A', 'org': 'Org A', 'descr': '', 'type': 'Machine',
    'inputs': {'password': '', 'username': 'aaa', 'become_method': '', 'become_username': ''},
    'src_input_field_name': 'password', 'src_credential': '', 'src_metadata': ''},
 
-  {'name': 'Credential C', 'org': 'Default', 'descr': '', 'type': 'Ansible Galaxy/Automation Hub API Token',
+  {'name': 'Credential C', 'org': '', 'descr': '', 'type': 'Ansible Galaxy/Automation Hub API Token',
    'inputs': {'url': 'https://examplec', 'token': '', 'auth_url': ''},
    'src_input_field_name': 'password', 'src_credential': '', 'src_metadata': ''}
 ]
@@ -956,7 +956,7 @@ All the issues below are related to Red Hat certified collections. We opened tic
 - **Credentials**: empty value in description is ignored
 (see https://github.com/ansible/awx/issues/15854 and https://github.com/ansible/awx/pull/15857)
 
-- **Credentials**: no way to delete user credential when org credential with the same name exists
+- **Credentials**: no way to delete personal credential when org credential with the same name exists
 (see https://github.com/ansible/awx/issues/15651 and https://github.com/ansible/awx/pull/15652)
 
 - **Credentials**: error when trying to modify credentials with not working source
