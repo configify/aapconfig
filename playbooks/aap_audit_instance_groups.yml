@@ -18,6 +18,7 @@
       loop: "{{ aap_instance_groups }}"
       loop_control:
         label: " | ig: {{ item.name }}"
+      when: item.name != "controlplane"
 
     - name: INSTANCE GROUPS - Show instance groups (formatted)
       ansible.builtin.debug:
