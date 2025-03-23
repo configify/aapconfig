@@ -8,7 +8,7 @@
       ansible.builtin.set_fact:
         aap_credentials: "{{ aap_credentials | default([]) +
                              [{'name': item.name,
-                              'type': item.summary_fields.credential_type.name}] }}"
+                               'type': item.summary_fields.credential_type.name}] }}"
       loop: "{{ lookup('ansible.controller.controller_api', 'credentials/', return_objects=false, return_all=true).results }}"
       loop_control:
         label: " | credential: {{ item.name }}"
@@ -319,27 +319,42 @@
       loop_control:
         label: " | inventory: {{ item.name }}"
 
+    - name: Find duplicate credentials
+      ansible.builtin.set_fact:
+        duplicate_credentials: "{{ duplicate_credentials | default([]) +
+                                   ([] if not item_is_duplicate else [item]) }}"
+      loop: "{{ aap_credentials | map(attribute='name') | unique }}"
+      loop_control:
+        label: " | inventory: {{ item }}"
+      vars:
+        item_is_duplicate: "{{ aap_credentials | selectattr('name', '==', item) | length > 1 }}"
+
+    - name: List duplicate credentials
+      ansible.builtin.debug:
+        var: duplicate_credentials
+      when: duplicate_credentials | default('')
+
     - name: List credentials not used in credentials, templates, workflows, orgs and projects
       ansible.builtin.debug:
         var: unused_credentials
-      when: unused_credentials | default('') and
+      when: unused_credentials | default('')
 
     - name: List custom credential types not used by credentials
       ansible.builtin.debug:
         var: unused_credential_types
-      when: unused_credential_types | default('') and
+      when: unused_credential_types | default('')
 
     - name: List projects not used in templates, workflows and dynamic inventories
       ansible.builtin.debug:
         var: unused_projects
-      when: unused_projects | default('') and
+      when: unused_projects | default('')
 
     - name: List notification profiles not used in templates, workflows and projects
       ansible.builtin.debug:
         var: unused_notification_profiles
-      when: unused_notification_profiles | default('') and
+      when: unused_notification_profiles | default('')
 
     - name: List inventories not used in templates, workflows, workflow nodes and constructed inventories
       ansible.builtin.debug:
         var: unused_inventories
-      when: unused_inventories | default('') and
+      when: unused_inventories | default('')
