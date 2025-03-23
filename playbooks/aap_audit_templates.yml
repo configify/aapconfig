@@ -84,6 +84,5 @@
       ansible.builtin.debug:
         var: controller_objects_templates
       when: >
-            controller_objects_templates is defined and
-            controller_objects_templates and
+            controller_objects_templates | default('') and
             not show_vars_at_the_end | default(false)

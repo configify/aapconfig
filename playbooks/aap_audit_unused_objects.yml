@@ -322,34 +322,24 @@
     - name: List credentials not used in credentials, templates, workflows, orgs and projects
       ansible.builtin.debug:
         var: unused_credentials
-      when: >
-            unused_credentials is defined and
-            unused_credentials
+      when: unused_credentials | default('') and
 
     - name: List custom credential types not used by credentials
       ansible.builtin.debug:
         var: unused_credential_types
-      when: >
-            unused_credential_types is defined and
-            unused_credential_types
+      when: unused_credential_types | default('') and
 
     - name: List projects not used in templates, workflows and dynamic inventories
       ansible.builtin.debug:
         var: unused_projects
-      when: >
-            unused_projects is defined and
-            unused_projects
+      when: unused_projects | default('') and
 
     - name: List notification profiles not used in templates, workflows and projects
       ansible.builtin.debug:
         var: unused_notification_profiles
-      when: >
-            unused_notification_profiles is defined and
-            unused_notification_profiles
+      when: unused_notification_profiles | default('') and
 
     - name: List inventories not used in templates, workflows, workflow nodes and constructed inventories
       ansible.builtin.debug:
         var: unused_inventories
-      when: >
-            unused_inventories is defined and
-            unused_inventories
+      when: unused_inventories | default('') and
