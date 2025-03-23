@@ -23,6 +23,5 @@
       ansible.builtin.debug:
         var: controller_objects_organizations
       when: >
-            controller_objects_organizations is defined and
-            controller_objects_organizations and
+            controller_objects_organizations | default('') and
             not show_vars_at_the_end | default(false)

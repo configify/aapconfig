@@ -23,6 +23,5 @@
       ansible.builtin.debug:
         var: hub_objects_collections
       when: >
-            hub_objects_collections is defined and
-            hub_objects_collections and
+            hub_objects_collections | default('') and
             not show_vars_at_the_end | default(false)

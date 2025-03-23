@@ -421,6 +421,5 @@
       ansible.builtin.debug:
         var: controller_objects_workflows
       when: >
-            controller_objects_workflows is defined and
-            controller_objects_workflows and
+            controller_objects_workflows | default('') and
             not show_vars_at_the_end | default(false)

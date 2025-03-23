@@ -19,6 +19,5 @@
       ansible.builtin.debug:
         var: controller_objects_teams
       when: >
-            controller_objects_teams is defined and
-            controller_objects_teams and
+            controller_objects_teams | default('') and
             not show_vars_at_the_end | default(false)

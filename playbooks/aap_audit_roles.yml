@@ -290,14 +290,12 @@
       ansible.builtin.debug:
         var: controller_objects_roles
       when: >
-            controller_objects_roles is defined and
-            controller_objects_roles and
+            controller_objects_roles | default('') and
             not show_vars_at_the_end | default(false)
 
     - name: ROLES - Show gateway roles (formatted)
       ansible.builtin.debug:
         var: gateway_objects_roles
       when: >
-            gateway_objects_roles is defined and
-            gateway_objects_roles and
+            gateway_objects_roles | default('') and
             not show_vars_at_the_end | default(false)

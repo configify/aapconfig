@@ -22,6 +22,5 @@
       ansible.builtin.debug:
         var: controller_objects_notification_profiles
       when: >
-            controller_objects_notification_profiles is defined and
-            controller_objects_notification_profiles and
+            controller_objects_notification_profiles | default('') and
             not show_vars_at_the_end | default(false)

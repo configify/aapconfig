@@ -66,14 +66,12 @@
       ansible.builtin.debug:
         var: controller_authentication
       when: >
-            controller_authentication is defined and
-            controller_authentication and
+            controller_authentication | default('') and
             not show_vars_at_the_end | default(false)
 
     - name: AUTH - Show authenticator maps (2.5) (formatted)
       ansible.builtin.debug:
         var: controller_authenticator_maps
       when: >
-            controller_authenticator_maps is defined and
-            controller_authenticator_maps and
+            controller_authenticator_maps | default('') and
             not show_vars_at_the_end | default(false)

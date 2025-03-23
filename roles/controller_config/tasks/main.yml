@@ -92,9 +92,7 @@
 
 - name: CREDENTIALS - CLEANUP
   ansible.builtin.import_tasks: credentials_cleanup.yml
-  when: >
-        controller_objects_credentials_organizational is defined or
-        controller_objects_credentials_personal is defined
+  when: controller_objects_credentials is defined
   tags:
     - controller_config_credentials
     - controller_config_credentials_cleanup
@@ -179,8 +177,7 @@
 - name: CREDENTIALS - CREATION/MODIFICATION
   ansible.builtin.import_tasks: credentials.yml
   when: >
-        controller_objects_credentials_organizational is defined or
-        controller_objects_credentials_personal is defined
+        controller_objects_credentials
   tags:
     - controller_config_credentials
     - controller_config_credentials_apply
