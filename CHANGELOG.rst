@@ -1,3 +1,17 @@
+## [2.2.0] - 2025-03-23
+
+### Added
+- Report on duplicate credentials
+
+### Changed
+- Consolidated credential variables
+- Few minor code improvemnts
+- Excluded controlplane from instance groups export
+- Added credential field to all project objects
+
+### Fixed
+
+
 ## [2.1.0] - 2025-03-22
 
 ### Added
