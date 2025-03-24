@@ -232,6 +232,7 @@ The following switches can also be specified as extra variables:
 - **replace_passwords** to change passwords for users and credentials
 - **delete_objects** to delete rogue objects
 - **wait_project_sync** to wait for projects to synchronise (note: automation will report but not fail if project fails to sync)
+- **trigger_project_sync** to trigger project update (note: automation will not fail if project fails to sync)
 - **format_for_25** to export certain objects in a structure ready for import into AAP 2.5
 - **trigger_inventory_sync** to trigger dynamic and constructed inventories synchronization (note: automation will not fail if inventory fails to sync)
 - **aap_platform** set to 'awx24' to export objects from AWX 25
@@ -337,6 +338,7 @@ Available configuration tags:
 - controller_config_projects
 - controller_config_projects_apply
 - controller_config_projects_cleanup
+- controller_config_projects_sync
 - controller_config_roles
 - controller_config_roles_apply
 - controller_config_roles_cleanup

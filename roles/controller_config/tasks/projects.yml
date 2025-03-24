@@ -45,3 +45,25 @@
     - name: Continue if error happened because project sync failed
       ansible.builtin.debug:
         msg: "Continuing with automation. Check errors above."
+
+- name: PROJECTS - Synchronize projects
+  when: trigger_project_sync | default(false)
+  tags: controller_config_projects_sync
+  ansible.controller.project_update:
+    name: "{{ item.name }}"
+    wait: false
+  loop: "{{ controller_objects_projects | default([]) }}"
+  loop_control:
+    label: " | project: {{ item.name }}"
+  register: projects_sync_result
+  failed_when: >
+               (not ansible_check_mode and
+                projects_sync_result.msg is defined) or
+               (ansible_check_mode and
+                projects_sync_result.msg is defined and
+                'Unable to find project' not in projects_sync_result.msg)
+  changed_when: >
+                projects_sync_result.changed or
+                (ansible_check_mode and
+                 projects_sync_result.msg is defined and
+                 'Unable to find project' in projects_sync_result.msg)
