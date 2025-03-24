@@ -12,7 +12,7 @@
                                                         'notification_type': item.notification_type,
                                                         'notification_config': item.notification_configuration,
                                                         'org': item.summary_fields.organization.name,
-                                                        'messages': item.messages | default({})} |
+                                                        'messages': {} if not item.messages else item.messages} |
                                                          regex_replace('\n', '')] }}"
       loop: "{{ lookup('ansible.controller.controller_api', 'notification_templates/', return_objects=false, return_all=true).results }}"
       loop_control:

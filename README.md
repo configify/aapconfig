@@ -448,7 +448,7 @@ controller_objects_notification_profiles: [
 Note:
 
 * **!unsafe** keywords must be added manually before each string with curly brackets
-* **None** values for custom messages in the exports need to be removed or replaced values with correct values
+* **None** values in message categories that may appear under certain circumstances in exports from AAP 2.4 need to be removed or replaced manually with correct values
 * profiles with secrets always report "changed"
 
 See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat PRs/tickets.
