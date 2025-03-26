@@ -15,6 +15,7 @@
       loop: "{{ lookup('ansible.controller.controller_api', 'execution_environments/', return_objects=false, return_all=true).results }}"
       loop_control:
         label: " | ee: {{ item.name }}"
+      when: item.name != 'Control Plane Execution Environment'
 
     - name: EXECUTION ENVIRONMENTS - Show execution environments (formatted)
       ansible.builtin.debug:

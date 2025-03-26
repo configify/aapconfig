@@ -51,7 +51,7 @@
                                             'survey': lookup('ansible.controller.controller_api',
                                                              'job_templates/' + item.id | string + '/survey_spec/',
                                                              return_objects=false,
-                                                             return_all=true).spec | default({}),
+                                                             return_all=true) | default({}),
                                             'extra_vars': {} if not item.extra_vars or item.extra_vars == '---'
                                                              else item.extra_vars | from_yaml,
                                             'webhook_service': item.webhook_service,

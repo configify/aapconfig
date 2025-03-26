@@ -1,4 +1,4 @@
-- name: INSTANCE GROUPS - Create or modify instance groups with manual assignment
+- name: INSTANCE GROUPS - Create or modify instance groups
   ansible.controller.instance_group:
     name: "{{ item.name }}"
     policy_instance_minimum: "{{ item.minimum }}"

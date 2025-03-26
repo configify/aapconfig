@@ -1,3 +1,17 @@
+## [2.3.0] - 2025-03-24
+
+### Added
+- Switch to trigger project update
+
+### Changed
+- Excluded Control Plane EE from cleanup and export
+- Skip encrypted credential fields when applying configurations
+
+### Fixed
+- Template survey export
+- Message format in notifications export
+
+
 ## [2.2.0] - 2025-03-23
 
 ### Added
