@@ -791,12 +791,8 @@ See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat 
 
 ```
 controller_objects_projects: [
-  {'name': 'Project with Creds A', 'type': 'git', 'branch': '', 'scm_clean': False, 'scm_delete': False, 'scm_update': False,
-   'org': 'Org A', 'cred': 'Credential GitHub A', 'url': 'https://github.com/configify/hi.git',
-   'notifications_on_start': [], 'notifications_on_success': [], 'notifications_on_failure': []},
-
-  {'name': 'Project C', 'type': 'git', 'branch': '', 'scm_clean': False, 'scm_delete': False, 'scm_update': False,
-   'org': 'Org C', 'cred': '', 'url': 'https://github.com/configify/hi.git',
+  {'name': 'Project with Creds B', 'type': 'git', 'branch': '', 'clean_on_update': False, 'delete_on_update': False, 'update_on_launch': False,
+   'allow_override': False, 'org': 'Org B', 'cred': 'Credential GitHub B', 'url': 'https://github.com/configify/hi.git', 'ee': 'Execution Environment B',
    'notifications_on_start': [], 'notifications_on_success': [], 'notifications_on_failure': []}
 ]
 ```
@@ -804,6 +800,7 @@ controller_objects_projects: [
 Note:
 
 * currently there is no ability to remove credential from a project
+* currently there is no ability to remove execution environemnt from a project
 
 See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat PRs/tickets.
 
@@ -921,7 +918,6 @@ Some fields that from our experience are rarely used have been purposely omitted
 * inventories: instance groups
 * inventory sources: credentials (see https://github.com/ansible/awx/issues/14919 and https://github.com/ansible/awx/pull/14976)
 * inventory sources: execution_environment (see https://github.com/ansible/awx/issues/14920 and https://github.com/ansible/awx/pull/14974)
-* projects: execution_environment
 * projects: source control refspec
 * projects: track submodules
 * templates: labels
@@ -976,7 +972,7 @@ All the issues below are related to Red Hat certified collections. We opened tic
 - **Execution environments**: empty value in description is ignored
 (see https://github.com/ansible/awx/issues/15856 and https://github.com/ansible/awx/pull/15859)
 
-- **Users**: incorrectly report "changed" in dry-run mode when password field is not empty
+- **Users**: incorrectly report "changed" in dry-run mode for AAP 2.4 when password field is not empty
 (see https://github.com/ansible/awx/issues/14923 and https://github.com/ansible/awx/pull/14989)
 
 - **Users**: no ability to modify users in AAP 2.5 (see https://issues.redhat.com/browse/AAP-40035)
@@ -1007,3 +1003,6 @@ All the issues below are related to Red Hat certified collections. We opened tic
 
 - **Private Hub**: automation doesn't support oAuth tokens which is a limitation of infra.ah_configuration.ah_api plugin
 (see https://github.com/ansible/galaxy_collection/issues/447)
+
+- **Projects**: no ability to remove credential and execution environment
+(see https://issues.redhat.com/browse/AAP-42637)
