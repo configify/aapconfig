@@ -176,7 +176,7 @@
     - name: INVENTORIES - Get all inventory groups from AAP
       ansible.builtin.set_fact:
         aap_inventory_groups: "{{ aap_inventory_groups | default([]) + [item] }}"
-      loop: "{{ lookup('ansible.controller.controller_api', 'groups', return_objects=false, return_all=true).results }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'groups', return_objects=false, return_all=true, max_objects=10000).results }}"
       loop_control:
         label: " | group: {{ item.name }}"
       when: >
