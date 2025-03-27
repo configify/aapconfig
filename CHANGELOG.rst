@@ -1,3 +1,13 @@
+## [2.3.1] - 2025-03-27
+
+### Added
+
+### Changed
+
+### Fixed
+- Increased inventory group export limit
+
+
 ## [2.3.0] - 2025-03-24
 
 ### Added
@@ -19,7 +29,7 @@
 
 ### Changed
 - Consolidated credential variables
-- Few minor code improvemnts
+- Few minor code improvements
 - Excluded controlplane from instance groups export
 - Added credential field to all project objects
 
