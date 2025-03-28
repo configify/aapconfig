@@ -1,3 +1,14 @@
+## [2.3.2] - 2025-03-28
+
+### Added
+- Switch to remove workflow nodes
+
+### Changed
+
+### Fixed
+- Survey spec for workflows
+
+
 ## [2.3.1] - 2025-03-27
 
 ### Added
