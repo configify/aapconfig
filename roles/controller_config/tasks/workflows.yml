@@ -26,6 +26,7 @@
     notification_templates_error: "{{ item.notifications_on_failure }}"
     notification_templates_approvals: "{{ item.notifications_on_approval }}"
     workflow_nodes: "{{ item.nodes }}"
+    destroy_current_nodes: "{{ replace_workflow_nodes | default(false) }}"
   loop: "{{ controller_objects_workflows | default([]) }}"
   loop_control:
     label: " | workflow: {{ item.name }}"

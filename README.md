@@ -230,6 +230,7 @@ Use it to create objects and apply settings. The playbook expects variables that
 The following switches can also be specified as extra variables:
 
 - **replace_passwords** to change passwords for users and credentials
+- **replace_workflow_nodes** to force deletion of workflow nodes (note: this option makes workflow apply task not idempotent)
 - **delete_objects** to delete rogue objects
 - **wait_project_sync** to wait for projects to synchronise (note: automation will report but not fail if project fails to sync)
 - **trigger_project_sync** to trigger project update (note: automation will not fail if project fails to sync)
@@ -895,8 +896,9 @@ controller_objects_workflows: [
 
 Note:
 
-* workflows always report "changed" in check mode
+* workflows with approval nodes always report "changed"
 * workflows with extra vars will report "changed" each time after the "Save" button is pressed in the GUI, even if nothing has changed
+* currently there is no ability to remove all survey questions using automation
 * currently there is no ability to disable webhook or remove webhook credentials using automation
 * inventory and execution environment fields for workflow nodes are omitted from export when empty
 
