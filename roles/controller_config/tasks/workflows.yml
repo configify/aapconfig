@@ -18,6 +18,7 @@
     scm_branch: "{{ item.scm_branch }}"
     skip_tags: "{{ item.skip_tags }}"
     survey_enabled: "{{ item.survey_enabled }}"
+    survey_spec: "{{ item.survey }}"
     webhook_credential: "{{ item.webhook_credential }}"
     webhook_service: "{{ omit if item.webhook_service == '' else item.webhook_service }}"
     notification_templates_started: "{{ item.notifications_on_start }}"
@@ -25,6 +26,7 @@
     notification_templates_error: "{{ item.notifications_on_failure }}"
     notification_templates_approvals: "{{ item.notifications_on_approval }}"
     workflow_nodes: "{{ item.nodes }}"
+    destroy_current_nodes: "{{ replace_workflow_nodes | default(false) }}"
   loop: "{{ controller_objects_workflows | default([]) }}"
   loop_control:
     label: " | workflow: {{ item.name }}"
