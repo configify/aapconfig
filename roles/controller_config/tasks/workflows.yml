@@ -18,6 +18,7 @@
     scm_branch: "{{ item.scm_branch }}"
     skip_tags: "{{ item.skip_tags }}"
     survey_enabled: "{{ item.survey_enabled }}"
+    survey_spec: "{{ item.survey }}"
     webhook_credential: "{{ item.webhook_credential }}"
     webhook_service: "{{ omit if item.webhook_service == '' else item.webhook_service }}"
     notification_templates_started: "{{ item.notifications_on_start }}"

@@ -374,6 +374,10 @@
                                             'scm_branch': item.scm_branch | regex_replace('None', ''),
                                             'skip_tags': item.skip_tags | regex_replace('None', ''),
                                             'survey_enabled': item.survey_enabled | bool,
+                                            'survey': lookup('ansible.controller.controller_api',
+                                                             'workflow_job_templates/' + item.id | string + '/survey_spec/',
+                                                             return_objects=false,
+                                                             return_all=true) | default({}),
                                             'webhook_credential': '' if not item.webhook_credential else
                                                                   (lookup('ansible.controller.controller_api', 'credentials/' +
                                                                                                                item.webhook_credential | string +
