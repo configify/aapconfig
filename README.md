@@ -597,7 +597,6 @@ controller_objects_users: [
 Note:
 
 * currently there is no ability to modify users in AAP 2.5 using automation
-* users always report "changed" in check mode when password fields are not empty
 * password values are updated only if **replace_passwords** is set to true which will make the task not idempotent (most likely passwords will be stored in Ansible vault or pulled from external sources therefore the values in the example are empty)
 
 See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat PRs/tickets.
@@ -718,7 +717,6 @@ controller_objects_credentials: [
 
 Note:
 
-* credentials always report "changed" in check mode when password field is not empty
 * currently there is no ability to remove description using automation
 * password/token values are updated only if **replace_passwords** is set to true which will make the task not idempotent (most likely passwords/tokens will be stored in Ansible vault or pulled from external sources therefore the values in the example above are empty)
 * in some cases there is no ability to modify credentials with incorrect sources using automation
@@ -955,9 +953,6 @@ All the issues below are related to Red Hat certified collections. We opened tic
 - **Hosts**: incorrectly report "changed" in dry-run mode
 (see https://github.com/ansible/awx/issues/14922 and https://github.com/ansible/awx/pull/14988)
 
-- **Credentials**: incorrectly report "changed" in dry-run mode when password field is not empty
-(see https://github.com/ansible/awx/issues/14923 and https://github.com/ansible/awx/pull/14989)
-
 - **Credentials**: empty value in description is ignored
 (see https://github.com/ansible/awx/issues/15854 and https://github.com/ansible/awx/pull/15857)
 
@@ -969,9 +964,6 @@ All the issues below are related to Red Hat certified collections. We opened tic
 
 - **Execution environments**: empty value in description is ignored
 (see https://github.com/ansible/awx/issues/15856 and https://github.com/ansible/awx/pull/15859)
-
-- **Users**: incorrectly report "changed" in dry-run mode for AAP 2.4 when password field is not empty
-(see https://github.com/ansible/awx/issues/14923 and https://github.com/ansible/awx/pull/14989)
 
 - **Users**: no ability to modify users in AAP 2.5 (see https://issues.redhat.com/browse/AAP-40035)
 
