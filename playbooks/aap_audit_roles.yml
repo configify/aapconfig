@@ -210,7 +210,7 @@
           loop_control:
             label: " | team: {{ item.summary_fields.team.name }} ->
                        role: {{ item.summary_fields.role_definition.name }} ->
-                       {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
+                       {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }}"
 
         - name: ROLES - Get controller user role assignments
           ansible.builtin.set_fact:
@@ -258,7 +258,7 @@
           loop_control:
             label: " | team: {{ item.summary_fields.team.name }} ->
                        role: {{ item.summary_fields.role_definition.name }} ->
-                       {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }} }}"
+                       {{ item.content_type.split('.')[1] }}: {{ item.summary_fields.content_object.name }}"
 
         - name: ROLES - Get gateway user role assignments
           ansible.builtin.set_fact:
