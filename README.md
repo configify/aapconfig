@@ -721,7 +721,6 @@ Note:
 * credentials always report "changed" in check mode when password field is not empty
 * currently there is no ability to remove description using automation
 * password/token values are updated only if **replace_passwords** is set to true which will make the task not idempotent (most likely passwords/tokens will be stored in Ansible vault or pulled from external sources therefore the values in the example above are empty)
-* in some cases there is no ability to delete credentials that don't belong to an organization using automation
 * in some cases there is no ability to modify credentials with incorrect sources using automation
 
 See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat PRs/tickets.
@@ -961,9 +960,6 @@ All the issues below are related to Red Hat certified collections. We opened tic
 
 - **Credentials**: empty value in description is ignored
 (see https://github.com/ansible/awx/issues/15854 and https://github.com/ansible/awx/pull/15857)
-
-- **Credentials**: no way to delete personal credential when org credential with the same name exists
-(see https://github.com/ansible/awx/issues/15651 and https://github.com/ansible/awx/pull/15652)
 
 - **Credentials**: error when trying to modify credentials with not working source
 (see https://issues.redhat.com/browse/AAP-36552)

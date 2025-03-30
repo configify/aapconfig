@@ -9,8 +9,10 @@
         not delete_objects | default(false) | bool and
         (controller_objects_inventories_dynamic is defined or
          controller_objects_inventories_static is defined) and
-        controller_objects_inventories_dynamic | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
-        controller_objects_inventories_static | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        controller_objects_inventories_dynamic | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.summary_fields.organization.name) | length == 0 and
+        controller_objects_inventories_static | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.summary_fields.organization.name) | length == 0 and
         item.kind | length == 0
   changed_when: true
   loop: "{{ aap_inventories }}"
@@ -23,7 +25,8 @@
   when: >
         not delete_objects | default(false) | bool and
         controller_objects_inventories_constructed is defined and
-        controller_objects_inventories_constructed | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        controller_objects_inventories_constructed | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.summary_fields.organization.name) | length == 0 and
         item.kind == 'constructed'
   changed_when: true
   loop: "{{ aap_inventories }}"
@@ -36,7 +39,8 @@
   when: >
         not delete_objects | default(false) | bool and
         controller_objects_inventories_smart is defined and
-        controller_objects_inventories_smart | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        controller_objects_inventories_smart | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.summary_fields.organization.name) | length == 0 and
         item.kind == 'smart'
   changed_when: true
   loop: "{{ aap_inventories }}"
@@ -52,8 +56,10 @@
         delete_objects | default(false) | bool and
         (controller_objects_inventories_dynamic is defined or
          controller_objects_inventories_static is defined) and
-        controller_objects_inventories_dynamic | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
-        controller_objects_inventories_static | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        controller_objects_inventories_dynamic | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.summary_fields.organization.name) | length == 0 and
+        controller_objects_inventories_static | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.summary_fields.organization.name) | length == 0 and
         item.kind | length == 0
   loop: "{{ aap_inventories }}"
   loop_control:
@@ -67,7 +73,8 @@
   when: >
         delete_objects | default(false) | bool and
         controller_objects_inventories_constructed is defined and
-        controller_objects_inventories_constructed | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        controller_objects_inventories_constructed | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.summary_fields.organization.name) | length == 0 and
         item.kind == 'constructed'
   loop: "{{ aap_inventories }}"
   loop_control:
@@ -81,7 +88,8 @@
   when: >
         delete_objects | default(false) | bool and
         controller_objects_inventories_smart is defined and
-        controller_objects_inventories_smart | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        controller_objects_inventories_smart | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.summary_fields.organization.name) | length == 0 and
         item.kind == 'smart'
   loop: "{{ aap_inventories }}"
   loop_control:
@@ -144,7 +152,9 @@
       loop_control:
         label: " | inventory: {{ item.name }}"
       vars:
-        static_inventory_that_exists: "{{ aap_inventories | selectattr('name', 'equalto', item.name) | last }}"
+        static_inventory_that_exists: "{{ aap_inventories |
+                                          selectattr('name', 'equalto', item.name) |
+                                            selectattr('summary_fields.organization.name', 'equalto', item.org) | last }}"
 
     - name: INVENTORIES - Notify on rogue hosts
       ansible.builtin.debug:

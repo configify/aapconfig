@@ -13,11 +13,12 @@
     msg: "Shouldn't be there"
   when: >
         not delete_objects | default(false) | bool and
-        controller_objects_notification_profiles | selectattr("name", "equalto", item.name) | length == 0
+        controller_objects_notification_profiles | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.org) | length == 0
   changed_when: true
   loop: "{{ aap_notifications | default([]) }}"
   loop_control:
-    label: " | notification: {{ item.name }}"
+    label: " | notification: {{ item.name }} <- org: {{ item.org }}"
 
 - name: NOTIFICATIONS - Delete rogue notification profiles
   ansible.controller.notification_template:
@@ -27,7 +28,8 @@
     state: absent
   when: >
         delete_objects | default(false) | bool and
-        controller_objects_notification_profiles | selectattr("name", "equalto", item.name) | length == 0
+        controller_objects_notification_profiles | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.org) | length == 0
   loop: "{{ aap_notifications | default([]) }}"
   loop_control:
-    label: " | notification: {{ item.name }}"
+    label: " | notification: {{ item.name }} <- org: {{ item.org }}"
