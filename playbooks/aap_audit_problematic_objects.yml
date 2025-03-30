@@ -60,6 +60,25 @@
       loop_control:
         label: " | template: {{ item.name }}"
 
+    - name: Find duplicate templates
+      ansible.builtin.set_fact:
+        duplicate_templates: "{{ duplicate_templates | default([]) +
+                                 ([] if not item_is_duplicate else [item]) }}"
+      loop: "{{ aap_templates | map(attribute='name') | unique }}"
+      loop_control:
+        label: " | template: {{ item }}"
+      vars:
+        item_is_duplicate: "{{ aap_templates | selectattr('name', '==', item) | length > 1 }}"
+
+    - name: Find templates without inventory or project
+      ansible.builtin.set_fact:
+        templates_without_inventory_or_project: "{{ templates_without_inventory_or_project | default([]) +
+                                                    [item.name] }}"
+      loop: "{{ aap_templates }}"
+      loop_control:
+        label: " | template: {{ item.name }}"
+      when: not item.inventory or not item.project
+
     - name: Get all organization credentials from AAP
       ansible.builtin.set_fact:
         aap_organization_credentials: "{{ aap_organization_credentials | default([]) +
@@ -146,6 +165,16 @@
       loop_control:
         label: " | workflow: {{ item.name }}"
 
+    - name: Find duplicate workflows
+      ansible.builtin.set_fact:
+        duplicate_workflows: "{{ duplicate_workflows | default([]) +
+                                 ([] if not item_is_duplicate else [item]) }}"
+      loop: "{{ aap_workflows | map(attribute='name') | unique }}"
+      loop_control:
+        label: " | workflow: {{ item }}"
+      vars:
+        item_is_duplicate: "{{ aap_workflows | selectattr('name', '==', item) | length > 1 }}"
+
     - name: Build list of template credentials
       ansible.builtin.set_fact:
         aap_template_credentials: "{{ aap_template_credentials | default([]) + item.credentials }}"
@@ -179,10 +208,10 @@
 
     - name: Get all projects from AAP
       ansible.builtin.set_fact:
-        aap_projects: |
-                      {% if item.summary_fields.credential is not defined %}
-                      {{ aap_projects | default([]) +
+        aap_projects: "{{ aap_projects | default([]) +
                          [{'name': item.name,
+                           'credential': item.summary_fields.credential.name | default(''),
+                           'org': item.summary_fields.organization.name | default(''),
                            'notifications': lookup('ansible.controller.controller_api',
                                                             'projects/' + item.id | string + '/notification_templates_started/',
                                                             return_objects=false,
@@ -197,30 +226,28 @@
                                                               'projects/' + item.id | string + '/notification_templates_error/',
                                                               return_objects=false,
                                                               return_all=true).results |
-                                                         selectattr('name') | map(attribute='name')}] }}
-                      {% else %}
-                      {{ aap_projects | default([]) +
-                         [{'name': item.name,
-                           'credential': item.summary_fields.credential.name,
-                           'notifications': lookup('ansible.controller.controller_api',
-                                                            'projects/' + item.id | string + '/notification_templates_started/',
-                                                            return_objects=false,
-                                                            return_all=true).results |
-                                                     selectattr('name') | map(attribute='name') +
-                                            lookup('ansible.controller.controller_api',
-                                                              'projects/' + item.id | string + '/notification_templates_success/',
-                                                              return_objects=false,
-                                                              return_all=true).results |
-                                                         selectattr('name') | map(attribute='name') +
-                                            lookup('ansible.controller.controller_api',
-                                                              'projects/' + item.id | string + '/notification_templates_error/',
-                                                              return_objects=false,
-                                                              return_all=true).results |
-                                                         selectattr('name') | map(attribute='name')}] }}
-                      {% endif %}
+                                                         selectattr('name') | map(attribute='name')}] }}"
       loop: "{{ lookup('ansible.controller.controller_api', 'projects/', return_objects=false, return_all=true).results }}"
       loop_control:
         label: " | project: {{ item.name }}"
+
+    - name: Find projects without an organization
+      ansible.builtin.set_fact:
+        projects_without_org: "{{ projects_without_org | default([]) + [item.name] }}"
+      loop: "{{ aap_projects }}"
+      loop_control:
+        label: " | project: {{ item.name }}"
+      when: not item.org
+
+    - name: Find duplicate projects
+      ansible.builtin.set_fact:
+        duplicate_projects: "{{ duplicate_projects | default([]) +
+                                ([] if not item_is_duplicate else [item]) }}"
+      loop: "{{ aap_projects | map(attribute='name') | unique }}"
+      loop_control:
+        label: " | project: {{ item }}"
+      vars:
+        item_is_duplicate: "{{ aap_projects | selectattr('name', '==', item) | length > 1 }}"
 
     - name: Build list of unused credentials
       ansible.builtin.set_fact:
@@ -254,6 +281,16 @@
       loop: "{{ lookup('ansible.controller.controller_api', 'notification_templates/', return_objects=false, return_all=true).results }}"
       loop_control:
         label: " | notification profile: {{ item.name }}"
+
+    - name: Find duplicate notification profiles
+      ansible.builtin.set_fact:
+        duplicate_notification_profiles: "{{ duplicate_notification_profiles | default([]) +
+                                             ([] if not item_is_duplicate else [item]) }}"
+      loop: "{{ aap_notification_profiles | unique }}"
+      loop_control:
+        label: " | notification profile: {{ item }}"
+      vars:
+        item_is_duplicate: "{{ aap_notification_profiles | select('equalto', item) | length > 1 }}"
 
     - name: Build list of project notifications
       ansible.builtin.set_fact:
@@ -300,6 +337,16 @@
       loop_control:
         label: " | inventory: {{ item.name }}"
 
+    - name: Find duplicate inventories
+      ansible.builtin.set_fact:
+        duplicate_inventories: "{{ duplicate_inventories | default([]) +
+                                   ([] if not item_is_duplicate else [item]) }}"
+      loop: "{{ aap_inventories | map(attribute='name') | unique }}"
+      loop_control:
+        label: " | inventory: {{ item }}"
+      vars:
+        item_is_duplicate: "{{ aap_inventories | selectattr('name', '==', item) | length > 1 }}"
+
     - name: Build list of constructed inventory inputs
       ansible.builtin.set_fact:
         aap_inventory_inputs: "{{ aap_inventory_inputs | default([]) + item.input }}"
@@ -325,14 +372,71 @@
                                    ([] if not item_is_duplicate else [item]) }}"
       loop: "{{ aap_credentials | map(attribute='name') | unique }}"
       loop_control:
-        label: " | inventory: {{ item }}"
+        label: " | credential: {{ item }}"
       vars:
         item_is_duplicate: "{{ aap_credentials | selectattr('name', '==', item) | length > 1 }}"
+
+    - name: Get all teams from AAP
+      ansible.builtin.set_fact:
+        aap_teams: "{{ aap_teams | default([]) + [item.name] }}"
+      loop: "{{ lookup('ansible.controller.controller_api', 'teams/', return_objects=false, return_all=true).results }}"
+      loop_control:
+        label: " | team: {{ item.name }}"
+
+    - name: Find duplicate teams
+      ansible.builtin.set_fact:
+        duplicate_teams: "{{ duplicate_teams | default([]) +
+                             ([] if not item_is_duplicate else [item]) }}"
+      loop: "{{ aap_teams | unique }}"
+      loop_control:
+        label: " | team: {{ item }}"
+      vars:
+        item_is_duplicate: "{{ aap_teams | select('equalto', item) | length > 1 }}"
+
+    - name: List duplicate teams
+      ansible.builtin.debug:
+        var: duplicate_teams
+      when: duplicate_teams | default('')
 
     - name: List duplicate credentials
       ansible.builtin.debug:
         var: duplicate_credentials
       when: duplicate_credentials | default('')
+
+    - name: List duplicate inventories
+      ansible.builtin.debug:
+        var: duplicate_inventories
+      when: duplicate_inventories | default('')
+
+    - name: List duplicate projects
+      ansible.builtin.debug:
+        var: duplicate_projects
+      when: duplicate_projects | default('')
+
+    - name: List duplicate templates
+      ansible.builtin.debug:
+        var: duplicate_templates
+      when: duplicate_templates | default('')
+
+    - name: List duplicate workflows
+      ansible.builtin.debug:
+        var: duplicate_workflows
+      when: duplicate_workflows | default('')
+
+    - name: List duplicate notification profiles
+      ansible.builtin.debug:
+        var: duplicate_notification_profiles
+      when: duplicate_notification_profiles | default('')
+
+    - name: List projects without an organization
+      ansible.builtin.debug:
+        var: projects_without_org
+      when: projects_without_org | default('')
+
+    - name: List templates without inventory or project
+      ansible.builtin.debug:
+        var: templates_without_inventory_or_project
+      when: templates_without_inventory_or_project | default('')
 
     - name: List credentials not used in credentials, templates, workflows, orgs and projects
       ansible.builtin.debug:
