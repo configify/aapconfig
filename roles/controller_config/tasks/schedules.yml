@@ -1,3 +1,16 @@
+- name: SCHEDULES - Filter schedules if org limit is specified
+  ansible.builtin.set_fact:
+    controller_objects_schedules: "{{ controller_objects_schedules | default([]) | selectattr('template', 'in', unified_templates_in_orgs) }}"
+  when: limit_organizations is defined
+  vars:
+    unified_templates_in_orgs: "{{ lookup('ansible.controller.controller_api',
+                                          'unified_job_templates/',
+                                          return_objects=false,
+                                          return_all=true).results |
+                                   selectattr('summary_fields.organization.name', 'defined') |
+                                   selectattr('summary_fields.organization.name', 'in', limit_organizations) |
+                                   map(attribute='name') }}"
+
 - name: SCHEDULES - Create or modify schedules
   ansible.controller.schedule:
     name: "{{ item.name }}"

@@ -1,28 +1,47 @@
 - name: WORKFLOWS - Get all workflows from AAP
   ansible.builtin.set_fact:
-    aap_workflows: "{{ aap_workflows | default([]) + [{'name': item.name}] }}"
+    aap_workflows: "{{ aap_workflows | default([]) +
+                       [{'name': item.name,
+                         'org': item.summary_fields.organization.name | default(''),
+                         'id': item.id}] }}"
   loop: "{{ lookup('ansible.controller.controller_api', 'workflow_job_templates/', return_objects=false, return_all=true).results }}"
   loop_control:
     label: " | workflow: {{ item.name }}"
+  when: >
+        limit_organizations is not defined or
+        (limit_organizations is defined and
+         item.summary_fields.organization.name | default('') in limit_organizations)
 
 - name: WORKFLOWS - Notify on rogue workflows
   ansible.builtin.debug:
     msg: "Shouldn't be there"
   when: >
         not delete_objects | default(false) | bool and
-        controller_objects_workflows | selectattr("name", "equalto", item.name) | length == 0
+        controller_objects_workflows | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.org) | length == 0
   changed_when: true
   loop: "{{ aap_workflows | default([]) }}"
   loop_control:
-    label: " | workflow: {{ item.name }}"
+    label: " | workflow: {{ item.name }} <- org: {{ item.org }}"
 
 - name: WORKFLOWS - Delete rogue workflows
-  ansible.controller.workflow_job_template:
-    name: "{{ item.name }}"
-    state: absent
+  ansible.builtin.uri:
+    url: "https://{{ lookup('env', 'CONTROLLER_HOST') }}{{ api_endpoint }}v2/workflow_job_templates/{{ item.id }}/"
+    method: DELETE
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer {{ lookup('env', 'CONTROLLER_OAUTH_TOKEN') }}"
+    validate_certs: "{{ lookup('env', 'CONTROLLER_VERIFY_SSL') | default(false) }}"
   when: >
         delete_objects | default(false) | bool and
-        controller_objects_workflows | selectattr("name", "equalto", item.name) | length == 0
+        controller_objects_workflows | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.org) | length == 0
   loop: "{{ aap_workflows | default([]) }}"
   loop_control:
-    label: " | workflow: {{ item.name }}"
+    label: " | workflow: {{ item.name }} <- org: {{ item.org }}"
+  vars:
+    api_endpoint: "{{ '/api/controller/' if not lookup('env', 'CONTROLLER_OPTIONAL_API_URLPATTERN_PREFIX')
+                                         else lookup('env', 'CONTROLLER_OPTIONAL_API_URLPATTERN_PREFIX') }}"
+  register: removal_result
+  failed_when: "removal_result.status != 204"
+  changed_when: "removal_result.status == 204"

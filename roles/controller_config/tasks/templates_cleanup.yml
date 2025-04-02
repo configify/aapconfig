@@ -1,28 +1,53 @@
 - name: TEMPLATES - Get all templates from AAP
   ansible.builtin.set_fact:
-    aap_templates: "{{ aap_templates | default([]) + [{'name': item.name}] }}"
+    aap_templates: "{{ aap_templates | default([]) +
+                       [{'name': item.name,
+                         'project': item.summary_fields.project.name | default(''),
+                         'playbook': item.playbook,
+                         'inventory': item.summary_fields.inventory.name | default(''),
+                         'id': item.id}] }}"
   loop: "{{ lookup('ansible.controller.controller_api', 'job_templates/', return_objects=false, return_all=true).results }}"
   loop_control:
     label: " | template: {{ item.name }}"
+  when: >
+        limit_organizations is not defined or
+        (limit_organizations is defined and
+         item.summary_fields.organization.name | default('') in limit_organizations)
 
 - name: TEMPLATES - Notify on rogue templates
   ansible.builtin.debug:
     msg: "Shouldn't be there"
   when: >
         not delete_objects | default(false) | bool and
-        controller_objects_templates | selectattr("name", "equalto", item.name) | length == 0
+        controller_objects_templates | selectattr("name", "equalto", item.name) |
+          selectattr("project", "equalto", item.project) |
+          selectattr("playbook", "equalto", item.playbook) |
+          selectattr("inventory", "equalto", item.inventory) | length == 0
   changed_when: true
   loop: "{{ aap_templates | default([]) }}"
   loop_control:
     label: " | template: {{ item.name }}"
 
 - name: TEMPLATES - Delete rogue templates
-  ansible.controller.job_template:
-    name: "{{ item.name }}"
-    state: absent
+  ansible.builtin.uri:
+    url: "https://{{ lookup('env', 'CONTROLLER_HOST') }}{{ api_endpoint }}v2/job_templates/{{ item.id }}/"
+    method: DELETE
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer {{ lookup('env', 'CONTROLLER_OAUTH_TOKEN') }}"
+    validate_certs: "{{ lookup('env', 'CONTROLLER_VERIFY_SSL') | default(false) }}"
   when: >
         delete_objects | default(false) | bool and
-        controller_objects_templates | selectattr("name", "equalto", item.name) | length == 0
+        controller_objects_templates | selectattr("name", "equalto", item.name) |
+          selectattr("project", "equalto", item.project) |
+          selectattr("playbook", "equalto", item.playbook) |
+          selectattr("inventory", "equalto", item.inventory) | length == 0
   loop: "{{ aap_templates | default([]) }}"
   loop_control:
     label: " | template: {{ item.name }}"
+  vars:
+    api_endpoint: "{{ '/api/controller/' if not lookup('env', 'CONTROLLER_OPTIONAL_API_URLPATTERN_PREFIX')
+                                         else lookup('env', 'CONTROLLER_OPTIONAL_API_URLPATTERN_PREFIX') }}"
+  register: removal_result
+  failed_when: "removal_result.status != 204"
+  changed_when: "removal_result.status == 204"

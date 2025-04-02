@@ -2,6 +2,11 @@
   ansible.builtin.set_fact:
     aap_inventories: "{{ lookup('ansible.controller.controller_api', 'inventories', return_all=true, return_objects=false).results }}"
 
+- name: INVENTORIES - Filter inventories if org limit is specified
+  ansible.builtin.set_fact:
+    aap_inventories: "{{ aap_inventories | default([]) | selectattr('summary_fields.organization.name', 'in', limit_organizations) }}"
+  when: limit_organizations is defined
+
 - name: INVENTORIES - Notify on rogue static and dynamic inventories
   ansible.builtin.debug:
     msg: "Shouldn't be there"
@@ -9,8 +14,10 @@
         not delete_objects | default(false) | bool and
         (controller_objects_inventories_dynamic is defined or
          controller_objects_inventories_static is defined) and
-        controller_objects_inventories_dynamic | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
-        controller_objects_inventories_static | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        controller_objects_inventories_dynamic | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.summary_fields.organization.name) | length == 0 and
+        controller_objects_inventories_static | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.summary_fields.organization.name) | length == 0 and
         item.kind | length == 0
   changed_when: true
   loop: "{{ aap_inventories }}"
@@ -23,7 +30,8 @@
   when: >
         not delete_objects | default(false) | bool and
         controller_objects_inventories_constructed is defined and
-        controller_objects_inventories_constructed | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        controller_objects_inventories_constructed | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.summary_fields.organization.name) | length == 0 and
         item.kind == 'constructed'
   changed_when: true
   loop: "{{ aap_inventories }}"
@@ -36,7 +44,8 @@
   when: >
         not delete_objects | default(false) | bool and
         controller_objects_inventories_smart is defined and
-        controller_objects_inventories_smart | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        controller_objects_inventories_smart | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.summary_fields.organization.name) | length == 0 and
         item.kind == 'smart'
   changed_when: true
   loop: "{{ aap_inventories }}"
@@ -52,8 +61,10 @@
         delete_objects | default(false) | bool and
         (controller_objects_inventories_dynamic is defined or
          controller_objects_inventories_static is defined) and
-        controller_objects_inventories_dynamic | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
-        controller_objects_inventories_static | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        controller_objects_inventories_dynamic | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.summary_fields.organization.name) | length == 0 and
+        controller_objects_inventories_static | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.summary_fields.organization.name) | length == 0 and
         item.kind | length == 0
   loop: "{{ aap_inventories }}"
   loop_control:
@@ -67,7 +78,8 @@
   when: >
         delete_objects | default(false) | bool and
         controller_objects_inventories_constructed is defined and
-        controller_objects_inventories_constructed | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        controller_objects_inventories_constructed | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.summary_fields.organization.name) | length == 0 and
         item.kind == 'constructed'
   loop: "{{ aap_inventories }}"
   loop_control:
@@ -81,7 +93,8 @@
   when: >
         delete_objects | default(false) | bool and
         controller_objects_inventories_smart is defined and
-        controller_objects_inventories_smart | default([]) | selectattr("name", "equalto", item.name) | length == 0 and
+        controller_objects_inventories_smart | default([]) | selectattr("name", "equalto", item.name) |
+          selectattr("org", "equalto", item.summary_fields.organization.name) | length == 0 and
         item.kind == 'smart'
   loop: "{{ aap_inventories }}"
   loop_control:
@@ -94,6 +107,11 @@
     - name: INVENTORIES - Get all inventory sources from AAP
       ansible.builtin.set_fact:
         aap_inventory_sources: "{{ lookup('ansible.controller.controller_api', 'inventory_sources', return_objects=false, return_all=true).results }}"
+
+    - name: INVENTORIES - Filter inventory sources if org limit is specified
+      ansible.builtin.set_fact:
+        aap_inventory_sources: "{{ aap_inventory_sources | default([]) | selectattr('summary_fields.organization.name', 'in', limit_organizations) }}"
+      when: limit_organizations is defined
 
     - name: INVENTORIES - Get all defined inventory sources from CaaC
       ansible.builtin.set_fact:
@@ -144,7 +162,9 @@
       loop_control:
         label: " | inventory: {{ item.name }}"
       vars:
-        static_inventory_that_exists: "{{ aap_inventories | selectattr('name', 'equalto', item.name) | last }}"
+        static_inventory_that_exists: "{{ aap_inventories |
+                                          selectattr('name', 'equalto', item.name) |
+                                            selectattr('summary_fields.organization.name', 'equalto', item.org) | last }}"
 
     - name: INVENTORIES - Notify on rogue hosts
       ansible.builtin.debug:
@@ -181,7 +201,10 @@
         label: " | group: {{ item.name }}"
       when: >
             controller_objects_inventories_static is defined and
-            item.summary_fields.inventory.name in controller_objects_inventories_static | map(attribute='name')
+            item.summary_fields.inventory.name in controller_objects_inventories_static | map(attribute='name') and
+            (limit_organizations is not defined or
+             (limit_organizations is defined and
+              aap_inventories | selectattr('name', '==', item.summary_fields.inventory.name) | length != 0))
 
     - name: INVENTORIES - Build list of rogue groups
       ansible.builtin.set_fact:

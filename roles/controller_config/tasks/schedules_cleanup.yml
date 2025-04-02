@@ -2,30 +2,53 @@
   ansible.builtin.set_fact:
     aap_schedules: "{{ aap_schedules | default([]) +
                        [{'name': item.name,
-                         'template': item.summary_fields.unified_job_template.name}] }}"
+                         'template': item.summary_fields.unified_job_template.name,
+                         'id': item.id,
+                         'unified_template': item.related.unified_job_template}] }}"
   loop: "{{ lookup('ansible.controller.controller_api', 'schedules/', return_objects=false, return_all=true).results }}"
   loop_control:
     label: " | ee: {{ item.name }}"
+
+- name: SCHEDULES - Filter schedules if org limit is specified
+  ansible.builtin.set_fact:
+    aap_schedules: "{{ aap_schedules | default([]) | selectattr('template', 'in', unified_templates_in_orgs) }}"
+  when: limit_organizations is defined
+  vars:
+    unified_templates_in_orgs: "{{ lookup('ansible.controller.controller_api', 'unified_job_templates/', return_objects=false, return_all=true).results |
+                                     selectattr('summary_fields.organization.name', 'defined') |
+                                     selectattr('summary_fields.organization.name', 'in', limit_organizations) |
+                                     map(attribute='name') }}"
 
 - name: SCHEDULES - Notify on rogue schedules
   ansible.builtin.debug:
     msg: "Shouldn't be there"
   when: >
         not delete_objects | default(false) | bool and
-        controller_objects_schedules | selectattr("name", "equalto", item.name) | length == 0
+        controller_objects_schedules | selectattr("name", "equalto", item.name) |
+          selectattr("template", "equalto", item.template) | length == 0
   changed_when: true
   loop: "{{ aap_schedules | default([]) }}"
   loop_control:
-    label: " | schedule: {{ item.name }}"
+    label: " | schedule: {{ item.name }} -> template {{ item.template }}"
 
 - name: SCHEDULES - Delete rogue schedules
-  ansible.controller.schedule:
-    name: "{{ item.name }}"
-    unified_job_template: "{{ item.template }}"
-    state: absent
+  ansible.builtin.uri:
+    url: "https://{{ lookup('env', 'CONTROLLER_HOST') }}{{ api_endpoint }}v2/schedules/{{ item.id }}/"
+    method: DELETE
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer {{ lookup('env', 'CONTROLLER_OAUTH_TOKEN') }}"
+    validate_certs: "{{ lookup('env', 'CONTROLLER_VERIFY_SSL') | default(false) }}"
   when: >
         delete_objects | default(false) | bool and
-        controller_objects_schedules | selectattr("name", "equalto", item.name) | length == 0
+        controller_objects_schedules | selectattr("name", "equalto", item.name) |
+          selectattr("template", "equalto", item.template) | length == 0
   loop: "{{ aap_schedules | default([]) }}"
   loop_control:
-    label: " | schedule: {{ item.name }}"
+    label: " | schedule: {{ item.name }} -> template {{ item.template }}"
+  vars:
+    api_endpoint: "{{ '/api/controller/' if not lookup('env', 'CONTROLLER_OPTIONAL_API_URLPATTERN_PREFIX')
+                                         else lookup('env', 'CONTROLLER_OPTIONAL_API_URLPATTERN_PREFIX') }}"
+  register: removal_result
+  failed_when: "removal_result.status != 204"
+  changed_when: "removal_result.status == 204"

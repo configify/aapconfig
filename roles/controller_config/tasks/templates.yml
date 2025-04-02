@@ -1,4 +1,13 @@
-- name: TEMPLATES - Create or modify templates (with inventory specified)
+- name: TEMPLATES - Filter templates if org limit is specified
+  ansible.builtin.set_fact:
+    controller_objects_templates: "{{ controller_objects_templates | default([]) | selectattr('project', 'in', projects_in_orgs) }}"
+  when: limit_organizations is defined
+  vars:
+    projects_in_orgs: "{{ lookup('ansible.controller.controller_api', 'projects/', return_objects=false, return_all=true).results |
+                          selectattr('summary_fields.organization.name', 'in', limit_organizations) |
+                          map(attribute='name') }}"
+
+- name: TEMPLATES - Create or modify templates
   ansible.controller.job_template:
     name: "{{ item.name }}"
     description: "{{ item.description }}"
@@ -28,7 +37,7 @@
     force_handlers: "{{ item.force_handlers }}"
     forks: "{{ item.forks }}"
     host_config_key: "{{ item.host_config_key }}"
-    inventory: "{{ item.inventory }}"
+    inventory: "{{ omit if not item.inventory else item.inventory }}"
     job_slice_count: "{{ item.job_slice_count }}"
     job_tags: "{{ item.job_tags }}"
     job_type: "{{ item.job_type }}"
@@ -48,85 +57,18 @@
     notification_templates_error: "{{ item.notifications_on_failure }}"
     notification_templates_started: "{{ item.notifications_on_start }}"
     notification_templates_success: "{{ item.notifications_on_success }}"
-  when: item.inventory
   loop: "{{ controller_objects_templates | default([]) }}"
   loop_control:
     label: " | template: {{ item.name }}"
-  register: templates_with_inventory_change
+  register: templates_change
   failed_when: >
                (not ansible_check_mode and
-                templates_with_inventory_change.msg is defined) or
+                templates_change.msg is defined) or
                (ansible_check_mode and
-                templates_with_inventory_change.msg is defined and
-                'returned 0 items' not in templates_with_inventory_change.msg)
+                templates_change.msg is defined and
+                'returned 0 items' not in templates_change.msg)
   changed_when: >
-                templates_with_inventory_change.changed or
+                templates_change.changed or
                 (ansible_check_mode and
-                 templates_with_inventory_change.msg is defined and
-                 'returned 0 items' in templates_with_inventory_change.msg)
-
-- name: TEMPLATES - Create or modify templates (with no inventory specified)
-  ansible.controller.job_template:
-    name: "{{ item.name }}"
-    description: "{{ item.description }}"
-    playbook: "{{ item.playbook }}"
-    execution_environment: "{{ item.execution_environment }}"
-    project: "{{ item.project }}"
-    allow_simultaneous: "{{ item.allow_simultaneous }}"
-    ask_credential_on_launch: "{{ item.ask_credential_on_launch }}"
-    ask_diff_mode_on_launch: "{{ item.ask_diff_mode_on_launch }}"
-    ask_execution_environment_on_launch: "{{ item.ask_execution_environment_on_launch }}"
-    ask_forks_on_launch: "{{ item.ask_forks_on_launch }}"
-    ask_instance_groups_on_launch: "{{ item.ask_instance_groups_on_launch }}"
-    ask_inventory_on_launch: "{{ item.ask_inventory_on_launch }}"
-    ask_job_slice_count_on_launch: "{{ item.ask_job_slice_count_on_launch }}"
-    ask_job_type_on_launch: "{{ item.ask_job_type_on_launch }}"
-    ask_labels_on_launch: "{{ item.ask_labels_on_launch }}"
-    ask_limit_on_launch: "{{ item.ask_limit_on_launch }}"
-    ask_scm_branch_on_launch: "{{ item.ask_scm_branch_on_launch }}"
-    ask_skip_tags_on_launch: "{{ item.ask_skip_tags_on_launch }}"
-    ask_tags_on_launch: "{{ item.ask_tags_on_launch }}"
-    ask_timeout_on_launch: "{{ item.ask_timeout_on_launch }}"
-    ask_variables_on_launch: "{{ item.ask_variables_on_launch }}"
-    ask_verbosity_on_launch: "{{ item.ask_verbosity_on_launch }}"
-    become_enabled: "{{ item.become_enabled }}"
-    diff_mode: "{{ item.diff_mode }}"
-    extra_vars: "{{ item.extra_vars }}"
-    force_handlers: "{{ item.force_handlers }}"
-    forks: "{{ item.forks }}"
-    host_config_key: "{{ item.host_config_key }}"
-    job_slice_count: "{{ item.job_slice_count }}"
-    job_tags: "{{ item.job_tags }}"
-    job_type: "{{ item.job_type }}"
-    limit: "{{ item.limit }}"
-    prevent_instance_group_fallback: "{{ item.prevent_instance_group_fallback }}"
-    scm_branch: "{{ item.scm_branch }}"
-    skip_tags: "{{ item.skip_tags }}"
-    start_at_task: "{{ item.start_at_task }}"
-    survey_enabled: "{{ item.survey_enabled }}"
-    timeout: "{{ item.timeout }}"
-    use_fact_cache: "{{ item.use_fact_cache }}"
-    verbosity: "{{ item.verbosity }}"
-    survey_spec: "{{ item.survey }}"
-    webhook_credential: "{{ omit if item.webhook_credential == 'None' else item.webhook_credential }}"
-    webhook_service: "{{ omit if item.webhook_service == '' else item.webhook_service }}"
-    credentials: "{{ item.creds }}"
-    notification_templates_error: "{{ item.notifications_on_failure }}"
-    notification_templates_started: "{{ item.notifications_on_start }}"
-    notification_templates_success: "{{ item.notifications_on_success }}"
-  when: not item.inventory
-  loop: "{{ controller_objects_templates | default([]) }}"
-  loop_control:
-    label: " | template: {{ item.name }}"
-  register: templates_without_inventory_change
-  failed_when: >
-               (not ansible_check_mode and
-                templates_without_inventory_change.msg is defined) or
-               (ansible_check_mode and
-                templates_without_inventory_change.msg is defined and
-                'returned 0 items' not in templates_without_inventory_change.msg)
-  changed_when: >
-                templates_without_inventory_change.changed or
-                (ansible_check_mode and
-                 templates_without_inventory_change.msg is defined and
-                 'returned 0 items' in templates_without_inventory_change.msg)
+                 templates_change.msg is defined and
+                 'returned 0 items' in templates_change.msg)

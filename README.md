@@ -44,11 +44,11 @@
 1. Ability to export existing AAP configurations and use them for automation after minor adjustments
 1. Ability to export configurations from AWX 24
 1. Ability to export configurations from AAP 2.4 in the format suitable for AAP 2.5
+1. Ability to limit changes to a subset of organizations
 1. Support for AAP 2.5 and Gateway
 1. Automation from start to finish including Hub namespaces and collections, and most of the Controller objects including settings, roles, execution environments and many more
 1. Playbooks to assist in migration from Smart to Constructed inventories
 1. AAP objects are created and deleted in the right sequence, so no need to worry about ordering variables
-
 
 ## Where to start
 
@@ -207,15 +207,24 @@ Correct API endpoint for AAP 2.4 can be configured from **Settings | Job setting
 Use this playbook to create API token for Private Hub. Running this playbook will reset any existing Private Hub tokens for this user.
 
 
-### aap_audit_unused_objects
+### aap_audit_problematic_objects
 
-Use this playbook to report on unused objects:
+Use this playbook to report on potentially problematic objects:
 
+- duplicated teams
+- duplicated credentials
+- duplicated inventories
+- duplicated projects
+- duplicated templates
+- duplicated workflows
+- duplicated notification profiles
 - credentials not used in credentials, templates, workflows, orgs and projects
 - custom credential types not used by credentials
 - projects not used in templates, workflows and dynamic inventories
 - notification profiles not used in templates, workflows and projects
 - inventories not used in templates, workflows, workflow nodes and constructed inventories
+- projects without an organization
+- templates without inventory or project
 
 
 ### aap_audit_...
@@ -237,6 +246,7 @@ The following switches can also be specified as extra variables:
 - **format_for_25** to export certain objects in a structure ready for import into AAP 2.5
 - **trigger_inventory_sync** to trigger dynamic and constructed inventories synchronization (note: automation will not fail if inventory fails to sync)
 - **aap_platform** set to 'awx24' to export objects from AWX 25
+- **limit_organizations** to limit creations and modifications to a subset of objects that belong to organizations from the specified list
 
 When using from command line call the playbook specifying files with variables:
 
@@ -597,7 +607,6 @@ controller_objects_users: [
 Note:
 
 * currently there is no ability to modify users in AAP 2.5 using automation
-* users always report "changed" in check mode when password fields are not empty
 * password values are updated only if **replace_passwords** is set to true which will make the task not idempotent (most likely passwords will be stored in Ansible vault or pulled from external sources therefore the values in the example are empty)
 
 See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat PRs/tickets.
@@ -718,10 +727,8 @@ controller_objects_credentials: [
 
 Note:
 
-* credentials always report "changed" in check mode when password field is not empty
 * currently there is no ability to remove description using automation
 * password/token values are updated only if **replace_passwords** is set to true which will make the task not idempotent (most likely passwords/tokens will be stored in Ansible vault or pulled from external sources therefore the values in the example above are empty)
-* in some cases there is no ability to delete credentials that don't belong to an organization using automation
 * in some cases there is no ability to modify credentials with incorrect sources using automation
 
 See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat PRs/tickets.
@@ -956,14 +963,8 @@ All the issues below are related to Red Hat certified collections. We opened tic
 - **Hosts**: incorrectly report "changed" in dry-run mode
 (see https://github.com/ansible/awx/issues/14922 and https://github.com/ansible/awx/pull/14988)
 
-- **Credentials**: incorrectly report "changed" in dry-run mode when password field is not empty
-(see https://github.com/ansible/awx/issues/14923 and https://github.com/ansible/awx/pull/14989)
-
 - **Credentials**: empty value in description is ignored
 (see https://github.com/ansible/awx/issues/15854 and https://github.com/ansible/awx/pull/15857)
-
-- **Credentials**: no way to delete personal credential when org credential with the same name exists
-(see https://github.com/ansible/awx/issues/15651 and https://github.com/ansible/awx/pull/15652)
 
 - **Credentials**: error when trying to modify credentials with not working source
 (see https://issues.redhat.com/browse/AAP-36552)
@@ -973,9 +974,6 @@ All the issues below are related to Red Hat certified collections. We opened tic
 
 - **Execution environments**: empty value in description is ignored
 (see https://github.com/ansible/awx/issues/15856 and https://github.com/ansible/awx/pull/15859)
-
-- **Users**: incorrectly report "changed" in dry-run mode for AAP 2.4 when password field is not empty
-(see https://github.com/ansible/awx/issues/14923 and https://github.com/ansible/awx/pull/14989)
 
 - **Users**: no ability to modify users in AAP 2.5 (see https://issues.redhat.com/browse/AAP-40035)
 
