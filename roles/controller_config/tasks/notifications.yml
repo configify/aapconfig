@@ -1,3 +1,8 @@
+- name: NOTIFICATIONS - Filter notification templates if org limit is specified
+  ansible.builtin.set_fact:
+    controller_objects_notification_profiles: "{{ controller_objects_notification_profiles | default([]) | selectattr('org', 'in', limit_organizations) }}"
+  when: limit_organizations is defined
+
 - name: NOTIFICATIONS - Create or modify notification profiles
   ansible.controller.notification_template:
     name: "{{ item.name }}"

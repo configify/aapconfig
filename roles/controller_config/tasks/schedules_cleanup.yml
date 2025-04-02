@@ -3,10 +3,21 @@
     aap_schedules: "{{ aap_schedules | default([]) +
                        [{'name': item.name,
                          'template': item.summary_fields.unified_job_template.name,
-                         'id': item.id}] }}"
+                         'id': item.id,
+                         'unified_template': item.related.unified_job_template}] }}"
   loop: "{{ lookup('ansible.controller.controller_api', 'schedules/', return_objects=false, return_all=true).results }}"
   loop_control:
     label: " | ee: {{ item.name }}"
+
+- name: SCHEDULES - Filter schedules if org limit is specified
+  ansible.builtin.set_fact:
+    aap_schedules: "{{ aap_schedules | default([]) | selectattr('template', 'in', unified_templates_in_orgs) }}"
+  when: limit_organizations is defined
+  vars:
+    unified_templates_in_orgs: "{{ lookup('ansible.controller.controller_api', 'unified_job_templates/', return_objects=false, return_all=true).results |
+                                     selectattr('summary_fields.organization.name', 'defined') |
+                                     selectattr('summary_fields.organization.name', 'in', limit_organizations) |
+                                     map(attribute='name') }}"
 
 - name: SCHEDULES - Notify on rogue schedules
   ansible.builtin.debug:

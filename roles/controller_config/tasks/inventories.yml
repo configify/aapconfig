@@ -1,3 +1,11 @@
+- name: INVENTORIES - Filter inventories if org limit is specified
+  ansible.builtin.set_fact:
+    controller_objects_inventories_dynamic: "{{ controller_objects_inventories_dynamic | default([]) | selectattr('org', 'in', limit_organizations) }}"
+    controller_objects_inventories_static: "{{ controller_objects_inventories_static | default([]) | selectattr('org', 'in', limit_organizations) }}"
+    controller_objects_inventories_smart: "{{ controller_objects_inventories_smart | default([]) | selectattr('org', 'in', limit_organizations) }}"
+    controller_objects_inventories_constructed: "{{ controller_objects_inventories_constructed | default([]) | selectattr('org', 'in', limit_organizations) }}"
+  when: limit_organizations is defined
+
 - name: INVENTORIES - Create or modify static and dynamic inventories
   ansible.controller.inventory:
     name: "{{ item.name }}"

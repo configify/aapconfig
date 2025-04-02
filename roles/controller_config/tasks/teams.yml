@@ -1,3 +1,8 @@
+- name: TEAMS - Filter teams if org limit is specified
+  ansible.builtin.set_fact:
+    controller_objects_teams: "{{ controller_objects_teams | default([]) | selectattr('org', 'in', limit_organizations) }}"
+  when: limit_organizations is defined
+
 - name: TEAMS - Create or modify teams (pre 2.5)
   ansible.controller.team:
     name: "{{ item.name }}"

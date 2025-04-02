@@ -1,3 +1,8 @@
+- name: WORKFLOWS - Filter workflows if org limit is specified
+  ansible.builtin.set_fact:
+    controller_objects_workflows: "{{ controller_objects_workflows | default([]) | selectattr('org', 'in', limit_organizations) }}"
+  when: limit_organizations is defined
+
 - name: WORKFLOWS - Create or modify workflows
   ansible.controller.workflow_job_template:
     name: "{{ item.name }}"
