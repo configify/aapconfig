@@ -1,3 +1,15 @@
+## [2.4.0] - 2025-04-02
+
+### Added
+- Ability to limit by organization
+- Report on more problematic objects
+
+### Changed
+
+### Fixed
+- Removal of duplicated objects
+
+
 ## [2.3.2] - 2025-03-28
 
 ### Added
