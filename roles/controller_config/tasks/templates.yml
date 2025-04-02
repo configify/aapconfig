@@ -37,7 +37,7 @@
     force_handlers: "{{ item.force_handlers }}"
     forks: "{{ item.forks }}"
     host_config_key: "{{ item.host_config_key }}"
-    inventory: "{{ omit if not item.inventory else item.inventory}}"
+    inventory: "{{ omit if not item.inventory else item.inventory }}"
     job_slice_count: "{{ item.job_slice_count }}"
     job_tags: "{{ item.job_tags }}"
     job_type: "{{ item.job_type }}"
