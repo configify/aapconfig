@@ -9,6 +9,10 @@
   loop: "{{ lookup('ansible.controller.controller_api', 'job_templates/', return_objects=false, return_all=true).results }}"
   loop_control:
     label: " | template: {{ item.name }}"
+  when: >
+        limit_organizations is not defined or
+        (limit_organizations is defined and
+         item.summary_fields.organization.name | default('') in limit_organizations)
 
 - name: TEMPLATES - Notify on rogue templates
   ansible.builtin.debug:

@@ -1,5 +1,6 @@
 - name: SETTINGS - CONFIGURATION
   ansible.builtin.import_tasks: settings.yml
+  when: limit_organizations is not defined
   tags:
     - controller_config_settings
     - controller_config_all_apply
@@ -7,6 +8,7 @@
 - name: AUTHENTICATION - CLEANUP (2.4)
   ansible.builtin.import_tasks: authentication_cleanup.yml
   when: >
+        limit_organizations is not defined and
         controller_ping.version is version_compare('4.6', '>=') and
         controller_authentication is defined
   tags:
@@ -68,7 +70,9 @@
 
 - name: EXECUTION ENVIRONMENTS - CLEANUP
   ansible.builtin.import_tasks: execution_environments_cleanup.yml
-  when: controller_objects_execution_environments is defined
+  when: >
+        limit_organizations is not defined and
+        controller_objects_execution_environments is defined
   tags:
     - controller_config_ee
     - controller_config_ee_cleanup
@@ -84,7 +88,9 @@
 
 - name: ORGANIZATIONS - CLEANUP
   ansible.builtin.import_tasks: organizations_cleanup.yml
-  when: controller_objects_organizations is defined
+  when: >
+        limit_organizations is not defined and
+        controller_objects_organizations is defined
   tags:
     - controller_config_organizations
     - controller_config_organizations_cleanup
@@ -100,7 +106,9 @@
 
 - name: CREDENTIAL TYPES - CLEANUP
   ansible.builtin.import_tasks: credential_types_cleanup.yml
-  when: controller_objects_credential_types is defined
+  when: >
+        limit_organizations is not defined and
+        controller_objects_credential_types is defined
   tags:
     - controller_config_credential_types
     - controller_config_credential_types_cleanup
@@ -108,7 +116,9 @@
 
 - name: INSTANCE GROUPS - CLEANUP
   ansible.builtin.import_tasks: instance_groups_cleanup.yml
-  when: controller_objects_instance_groups is defined
+  when: >
+        limit_organizations is not defined and
+        controller_objects_instance_groups is defined
   tags:
     - controller_config_instance_groups
     - controller_config_instance_groups_cleanup
@@ -116,7 +126,9 @@
 
 - name: USERS - CLEANUP
   ansible.builtin.import_tasks: users_cleanup.yml
-  when: controller_objects_users is defined
+  when: >
+        limit_organizations is not defined and
+        controller_objects_users is defined
   tags:
     - controller_config_users
     - controller_config_users_cleanup
@@ -125,8 +137,9 @@
 - name: ROLES - CLEANUP
   ansible.builtin.import_tasks: roles_cleanup.yml
   when: >
-        controller_objects_roles is defined or
-        gateway_objects_roles is defined
+        limit_organizations is not defined and
+        (controller_objects_roles is defined or
+         gateway_objects_roles is defined)
   tags:
     - controller_config_roles
     - controller_config_roles_cleanup
@@ -134,7 +147,9 @@
 
 - name: USERS - CREATION/MODIFICATION
   ansible.builtin.import_tasks: users.yml
-  when: controller_objects_users is defined
+  when: >
+        limit_organizations is not defined and
+        controller_objects_users is defined
   tags:
     - controller_config_users
     - controller_config_users_apply
@@ -142,7 +157,9 @@
 
 - name: EXECUTION ENVIRONMENTS - CREATION/MODIFICATION
   ansible.builtin.import_tasks: execution_environments.yml
-  when: controller_objects_execution_environments is defined
+  when: >
+        limit_organizations is not defined and
+        controller_objects_execution_environments is defined
   tags:
     - controller_config_ee
     - controller_config_ee_apply
@@ -151,6 +168,7 @@
 - name: AUTHENTICATION - CREATION/MODIFICATION (2.5)
   ansible.builtin.import_tasks: authentication.yml
   when: >
+        limit_organizations is not defined and
         controller_ping.version is version_compare('4.6', '>=') and
         controller_authentication is defined
   tags:
@@ -160,7 +178,9 @@
 
 - name: INSTANCE GROUPS - CREATION/MODIFICATION
   ansible.builtin.import_tasks: instance_groups.yml
-  when: controller_objects_instance_groups is defined
+  when: >
+        limit_organizations is not defined and
+        controller_objects_instance_groups is defined
   tags:
     - controller_config_instance_groups
     - controller_config_instance_groups_apply
@@ -168,7 +188,9 @@
 
 - name: CREDENTIAL TYPES - CREATION/MODIFICATION
   ansible.builtin.import_tasks: credential_types.yml
-  when: controller_objects_credential_types is defined
+  when: >
+        limit_organizations is not defined and
+        controller_objects_credential_types is defined
   tags:
     - controller_config_credential_types
     - controller_config_credential_types_apply
@@ -176,8 +198,7 @@
 
 - name: CREDENTIALS - CREATION/MODIFICATION
   ansible.builtin.import_tasks: credentials.yml
-  when: >
-        controller_objects_credentials
+  when: controller_objects_credentials is defined
   tags:
     - controller_config_credentials
     - controller_config_credentials_apply
@@ -185,7 +206,9 @@
 
 - name: ORGANIZATIONS - CREATION/MODIFICATION
   ansible.builtin.import_tasks: organizations.yml
-  when: controller_objects_organizations is defined
+  when: >
+        limit_organizations is not defined and
+        controller_objects_organizations is defined
   tags:
     - controller_config_organizations
     - controller_config_organizations_apply
@@ -209,7 +232,7 @@
 
 - name: PROJECTS - CREATION/MODIFICATION
   ansible.builtin.import_tasks: projects.yml
-  when: controller_objects_projects
+  when: controller_objects_projects is defined
   tags:
     - controller_config_projects
     - controller_config_projects_apply
@@ -254,8 +277,9 @@
 - name: ROLES - CREATION/MODIFICATION
   ansible.builtin.import_tasks: roles.yml
   when: >
-        controller_objects_roles is defined or
-        gateway_objects_roles is defined
+        limit_organizations is not defined and
+        (controller_objects_roles is defined or
+         gateway_objects_roles is defined)
   tags:
     - controller_config_roles
     - controller_config_roles_apply

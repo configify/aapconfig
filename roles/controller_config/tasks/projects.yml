@@ -1,3 +1,8 @@
+- name: PROJECTS - Filter projects if org limit is specified
+  ansible.builtin.set_fact:
+    controller_objects_projects: "{{ controller_objects_projects | default([]) | selectattr('org', 'in', limit_organizations) }}"
+  when: limit_organizations is defined
+
 - name: PROJECTS - Create or modify projects
   block:
     - name: PROJECTS - Create or modify projects

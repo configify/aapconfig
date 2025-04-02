@@ -30,6 +30,13 @@
         - controller_config_roles_cleanup
         - controller_config_roles_apply
 
+    - name: Make sure limit_organizations is a list (if defined)
+      ansible.builtin.assert:
+        that: limit_organizations | type_debug == "list"
+        fail_msg: "Make sure limit_organizations is a list of organizations"
+      when: limit_organizations is defined
+      tags: always
+
   roles:
     - role: hub_config
       tags: hub_config

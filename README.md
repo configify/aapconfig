@@ -44,11 +44,11 @@
 1. Ability to export existing AAP configurations and use them for automation after minor adjustments
 1. Ability to export configurations from AWX 24
 1. Ability to export configurations from AAP 2.4 in the format suitable for AAP 2.5
+1. Ability to limit changes to a subset of organizations
 1. Support for AAP 2.5 and Gateway
 1. Automation from start to finish including Hub namespaces and collections, and most of the Controller objects including settings, roles, execution environments and many more
 1. Playbooks to assist in migration from Smart to Constructed inventories
 1. AAP objects are created and deleted in the right sequence, so no need to worry about ordering variables
-
 
 ## Where to start
 
@@ -246,6 +246,7 @@ The following switches can also be specified as extra variables:
 - **format_for_25** to export certain objects in a structure ready for import into AAP 2.5
 - **trigger_inventory_sync** to trigger dynamic and constructed inventories synchronization (note: automation will not fail if inventory fails to sync)
 - **aap_platform** set to 'awx24' to export objects from AWX 25
+- **limit_organizations** to limit creations and modifications to a subset of objects that belong to organizations from the specified list
 
 When using from command line call the playbook specifying files with variables:
 
