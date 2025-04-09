@@ -1,5 +1,6 @@
 - name: COLLECTIONS AND NAMESPACES
   ansible.builtin.include_tasks: collections_and_namespaces.yml
+  when: hub_objects_collections is defined
   tags:
     - hub_config_all_cleanup
     - hub_config_all_apply
