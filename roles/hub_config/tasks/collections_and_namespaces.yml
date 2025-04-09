@@ -1,8 +1,6 @@
 - name: COLLECTIONS - Cleanup
   tags: hub_config_all_cleanup
-  when: hub_objects_collections is defined
   block:
-
     - name: COLLECTIONS - Get list of published collections
       ansible.builtin.set_fact:
         published_collections: "{{ query('infra.ah_configuration.ah_api', 'collections', return_all=true) }}"
@@ -19,63 +17,92 @@
         label: " | collection: {{ item.name }}"
 
     - name: COLLECTIONS - Delete rogue published collections
-      ansible.hub.ah_collection:
+      block:
+        - name: COLLECTIONS - Attempt to delete rogue published collections
+          ansible.hub.ah_collection:
+            name: "{{ item.name }}"
+            namespace: "{{ item.namespace }}"
+            version: "{{ item.highest_version.version }}"
+            state: absent
+          when: >
+                delete_objects | default(false) | bool and
+                hub_objects_collections | selectattr("name", "equalto", item.name) | length == 0
+          loop: "{{ published_collections[0] }}"
+          loop_control:
+            label: " | collection: {{ item.name }}"
+          register: collection_deletion
+
+      rescue:
+        - name: COLLECTIONS - Circle with deletion one more time assuming dependent collections were deleted earlier
+          block:
+            - name: COLLECTIONS - Filter failure results for cleanliness (which is next to godliness)
+              ansible.builtin.set_fact:
+                deletion_reattempt: "{{ collection_deletion.results | selectattr('exception', 'defined') |
+                                                                      ansible.utils.remove_keys(target=['exception',
+                                                                                                        'module_stderr',
+                                                                                                        'ansible_loop_var',
+                                                                                                        'changed',
+                                                                                                        'failed',
+                                                                                                        'module_stdout',
+                                                                                                        'msg',
+                                                                                                        'rc']) }}"
+
+            - name: COLLECTIONS - Attempt to delete remaining rogue collections
+              ansible.hub.ah_collection:
+                name: "{{ item.item.name }}"
+                namespace: "{{ item.item.namespace }}"
+                version: "{{ item.item.highest_version.version }}"
+                state: absent
+              loop: "{{ deletion_reattempt }}"
+              loop_control:
+                label: " | collection: {{ item.item.name }}"
+
+          rescue:
+            - name: Continue with automation
+              ansible.builtin.debug:
+                msg: "Couldn't delete some collections. Check errors above. Error in line 161 means dependencies. Continuing with automation for now."
+
+    - name: COLLECTIONS - Get list of namespaces and all collections
+      ansible.builtin.set_fact:
+        all_name_spaces: "{{ query('infra.ah_configuration.ah_api', 'namespaces', return_all=true) }}"
+        published_collections: "{{ query('infra.ah_configuration.ah_api', 'collections', return_all=true) }}"
+        certified_collections: "{{ query('infra.ah_configuration.ah_api', 'collections', 'rh-certified', return_all=true) }}"
+        community_collections: "{{ query('infra.ah_configuration.ah_api', 'collections', 'community', return_all=true) }}"
+        validated_collections: "{{ query('infra.ah_configuration.ah_api', 'collections', 'validated', return_all=true) }}"
+
+    - name: COLLECTIONS - Create list of all collections
+      ansible.builtin.set_fact:
+        all_collections: "{{ published_collections[0] + certified_collections[0] + community_collections[0] + validated_collections[0] }}"
+
+    - name: COLLECTIONS - Notify on empty namespaces
+      ansible.builtin.debug:
+        msg: "Currently empty"
+      when: >
+            not delete_objects | default(false) | bool and
+            all_collections | selectattr("namespace", "equalto", item.name) | length == 0
+      changed_when: true
+      loop: "{{ all_name_spaces[0] }}"
+      loop_control:
+        label: " | namespace: {{ item.name }}"
+
+    - name: COLLECTIONS - Delete empty namespaces
+      ansible.hub.ah_namespace:
         name: "{{ item.name }}"
-        namespace: "{{ item.namespace }}"
-        version: "{{ item.highest_version.version }}"
         state: absent
       when: >
             delete_objects | default(false) | bool and
-            hub_objects_collections | selectattr("name", "equalto", item.name) | length == 0
-      changed_when: true
-      loop: "{{ published_collections[0] }}"
+            all_collections | selectattr("namespace", "equalto", item.name) | length == 0
+      register: namespace_removal_result
+      failed_when: >
+                   namespace_removal_result.msg is defined and
+                   'there are still collections associated with it' not in namespace_removal_result.msg
+      loop: "{{ all_name_spaces[0] }}"
       loop_control:
-        label: " | collection: {{ item.name }}"
-
-- name: COLLECTIONS - Get list of namespaces and all collections
-  ansible.builtin.set_fact:
-    all_name_spaces: "{{ query('infra.ah_configuration.ah_api', 'namespaces', return_all=true) }}"
-    published_collections: "{{ query('infra.ah_configuration.ah_api', 'collections', return_all=true) }}"
-    certified_collections: "{{ query('infra.ah_configuration.ah_api', 'collections', 'rh-certified', return_all=true) }}"
-    community_collections: "{{ query('infra.ah_configuration.ah_api', 'collections', 'community', return_all=true) }}"
-    validated_collections: "{{ query('infra.ah_configuration.ah_api', 'collections', 'validated', return_all=true) }}"
-  tags: hub_config_all_cleanup
-
-- name: COLLECTIONS - Create list of all collections
-  ansible.builtin.set_fact:
-    all_collections: "{{ published_collections[0] + certified_collections[0] + community_collections[0] + validated_collections[0] }}"
-  tags: hub_config_all_cleanup
-
-- name: COLLECTIONS - Notify on empty namespaces
-  ansible.builtin.debug:
-    msg: "Shouldn't be there"
-  when: >
-        not delete_objects | default(false) | bool and
-        all_collections | selectattr("namespace", "equalto", item.name) | length == 0
-  changed_when: true
-  loop: "{{ all_name_spaces[0] }}"
-  loop_control:
-    label: " | namespace: {{ item.name }}"
-  tags: hub_config_all_cleanup
-
-- name: COLLECTIONS - Delete empty namespaces
-  ansible.hub.ah_namespace:
-    name: "{{ item.name }}"
-    state: absent
-  when: >
-        delete_objects | default(false) | bool and
-        all_collections | selectattr("namespace", "equalto", item.name) | length == 0
-  changed_when: true
-  loop: "{{ all_name_spaces[0] }}"
-  loop_control:
-    label: " | namespace: {{ item.name }}"
-  tags: hub_config_all_cleanup
+        label: " | namespace: {{ item.name }}"
 
 - name: COLLECTIONS - Create namespace and upload collections
   tags: hub_config_all_apply
-  when: hub_objects_collections is defined
   block:
-
     - name: COLLECTIONS - Create namespaces for collections
       ansible.hub.ah_namespace:
         name: "{{ item.namespace }}"
@@ -114,3 +141,4 @@
       loop: "{{ hub_objects_collections }}"
       loop_control:
         label: " | file: {{ item.filename }}"
+      when: not ansible_check_mode
