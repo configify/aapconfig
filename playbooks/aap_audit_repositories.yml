@@ -1,0 +1,51 @@
+---
+- name: REPOS - Audit Hub repositories
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: REPOS - Get list of configured remote repositories
+      ansible.builtin.uri:
+        url: https://{{ lookup('ansible.builtin.env', 'AH_HOST') }}/api/galaxy/pulp/api/v3/remotes/
+        user: "{{ lookup('ansible.builtin.env', 'AH_USERNAME') }}"
+        password: "{{ lookup('ansible.builtin.env', 'AH_PASSWORD') }}"
+        method: GET
+        force_basic_auth: true
+        validate_certs: "{{ lookup('ansible.builtin.env', 'AH_VERIFY_SSL') }}"
+      register: repositories_remote
+
+    - name: REPOS - Get detailed list of configured remote repositories
+      ansible.builtin.uri:
+        url: https://{{ lookup('ansible.builtin.env', 'AH_HOST') }}{{ item.pulp_href }}
+        user: "{{ lookup('ansible.builtin.env', 'AH_USERNAME') }}"
+        password: "{{ lookup('ansible.builtin.env', 'AH_PASSWORD') }}"
+        method: GET
+        force_basic_auth: true
+        validate_certs: "{{ lookup('ansible.builtin.env', 'AH_VERIFY_SSL') }}"
+      register: repositories_remote_detailed
+      loop: "{{ repositories_remote.json.results }}"
+      loop_control:
+        label: " | remote repository: {{ item.name }}"
+
+    - name: Build list of configured remote repositories
+      ansible.builtin.set_fact:
+        hub_objects_remotes: "{{ hub_objects_remotes | default([]) +
+                                 [{'name': item.json.name,
+                                   'repo_url': item.json.url,
+                                   'repo_auth_url': '' if not item.json.auth_url
+                                                  else item.json.auth_url,
+                                   'repo_auth_token': '' if not (item.json.hidden_fields | selectattr('name', '==', 'token') | last).is_set
+                                               else '$encrypted$',
+                                   'requirements': '' if not item.json.requirements_file
+                                                      else item.json.requirements_file | from_yaml } |
+                                  regex_replace('\n', '')] }}"
+      loop: "{{ repositories_remote_detailed.results }}"
+      loop_control:
+        label: " | remote repository: {{ item.json.name }}"
+
+    - name: REPOS - Show configured remote repositories (formatted)
+      ansible.builtin.debug:
+        var: hub_objects_remotes
+      when: >
+            hub_objects_remotes | default('') and
+            not show_vars_at_the_end | default(false)

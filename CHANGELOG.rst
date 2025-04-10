@@ -1,3 +1,17 @@
+## [2.4.1] - 2025-04-10
+
+### Added
+- Hub remote repositories configuration
+- Reattempt failed collection removals (dependencies)
+
+### Changed
+- Skip collection approval in check mode
+- Skip settings, collections and namespaces when object variables are not defined
+
+### Fixed
+- Error handling for collections and namespaces
+
+
 ## [2.4.0] - 2025-04-02
 
 ### Added

@@ -17,6 +17,7 @@
 - [Available Tags](#Available-Tags)
 - [Variable structure](#Variable-structure)
   - [Hub collections](#Hub-collections)
+  - [Hub repositories](#Hub-repositories)
   - [Execution environments](#Execution-environments)
   - [Notification profiles](#Notification-profiles)
   - [Settings](#Settings)
@@ -238,7 +239,7 @@ Use it to create objects and apply settings. The playbook expects variables that
 
 The following switches can also be specified as extra variables:
 
-- **replace_passwords** to change passwords for users and credentials
+- **replace_passwords** to change passwords for users and credentials (note: this option makes tasks not idempotent)
 - **replace_workflow_nodes** to force deletion of workflow nodes (note: this option makes workflow apply task not idempotent)
 - **delete_objects** to delete rogue objects
 - **wait_project_sync** to wait for projects to synchronise (note: automation will report but not fail if project fails to sync)
@@ -320,8 +321,14 @@ If the requirement is to remove credentials and credential types that are not ne
 Available configuration tags:
 
 - hub_config
-- hub_config_all_cleanup
 - hub_config_all_apply
+- hub_config_all_cleanup
+- hub_config_repositories
+- hub_config_repositories_apply
+- hub_config_repositories_cleanup
+- hub_config_collections
+- hub_config_collections_apply
+- hub_config_collections_cleanup
 - controller_config
 - controller_config_all_apply
 - controller_config_all_cleanup
@@ -397,6 +404,7 @@ Available export tags:
 
 Details below specify audit playbook and variable format for each AAP object supported by this collection.
 
+
 ### Hub collections
 
 **Audit playbook**: aap_audit_collections.yml
@@ -415,6 +423,27 @@ When running in AAP, place tarball files in **/collections_tarballs** sub-folder
 When running from the command line the expected location is */runner/project/collections_tarballs* on localhost.
 
 Hub namespaces will be pulled from collection names and created if required.
+
+
+### Hub repositories
+
+**Audit playbook**: aap_audit_repositories.yml
+
+**Variable structure**:
+```
+hub_objects_remotes: [
+  {'name': 'rh-certified', 'repo_url': 'https://console.redhat.com/api/automation-hub/content/published/',
+   'repo_auth_url': 'https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token',
+   'repo_auth_token': '',
+   'requirements': {'collections': [{'name': 'ansible.platform'}, {'name': 'ansible.controller'}]}},
+
+  {'name': 'community', 'repo_url': 'https://galaxy.ansible.com/api/',
+   'repo_auth_url': '',
+   'repo_auth_token': '',
+   'requirements': ''}
+]
+```
+
 
 ### Execution environments
 

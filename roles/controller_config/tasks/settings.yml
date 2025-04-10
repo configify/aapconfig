@@ -10,120 +10,130 @@
         {% endif %}
   loop_control:
     label: " | setting: {{ item }}"
-
-- name: SETTINGS - Notify on rogue LDAP settings (pre 2.5)
-  ansible.builtin.debug:
-    msg: "Shouldn't be there"
   when: >
-        not delete_objects | default(false) | bool and
-        controller_ping.version is version_compare('4.6', '<') and
-        controller_config_settings_default_ldap[item.key] is defined and
-        controller_config_settings_default_ldap[item.key] != item.value and
-        controller_settings_ldap[item.key] is not defined
-  changed_when: true
-  loop: "{{ controller_settings_current.ldap | dict2items }}"
-  loop_control:
-    label: " | setting: {{ item.key }}"
+        controller_settings_authentication is defined or
+        controller_settings_jobs is defined or
+        controller_settings_ldap is defined
 
-- name: SETTINGS - Notify on rogue AUTH settings (pre 2.5)
-  ansible.builtin.debug:
-    msg: "Shouldn't be there"
-  when: >
-        not delete_objects | default(false) | bool and
-        controller_ping.version is version_compare('4.6', '<') and
-        controller_config_settings_default_authentication[item.key] is defined and
-        controller_config_settings_default_authentication[item.key] != item.value and
-        controller_settings_authentication[item.key] is not defined
-  changed_when: true
-  loop: "{{ controller_settings_current.authentication | dict2items }}"
-  loop_control:
-    label: " | setting: {{ item.key }}"
-
-- name: SETTINGS - Notify on rogue JOBS settings
-  ansible.builtin.debug:
-    msg: "Shouldn't be there"
-  when: >
-        not delete_objects | default(false) | bool and
-        controller_config_settings_default_jobs[item.key] is defined and
-        controller_config_settings_default_jobs[item.key] != item.value and
-        controller_settings_jobs[item.key] is not defined
-  changed_when: true
-  loop: "{{ controller_settings_current.jobs | dict2items }}"
-  loop_control:
-    label: " | setting: {{ item.key }}"
-
-- name: SETTINGS - Add rogue LDAP settings for removal (pre 2.5)
-  ansible.builtin.set_fact:
-    controller_settings_to_apply: "{{ controller_settings_to_apply | default({}) |
-                                      combine({item.key: controller_config_settings_default_ldap[item.key]}) }}"
-  when: >
-        delete_objects | default(false) | bool and
-        controller_ping.version is version_compare('4.6', '<') and
-        controller_config_settings_default_ldap[item.key] is defined and
-        controller_config_settings_default_ldap[item.key] != item.value and
-        controller_settings_ldap[item.key] is not defined
-  changed_when: true
-  loop: "{{ controller_settings_current.ldap | dict2items }}"
-  loop_control:
-    label: " | setting: {{ item.key }}"
-
-- name: SETTINGS - Add rogue AUTH settings for removal (pre 2.5)
-  ansible.builtin.set_fact:
-    controller_settings_to_apply: "{{ controller_settings_to_apply | default({}) |
-                                      combine({item.key: controller_config_settings_default_authentication[item.key]}) }}"
-  when: >
-        delete_objects | default(false) | bool and
-        controller_ping.version is version_compare('4.6', '<') and
-        controller_config_settings_default_authentication[item.key] is defined and
-        controller_config_settings_default_authentication[item.key] != item.value and
-        controller_settings_authentication[item.key] is not defined
-  changed_when: true
-  loop: "{{ controller_settings_current.authentication | dict2items }}"
-  loop_control:
-    label: " | setting: {{ item.key }}"
-
-- name: SETTINGS - Add rogue JOBS settings for removal
-  ansible.builtin.set_fact:
-    controller_settings_to_apply: "{{ controller_settings_to_apply | default([]) |
-                                      combine({item.key: controller_config_settings_default_jobs[item.key]}) }}"
-  when: >
-        delete_objects | default(false) | bool and
-        controller_config_settings_default_jobs[item.key] is defined and
-        controller_config_settings_default_jobs[item.key] != item.value and
-        controller_settings_jobs[item.key] is not defined
-  changed_when: true
-  loop: "{{ controller_settings_current.jobs | dict2items }}"
-  loop_control:
-    label: " | setting: {{ item.key }}"
-
-- name: SETTINGS - Add desired LDAP settings to be applied or modified (pre 2.5)
-  ansible.builtin.set_fact:
-    controller_settings_to_apply: "{{ controller_settings_to_apply | default({}) | combine({item.key: item.value}) }}"
+- name: Dealing with LDAP settings
   when: >
         controller_ping.version is version_compare('4.6', '<') and
         controller_settings_ldap is defined
-  loop: "{{ controller_settings_ldap | dict2items }}"
-  loop_control:
-    label: " | setting: {{ item.key }}"
+  block:
+    - name: SETTINGS - Notify on rogue LDAP settings (pre 2.5)
+      ansible.builtin.debug:
+        msg: "Shouldn't be there"
+      when: >
+            not delete_objects | default(false) | bool and
+            controller_config_settings_default_ldap[item.key] is defined and
+            controller_config_settings_default_ldap[item.key] != item.value and
+            controller_settings_ldap[item.key] is not defined
+      changed_when: true
+      loop: "{{ controller_settings_current.ldap | dict2items }}"
+      loop_control:
+        label: " | LDAP setting: {{ item.key }}"
 
-- name: SETTINGS - Add desired AUTH settings to be applied or modified (pre 2.5)
-  ansible.builtin.set_fact:
-    controller_settings_to_apply: "{{ controller_settings_to_apply | default({}) | combine({item.key: item.value}) }}"
+    - name: SETTINGS - Add rogue LDAP settings for removal (pre 2.5)
+      ansible.builtin.set_fact:
+        controller_settings_to_apply: "{{ controller_settings_to_apply | default({}) |
+                                          combine({item.key: controller_config_settings_default_ldap[item.key]}) }}"
+      when: >
+            delete_objects | default(false) | bool and
+            controller_config_settings_default_ldap[item.key] is defined and
+            controller_config_settings_default_ldap[item.key] != item.value and
+            controller_settings_ldap[item.key] is not defined
+      changed_when: true
+      loop: "{{ controller_settings_current.ldap | dict2items }}"
+      loop_control:
+        label: " | LDAP setting: {{ item.key }}"
+
+    - name: SETTINGS - Add desired LDAP settings to be applied or modified (pre 2.5)
+      ansible.builtin.set_fact:
+        controller_settings_to_apply: "{{ controller_settings_to_apply | default({}) | combine({item.key: item.value}) }}"
+      loop: "{{ controller_settings_ldap | dict2items }}"
+      loop_control:
+        label: " | LDAP setting: {{ item.key }}"
+
+- name: Dealing with AUTH settings
   when: >
         controller_ping.version is version_compare('4.6', '<') and
         controller_settings_authentication is defined
-  loop: "{{ controller_settings_authentication | dict2items }}"
-  loop_control:
-    label: " | setting: {{ item.key }}"
+  block:
+    - name: SETTINGS - Notify on rogue AUTH settings (pre 2.5)
+      ansible.builtin.debug:
+        msg: "Shouldn't be there"
+      when: >
+            not delete_objects | default(false) | bool and
+            controller_config_settings_default_authentication[item.key] is defined and
+            controller_config_settings_default_authentication[item.key] != item.value and
+            controller_settings_authentication[item.key] is not defined
+      changed_when: true
+      loop: "{{ controller_settings_current.authentication | dict2items }}"
+      loop_control:
+        label: " | AUTH setting: {{ item.key }}"
 
-- name: SETTINGS - Add desired JOBS settings to be applied or modified
-  ansible.builtin.set_fact:
-    controller_settings_to_apply: "{{ controller_settings_to_apply | default({}) | combine({item.key: item.value}) }}"
+    - name: SETTINGS - Add rogue AUTH settings for removal (pre 2.5)
+      ansible.builtin.set_fact:
+        controller_settings_to_apply: "{{ controller_settings_to_apply | default({}) |
+                                          combine({item.key: controller_config_settings_default_authentication[item.key]}) }}"
+      when: >
+            delete_objects | default(false) | bool and
+            controller_config_settings_default_authentication[item.key] is defined and
+            controller_config_settings_default_authentication[item.key] != item.value and
+            controller_settings_authentication[item.key] is not defined
+      changed_when: true
+      loop: "{{ controller_settings_current.authentication | dict2items }}"
+      loop_control:
+        label: " | AUTH setting: {{ item.key }}"
+
+    - name: SETTINGS - Add desired AUTH settings to be applied or modified (pre 2.5)
+      ansible.builtin.set_fact:
+        controller_settings_to_apply: "{{ controller_settings_to_apply | default({}) | combine({item.key: item.value}) }}"
+      loop: "{{ controller_settings_authentication | dict2items }}"
+      loop_control:
+        label: " | AUTH setting: {{ item.key }}"
+
+- name: Dealing with JOB settings
   when: controller_settings_jobs is defined
-  loop: "{{ controller_settings_jobs | dict2items }}"
-  loop_control:
-    label: " | setting: {{ item.key }}"
+  block:
+    - name: SETTINGS - Notify on rogue JOBS settings
+      ansible.builtin.debug:
+        msg: "Shouldn't be there"
+      when: >
+            not delete_objects | default(false) | bool and
+            controller_config_settings_default_jobs[item.key] is defined and
+            controller_config_settings_default_jobs[item.key] != item.value and
+            controller_settings_jobs[item.key] is not defined
+      changed_when: true
+      loop: "{{ controller_settings_current.jobs | dict2items }}"
+      loop_control:
+        label: " | JOB setting: {{ item.key }}"
+
+    - name: SETTINGS - Add rogue JOBS settings for removal
+      ansible.builtin.set_fact:
+        controller_settings_to_apply: "{{ controller_settings_to_apply | default([]) |
+                                          combine({item.key: controller_config_settings_default_jobs[item.key]}) }}"
+      when: >
+            delete_objects | default(false) | bool and
+            controller_config_settings_default_jobs[item.key] is defined and
+            controller_config_settings_default_jobs[item.key] != item.value and
+            controller_settings_jobs[item.key] is not defined
+      changed_when: true
+      loop: "{{ controller_settings_current.jobs | dict2items }}"
+      loop_control:
+        label: " | JOB setting: {{ item.key }}"
+
+    - name: SETTINGS - Add desired JOBS settings to be applied or modified
+      ansible.builtin.set_fact:
+        controller_settings_to_apply: "{{ controller_settings_to_apply | default({}) | combine({item.key: item.value}) }}"
+      loop: "{{ controller_settings_jobs | dict2items }}"
+      loop_control:
+        label: " | JOB setting: {{ item.key }}"
 
 - name: SETTINGS - Apply settings
   ansible.controller.settings:
     settings: "{{ controller_settings_to_apply | default({}) }}"
+  when: >
+        controller_settings_authentication is defined or
+        controller_settings_jobs is defined or
+        controller_settings_ldap is defined
