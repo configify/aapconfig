@@ -1,6 +1,9 @@
 - name: COLLECTIONS AND NAMESPACES
-  ansible.builtin.include_tasks: collections_and_namespaces.yml
+  ansible.builtin.import_tasks: collections_and_namespaces.yml
   when: hub_objects_collections is defined
-  tags:
-    - hub_config_all_cleanup
-    - hub_config_all_apply
+  tags: hub_config_collections 
+
+- name: REPOSITORIES
+  ansible.builtin.import_tasks: repositories.yml
+  when: hub_objects_remotes is defined
+  tags: hub_config_repositories 

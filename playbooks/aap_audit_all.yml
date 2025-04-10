@@ -5,6 +5,12 @@
     show_vars_at_the_end: true
   tags: export_collections
 
+- name: Audit repositories
+  import_playbook: aap_audit_repositories.yml
+  vars:
+    show_vars_at_the_end: true
+  tags: export_repositories
+
 - name: Audit Controller settings
   import_playbook: aap_audit_authentication.yml
   vars:
@@ -113,6 +119,14 @@
             hub_objects_collections is defined and
             hub_objects_collections
       tags: export_collections
+
+    - name: REPOS - Show configured remote repositories (formatted)
+      ansible.builtin.debug:
+        var: hub_objects_remotes
+      when: >
+            hub_objects_remotes is defined and
+            hub_objects_remotes
+      tags: export_repositories
 
     - name: SETTINGS - Show custom LDAP settings (formatted)
       ansible.builtin.debug:

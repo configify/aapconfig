@@ -1,0 +1,58 @@
+- name: REPOS - Remotes cleanup
+  tags:
+    - hub_config_repositories_cleanup
+    - hub_config_all_cleanup
+  block:
+    - name: REPOS - Get list of configured remote repositories
+      ansible.builtin.uri:
+        url: https://{{ lookup('ansible.builtin.env', 'AH_HOST') }}/api/galaxy/pulp/api/v3/remotes/
+        user: "{{ lookup('ansible.builtin.env', 'AH_USERNAME') }}"
+        password: "{{ lookup('ansible.builtin.env', 'AH_PASSWORD') }}"
+        method: GET
+        force_basic_auth: true
+        validate_certs: "{{ lookup('ansible.builtin.env', 'AH_VERIFY_SSL') }}"
+      register: repositories_remote
+      check_mode: false
+
+    - name: REPOS - Notify on rogue remote repositories
+      ansible.builtin.debug:
+        msg: "Shouldn't be there"
+      when: >
+            not delete_objects | default(false) | bool and
+            item.name != 'rh-certified' and
+            item.name != 'community' and
+            hub_objects_remotes | selectattr("name", "equalto", item.name) | length == 0
+      changed_when: true
+      loop: "{{ repositories_remote.json.results }}"
+      loop_control:
+        label: " | remote repository: {{ item.name }}"
+
+    - name: REPOS - Delete rogue remote repositories
+      ansible.hub.collection_remote:
+        name: "{{ item.name }}"
+        url: "{{ item.url }}"
+        state: absent
+      when: >
+            delete_objects | default(false) | bool and
+            item.name != 'rh-certified' and
+            item.name != 'community' and
+            hub_objects_remotes | selectattr("name", "equalto", item.name) | length == 0
+      loop: "{{ repositories_remote.json.results }}"
+      loop_control:
+        label: " | remote repository: {{ item.name }}"
+
+- name: REPOS - Remotes add/change
+  tags:
+    - hub_config_repositories_apply
+    - hub_config_all_apply
+  block:
+    - name: REPOS - Add/change remote repositories
+      ansible.hub.collection_remote:
+        name: "{{ item.name }}"
+        url: "{{ item.repo_url }}"
+        auth_url: "{{ item.repo_auth_url | default(omit, true) }}"
+        token: "{{ item.repo_auth_token | default(omit, true) }}"
+        requirements: "{{ item.requirements.collections | default([]) | map(attribute='name') | default(omit, true) }}"
+      loop: "{{ hub_objects_remotes }}"
+      loop_control:
+        label: " | remote repository: {{ item.name }}"

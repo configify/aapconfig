@@ -1,5 +1,7 @@
 - name: COLLECTIONS - Cleanup
-  tags: hub_config_all_cleanup
+  tags:
+    - hub_config_collections_cleanup
+    - hub_config_all_cleanup
   block:
     - name: COLLECTIONS - Get list of published collections
       ansible.builtin.set_fact:
@@ -101,7 +103,9 @@
         label: " | namespace: {{ item.name }}"
 
 - name: COLLECTIONS - Create namespace and upload collections
-  tags: hub_config_all_apply
+  tags:
+    - hub_config_collections_apply
+    - hub_config_all_apply
   block:
     - name: COLLECTIONS - Create namespaces for collections
       ansible.hub.ah_namespace:
