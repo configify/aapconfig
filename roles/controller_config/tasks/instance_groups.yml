@@ -3,7 +3,7 @@
     name: "{{ item.name }}"
     policy_instance_minimum: "{{ item.minimum }}"
     policy_instance_percentage: "{{ item.percentage }}"
-    instances: "{{ item.instances }}"
+    instances: "{{ item.instances if item.instances else omit }}"
   loop: "{{ controller_objects_instance_groups | default([]) }}"
   loop_control:
     label: " | ig: {{ item.name }}"
