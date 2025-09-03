@@ -61,7 +61,7 @@
     - controller_config_all_cleanup
 
 - name: NOTIFICATIONS - CLEANUP
-  ansible.builtin.import_tasks: notifications_cleanup.yml
+  ansible.builtin.import_tasks: notification_profiles_cleanup.yml
   when: controller_objects_notification_profiles is defined
   tags:
     - controller_config_notifications
@@ -215,7 +215,7 @@
     - controller_config_all_apply
 
 - name: NOTIFICATIONS - CREATION/MODIFICATION
-  ansible.builtin.import_tasks: notifications.yml
+  ansible.builtin.import_tasks: notification_profiles.yml
   when: controller_objects_notification_profiles is defined
   tags:
     - controller_config_notifications
