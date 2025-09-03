@@ -1,3 +1,18 @@
+## [2.4.2] - 2025-09-03
+
+### Added
+- Basic molecule tests
+- gitignore
+
+### Changed
+
+### Fixed
+- Smart inventory conversion script
+- Instance groups with no instances
+- Empty workflow export
+- Problematic objects script for empty AAP
+
+
 ## [2.4.1] - 2025-04-10
 
 ### Added

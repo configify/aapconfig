@@ -169,11 +169,11 @@
       ansible.builtin.set_fact:
         duplicate_workflows: "{{ duplicate_workflows | default([]) +
                                  ([] if not item_is_duplicate else [item]) }}"
-      loop: "{{ aap_workflows | map(attribute='name') | unique }}"
+      loop: "{{ aap_workflows | default([]) | map(attribute='name') | unique }}"
       loop_control:
         label: " | workflow: {{ item }}"
       vars:
-        item_is_duplicate: "{{ aap_workflows | selectattr('name', '==', item) | length > 1 }}"
+        item_is_duplicate: "{{ aap_workflows | default([]) | selectattr('name', '==', item) | length > 1 }}"
 
     - name: Build list of template credentials
       ansible.builtin.set_fact:
@@ -259,7 +259,7 @@
             item.name not in aap_organization_credentials | default([]) and
             item.name not in aap_workflow_nodes_credentials | default([]) and
             item.name not in aap_credential_sources | default([]) and
-            aap_workflows | selectattr('webhook_credential', '==', item.name) | length == 0
+            aap_workflows | default([]) | selectattr('webhook_credential', '==', item.name) | length == 0
       loop: "{{ aap_credentials | default([]) }}"
       loop_control:
         label: " | credential: {{ item.name }}"
@@ -286,11 +286,11 @@
       ansible.builtin.set_fact:
         duplicate_notification_profiles: "{{ duplicate_notification_profiles | default([]) +
                                              ([] if not item_is_duplicate else [item]) }}"
-      loop: "{{ aap_notification_profiles | unique }}"
+      loop: "{{ aap_notification_profiles | default([]) | unique }}"
       loop_control:
         label: " | notification profile: {{ item }}"
       vars:
-        item_is_duplicate: "{{ aap_notification_profiles | select('equalto', item) | length > 1 }}"
+        item_is_duplicate: "{{ aap_notification_profiles | default([]) | select('equalto', item) | length > 1 }}"
 
     - name: Build list of project notifications
       ansible.builtin.set_fact:
@@ -320,7 +320,7 @@
             item not in aap_project_notifications | default([]) and
             item not in aap_workflow_notifications | default([]) and
             item not in aap_template_notifications | default([])
-      loop: "{{ aap_notification_profiles | default([]) }}"
+      loop: "{{ aap_notification_profiles | default([]) | default([]) }}"
       loop_control:
         label: " | template: {{ item }}"
 
@@ -361,7 +361,7 @@
             item.name not in aap_inventory_inputs | default([]) and
             aap_templates | selectattr('inventory', '==', item.name) | length == 0 and
             aap_workflow_nodes | selectattr('inventory', '==', item.name) | length == 0 and
-            aap_workflows | selectattr('inventory', '==', item.name) | length == 0
+            aap_workflows | default([]) | selectattr('inventory', '==', item.name) | length == 0
       loop: "{{ aap_inventories | default([]) }}"
       loop_control:
         label: " | inventory: {{ item.name }}"

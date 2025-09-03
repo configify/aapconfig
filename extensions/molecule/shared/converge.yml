@@ -1,0 +1,22 @@
+---
+- name: Apply settings
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Determine AAP version
+      ansible.builtin.set_fact:
+        controller_ping: "{{ lookup('ansible.controller.controller_api', 'ping') }}"
+      when: >
+            ping_required | default(false) or
+            only_25 | default(false)
+
+    - name: Create objects
+      ansible.builtin.include_role:
+        name: configify.aapconfig.controller_config
+        tasks_from: "{{ 'main' if extended | default(false)
+                               else lookup('env', 'MOLECULE_SCENARIO_NAME').split('-')[2] }}.yml"
+      when: >
+            not only_25 | default(false) or
+            (only_25 | default(false) and
+             controller_ping.version is version_compare('4.6', '>=') | bool)

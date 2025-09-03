@@ -1,0 +1,29 @@
+---
+platforms:
+  - name: ansible
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_STDOUT_CALLBACK: default
+    ANSIBLE_DISPLAY_SKIPPED_HOSTS: false
+    ANSIBLE_DISPLAY_OK_HOSTS: false
+  playbooks:
+    converge: ../shared/converge.yml
+    cleanup: ../shared/cleanup.yml
+    verify: ../shared/verify.yml
+  inventory:
+    group_vars:
+      all:
+        object_variable_name: 'controller_objects_inventories_static'
+        controller_objects_inventories_static: [
+          {'name': 'Inventory Static M', 'description': '', 'org': 'Default',
+           'host_filter': '', 'prevent_fallback': False, 'variables': {},
+           'hosts': [],
+           'groups': [{'name': 'Group M1', 'description': '', 'variables': {},
+                       'subgroups': ['Group M2'],
+                       'hosts': []},
+                      {'name': 'Group M2', 'description': '', 'variables': {},
+                       'subgroups': [],
+                       'hosts': [{'name': 'Host M', 'description': '', 'variables': {}}]}]}
+        ]

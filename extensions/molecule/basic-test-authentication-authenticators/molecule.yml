@@ -1,0 +1,43 @@
+---
+platforms:
+  - name: ansible
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_STDOUT_CALLBACK: default
+    ANSIBLE_DISPLAY_SKIPPED_HOSTS: false
+    ANSIBLE_DISPLAY_OK_HOSTS: false
+  playbooks:
+    converge: ../shared/converge.yml
+    cleanup: ../shared/cleanup.yml
+    verify: ../shared/verify.yml
+  inventory:
+    group_vars:
+      all:
+        only_25: true
+        object_variable_name: 'controller_authentication'
+        controller_authentication: [
+                {
+                    'configuration': {
+                        'CONNECTION_OPTIONS': {},
+                        'GROUP_TYPE': 'MemberDNGroupType',
+                        'GROUP_TYPE_PARAMS': {
+                            'member_attr': 'member',
+                            'name_attr': 'cn'
+                        },
+                        'SERVER_URI': [
+                            'ldap://examplea'
+                        ],
+                        'START_TLS': false,
+                        'USER_ATTR_MAP': {
+                            'email': 'mail',
+                            'first_name': 'givenName',
+                            'last_name': 'sn'
+                        }
+                    },
+                    'enabled': true,
+                    'name': 'Auth_LDAP',
+                    'type': 'ansible_base.authentication.authenticator_plugins.ldap'
+                }
+        ]
