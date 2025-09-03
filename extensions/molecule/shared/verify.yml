@@ -1,0 +1,48 @@
+---
+- name: Save provided objects
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Save provided objects
+      ansible.builtin.set_fact:
+        created_objects: "{{ vars.hostvars.ansible[object_variable_name] | list }}"
+
+    - name: Determine AAP version
+      ansible.builtin.set_fact:
+        controller_ping: "{{ lookup('ansible.controller.controller_api', 'ping') }}"
+      when: >
+            ping_required | default(false) or
+            only_25 | default(false)
+
+
+- name: Get existing objects
+  ansible.builtin.import_playbook: configify.aapconfig.aap_audit_{{ lookup('env', 'MOLECULE_SCENARIO_NAME').split('-')[2] }}.yml
+  when: >
+        not only_25 | default(false) or
+        (only_25 | default(false) and
+         controller_ping.version is version_compare('4.6', '>=') | bool)
+
+- name: Compare objects
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Filter objects
+      ansible.builtin.set_fact:
+        existing_objects: "{{ existing_objects | default([]) + [item | replace('$encrypted$', lookup('ansible.builtin.env', 'AH_PASSWORD')) | from_yaml] }}"
+      loop: "{{ lookup('ansible.builtin.vars', object_variable_name) | list }}"
+      when: item | type_debug != 'dict' and
+            (not only_25 | default(false) or
+             (only_25 | default(false) and
+              controller_ping.version is version_compare('4.6', '>=') | bool))
+
+    - name: Fail if exported items are not the same as created ones
+      ansible.builtin.fail:
+        msg: "Exported items are not the same as created ones"
+      when: >
+            (not only_25 | default(false) or
+             (only_25 | default(false) and
+              controller_ping.version is version_compare('4.6', '>=') | bool)) and
+            (existing_objects | difference(created_objects) != [] or
+             created_objects | difference(existing_objects) != [])

@@ -1,0 +1,47 @@
+---
+- name: Cleanup settings
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    controller_objects_credential_types: []
+    controller_objects_credentials: []
+    controller_objects_execution_environments: []
+    controller_objects_instance_groups: []
+    controller_authentication: []
+    controller_objects_inventories_static: []
+    controller_objects_inventories_smart: []
+    controller_objects_inventories_dynamic: []
+    controller_objects_inventories_constructed: []
+    controller_objects_notification_profiles: []
+    controller_objects_organizations: []
+    controller_objects_projects: []
+    controller_objects_schedules: []
+    controller_objects_users: [
+      {'username': 'hubsync', 'first_name': '', 'last_name': '', 'email': '',
+       'superuser': False, 'auditor': False, 'pass': '$encrypted$'}
+    ]
+    controller_objects_teams: []
+    controller_objects_roles: []
+    controller_settings_jobs: {}
+    controller_objects_templates: []
+    controller_objects_workflows: []
+    delete_objects: true
+
+  tasks:
+    - name: Determine AAP version
+      ansible.builtin.set_fact:
+        controller_ping: "{{ lookup('ansible.controller.controller_api', 'ping') }}"
+      when: >
+            ping_required | default(false) or
+            only_25 | default(false)
+
+    - name: Delete objects
+      ansible.builtin.include_role:
+        name: configify.aapconfig.controller_config
+        tasks_from: "{{ lookup('env', 'MOLECULE_SCENARIO_NAME').split('-')[2] }}{{ '.yml' if same_cleanup_playbook | default(false)
+                                                                                                      else '_cleanup.yml' }}"
+      when: >
+            not only_25 | default(false) or
+            (only_25 | default(false) and
+             controller_ping.version is version_compare('4.6', '>=') | bool)

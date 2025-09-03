@@ -1,0 +1,23 @@
+---
+platforms:
+  - name: ansible
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_STDOUT_CALLBACK: default
+    ANSIBLE_DISPLAY_SKIPPED_HOSTS: false
+    ANSIBLE_DISPLAY_OK_HOSTS: false
+  playbooks:
+    converge: ../shared/converge.yml
+    cleanup: ../shared/cleanup.yml
+    verify: ../shared/verify.yml
+  inventory:
+    group_vars:
+      all:
+        object_variable_name: 'controller_objects_projects'
+        controller_objects_projects: [
+          {'name': 'Project M', 'type': 'git', 'branch': '', 'clean_on_update': False, 'delete_on_update': False, 'update_on_launch': False,
+           'allow_override': False, 'org': '', 'cred': '', 'url': 'https://github.com/configify/aapconfig.git', 'ee': '',
+           'notifications_on_start': [], 'notifications_on_success': [], 'notifications_on_failure': []}
+        ]

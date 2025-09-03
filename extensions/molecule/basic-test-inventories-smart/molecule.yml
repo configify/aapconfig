@@ -1,0 +1,22 @@
+---
+platforms:
+  - name: ansible
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_STDOUT_CALLBACK: default
+    ANSIBLE_DISPLAY_SKIPPED_HOSTS: false
+    ANSIBLE_DISPLAY_OK_HOSTS: false
+  playbooks:
+    converge: ../shared/converge.yml
+    cleanup: ../shared/cleanup.yml
+    verify: ../shared/verify.yml
+  inventory:
+    group_vars:
+      all:
+        object_variable_name: 'controller_objects_inventories_smart'
+        controller_objects_inventories_smart: [
+          {'name': 'Smart M', 'description': '', 'org': 'Default', 'variables': {},
+           'host_filter': 'name__icontains=M'}
+        ]

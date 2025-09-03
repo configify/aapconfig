@@ -1,0 +1,32 @@
+---
+platforms:
+  - name: ansible
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_STDOUT_CALLBACK: default
+    ANSIBLE_DISPLAY_SKIPPED_HOSTS: false
+    ANSIBLE_DISPLAY_OK_HOSTS: false
+  playbooks:
+    converge: ../shared/converge.yml
+    cleanup: ../shared/cleanup.yml
+    verify: ../shared/verify.yml
+  inventory:
+    group_vars:
+      all:
+        object_variable_name: 'controller_objects_notification_profiles'
+        controller_objects_notification_profiles: [
+          {'name': 'Notification Email M', 'descr': '', 'notification_type': 'email',
+           'notification_config': {'host': 'examplea.com',
+                                   'port': 25,
+                                   'sender': 'a@examplea.com',
+                                   'timeout': 30,
+                                   'use_ssl': False,
+                                   'use_tls': False,
+                                   'password': '',
+                                   'username': '',
+                                   'recipients': ['aaa@examplea.com']},
+           'org': 'Default',
+           'messages': {}}
+        ]
