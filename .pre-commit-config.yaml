@@ -1,0 +1,26 @@
+repos:
+  - repo: meta
+    hooks:
+      - id: check-hooks-apply
+      - id: check-useless-excludes
+  - repo: local
+    hooks:
+      - id: ansible-lint
+        name: ansible-lint
+        entry: ansible-lint
+        language: system
+        files: \.(yaml|yml)$
+      - id: sanity-3.9
+        name: sanity-3.9
+        entry: ansible-test
+        language: python
+        language_version: python3.9
+        args: [sanity, --skip-test, shebang, --skip-test, line-endings, --python, '3.9']
+        additional_dependencies: ['ansible-core==2.15.12']
+      - id: sanity-3.11
+        name: sanity-3.11
+        entry: ansible-test
+        language: python
+        language_version: python3.11
+        args: [sanity, --skip-test, shebang, --skip-test, line-endings, --python, '3.11']
+        additional_dependencies: ['ansible-core==2.16.14']
