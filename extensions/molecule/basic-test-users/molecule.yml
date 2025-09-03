@@ -1,0 +1,27 @@
+---
+platforms:
+  - name: ansible
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_STDOUT_CALLBACK: default
+    ANSIBLE_DISPLAY_SKIPPED_HOSTS: false
+    ANSIBLE_DISPLAY_OK_HOSTS: false
+  playbooks:
+    converge: ../shared/converge.yml
+    cleanup: ../shared/cleanup.yml
+    verify: ../shared/verify.yml
+  inventory:
+    group_vars:
+      all:
+        ping_required: true
+        object_variable_name: 'controller_objects_users'
+        controller_objects_users: [
+          {'username': 'UserM', 'first_name': '', 'last_name': '', 'email': '',
+           'superuser': False, 'auditor': False, 'pass': '{{ lookup("ansible.builtin.env", "AH_PASSWORD") }}'},
+          {'username': 'hubsync', 'first_name': '', 'last_name': '', 'email': '',
+           'superuser': False, 'auditor': False, 'pass': '{{ lookup("ansible.builtin.env", "AH_PASSWORD") }}'},
+          {'username': 'admin', 'first_name': '', 'last_name': '', 'email': 'admin@example.com',
+           'superuser': True, 'auditor': False, 'pass': '{{ lookup("ansible.builtin.env", "AH_PASSWORD") }}'}
+        ]

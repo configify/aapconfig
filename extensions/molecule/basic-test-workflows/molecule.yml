@@ -1,0 +1,30 @@
+---
+platforms:
+  - name: ansible
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_STDOUT_CALLBACK: default
+    ANSIBLE_DISPLAY_SKIPPED_HOSTS: false
+    ANSIBLE_DISPLAY_OK_HOSTS: false
+  playbooks:
+    converge: ../shared/converge.yml
+    cleanup: ../shared/cleanup.yml
+    verify: ../shared/verify.yml
+  inventory:
+    group_vars:
+      all:
+        object_variable_name: 'controller_objects_workflows'
+        controller_objects_workflows: [
+          {'name': 'Workflow M', 'descr': '', 'org': '', 'inventory': '',
+           'allow_simultaneous': False,
+           'ask_inventory_on_launch': False,
+           'ask_labels_on_launch': False, 'ask_limit_on_launch': False, 'ask_scm_branch_on_launch': False,
+           'ask_skip_tags_on_launch': False, 'ask_tags_on_launch': False,
+           'ask_variables_on_launch': False, 'extra_vars': {}, 'job_tags': '', 'limit': '', 'scm_branch': '', 'skip_tags': '', 'survey_enabled': False,
+           'survey': {}, 'webhook_credential': '',
+           'webhook_service': '',
+           'notifications_on_start': [], 'notifications_on_success': [], 'notifications_on_failure': [], 'notifications_on_approval': [],
+           'nodes': []}
+        ]
