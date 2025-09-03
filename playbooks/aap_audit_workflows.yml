@@ -411,7 +411,7 @@
                                                                                 return_objects=false,
                                                                                 return_all=true).results |
                                                                           selectattr('name') | map(attribute='name'),
-                                            'nodes': controller_objects_workflow_nodes |
+                                            'nodes': controller_objects_workflow_nodes | default([]) |
                                                      selectattr('workflow', 'equalto', item.name) |
                                                      ansible.utils.remove_keys(target=['workflow']) |
                                                      configify.aapconfig.remove_empty_fields(fields=['inventory',
