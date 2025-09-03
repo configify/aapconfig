@@ -177,14 +177,14 @@
 
     - name: Build list of template credentials
       ansible.builtin.set_fact:
-        aap_template_credentials: "{{ aap_template_credentials | default([]) + item.credentials }}"
+        aap_template_credentials: "{{ aap_template_credentials | default([]) + item.credentials | default([]) }}"
       loop: "{{ aap_templates | default([]) }}"
       loop_control:
         label: " | template: {{ item.name }}"
 
     - name: Build list of workflow nodes credentials
       ansible.builtin.set_fact:
-        aap_workflow_nodes_credentials: "{{ aap_workflow_nodes_credentials | default([]) + item.credentials }}"
+        aap_workflow_nodes_credentials: "{{ aap_workflow_nodes_credentials | default([]) + item.credentials | default([]) }}"
       loop: "{{ aap_workflow_nodes | default([]) }}"
       loop_control:
         label: " | workflow node: {{ item.identifier }}"
@@ -294,28 +294,28 @@
 
     - name: Build list of project notifications
       ansible.builtin.set_fact:
-        aap_project_notifications: "{{ aap_project_notifications | default([]) + item.notifications }}"
+        aap_project_notifications: "{{ aap_project_notifications | default([]) + item.notifications | default([]) }}"
       loop: "{{ aap_projects | default([]) }}"
       loop_control:
         label: " | project: {{ item.name }}"
 
     - name: Build list of workflow notifications
       ansible.builtin.set_fact:
-        aap_workflow_notifications: "{{ aap_workflow_notifications | default([]) + item.notifications }}"
+        aap_workflow_notifications: "{{ aap_workflow_notifications | default([]) + item.notifications | default([]) }}"
       loop: "{{ aap_workflows | default([]) }}"
       loop_control:
         label: " | workflow: {{ item.name }}"
 
     - name: Build list of template notifications
       ansible.builtin.set_fact:
-        aap_template_notifications: "{{ aap_template_notifications | default([]) + item.notifications }}"
+        aap_template_notifications: "{{ aap_template_notifications | default([]) + item.notifications | default([]) }}"
       loop: "{{ aap_templates | default([]) }}"
       loop_control:
         label: " | template: {{ item.name }}"
 
     - name: Build list of unused notification profiles
       ansible.builtin.set_fact:
-        unused_notification_profiles: "{{ unused_notification_profiles | default([]) + [item] }}"
+        unused_notification_profiles: "{{ unused_notification_profiles | default([]) + [item | default('')] }}"
       when: >
             item not in aap_project_notifications | default([]) and
             item not in aap_workflow_notifications | default([]) and
@@ -349,18 +349,18 @@
 
     - name: Build list of constructed inventory inputs
       ansible.builtin.set_fact:
-        aap_inventory_inputs: "{{ aap_inventory_inputs | default([]) + item.input }}"
+        aap_inventory_inputs: "{{ aap_inventory_inputs | default([]) + item.input | default([]) }}"
       loop: "{{ aap_inventories | default([]) }}"
       loop_control:
         label: " | inventory: {{ item.name }}"
 
     - name: Build list of unused inventories
       ansible.builtin.set_fact:
-        unused_inventories: "{{ unused_inventories | default([]) + [item.name] }}"
+        unused_inventories: "{{ unused_inventories | default([]) + [item.name | default('')] }}"
       when: >
             item.name not in aap_inventory_inputs | default([]) and
             aap_templates | selectattr('inventory', '==', item.name) | length == 0 and
-            aap_workflow_nodes | selectattr('inventory', '==', item.name) | length == 0 and
+            aap_workflow_nodes | default([]) | selectattr('inventory', '==', item.name) | length == 0 and
             aap_workflows | default([]) | selectattr('inventory', '==', item.name) | length == 0
       loop: "{{ aap_inventories | default([]) }}"
       loop_control:

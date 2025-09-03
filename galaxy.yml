@@ -1,6 +1,6 @@
 namespace: configify
 name: aapconfig
-version: 2.4.2
+version: 2.4.3
 
 readme: README.md
 
@@ -14,11 +14,11 @@ license_file: 'LICENSE'
 tags: [tools]
 
 dependencies: {
-  ansible.controller: 4.6.7,
-  infra.ah_configuration: 2.1.0,
-  ansible.platform: 2.5.20241218,
-  ansible.utils: 3.1.0,
-  ansible.hub: 1.0.0
+  ansible.controller: ">=4.6.7",
+  infra.ah_configuration: ">=2.1.0",
+  ansible.platform: ">=2.5.20241218",
+  ansible.utils: ">=3.1.0",
+  ansible.hub: ">=1.0.0"
 }
 
 repository: https://github.com/configify/aapconfig

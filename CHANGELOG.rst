@@ -1,3 +1,14 @@
+## [2.4.3] - 2025-09-04
+
+### Added
+- Linting exceptions
+
+### Changed
+- Allow later ddependency versions
+
+### Fixed
+
+
 ## [2.4.2] - 2025-09-03
 
 ### Added
