@@ -383,6 +383,7 @@ Available configuration tags:
 Available export tags:
 
 - export_collections
+- export_repositories
 - export_authenticators
 - export_credential_types
 - export_credentials
