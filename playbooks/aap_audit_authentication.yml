@@ -25,7 +25,7 @@
                        password=lookup('ansible.builtin.env', 'GATEWAY_PASSWORD'),
                        oauth_token=lookup('ansible.builtin.env', 'GATEWAY_API_TOKEN'),
                        verify_ssl=lookup('ansible.builtin.env', 'GATEWAY_VERIFY_SSL'),
-                       errors='ignore').results }}"
+                       errors='ignore').results | default([]) }}"
       loop_control:
         label: " | authenticator: {{ item.name }}"
       when: >
@@ -54,7 +54,7 @@
                        password=lookup('ansible.builtin.env', 'GATEWAY_PASSWORD'),
                        oauth_token=lookup('ansible.builtin.env', 'GATEWAY_API_TOKEN'),
                        verify_ssl=lookup('ansible.builtin.env', 'GATEWAY_VERIFY_SSL'),
-                       errors='ignore').results }}"
+                       errors='ignore').results | default([]) }}"
       loop_control:
         label: " | authenticator map: {{ item.name }}"
       when: >
