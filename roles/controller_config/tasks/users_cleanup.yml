@@ -37,6 +37,7 @@
         delete_objects | default(false) | bool and
         controller_ping.version is version_compare('4.6', '>=') and
         not item.external_account and
+        item.password | defailt('') != 'Password Disabled' and
         controller_objects_users | selectattr("username", "equalto", item.username) | length == 0 and
         item.username != 'admin'
   loop: "{{ aap_exiting_users | default([]) }}"

@@ -41,5 +41,5 @@
       ansible.builtin.debug:
         var: controller_objects_projects
       when: >
-            controller_objects_projects | default('') and
-            not show_vars_at_the_end | default(false)
+            controller_objects_projects | default('') | length > 0 and
+            not show_vars_at_the_end | default(false) | bool

@@ -45,4 +45,4 @@
       ansible.builtin.debug:
         var: controller_objects_inventories_constructed
       when: >
-            controller_objects_inventories_constructed | default('')
+            controller_objects_inventories_constructed | default('') | length > 0

@@ -255,7 +255,7 @@
                  'was not found' in inventories_constructed_parameter_change_result.msg)
 
 - name: INVENTORIES - Synchronize sources
-  when: trigger_inventory_sync | default(false)
+  when: trigger_inventory_sync | default(false) | bool
   block:
     - name: INVENTORIES - Synchronize dynamic inventory sources
       ansible.controller.inventory_source_update:
