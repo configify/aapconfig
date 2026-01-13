@@ -54,7 +54,7 @@
         label: " | user: {{ item.username }}"
       when: >
             not item.external_account | default(item.managed) and
-            item.password | defailt('') != 'Password Disabled'
+            item.password | default('') != 'Password Disabled'
 
     - name: USERS - Build list with auditor roles (pre 2.5 in 2.5 format)
       ansible.builtin.set_fact:
