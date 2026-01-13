@@ -133,7 +133,7 @@
         msg: "Shouldn't be there"
       when: >
             not delete_objects | default(false) | bool and
-            gateway_objects_roles |
+            gateway_objects_roles | default([]) |
               selectattr("user", "defined") |
                 selectattr("user", "equalto", item.summary_fields.user.username) |
                   selectattr("role", "equalto", item.summary_fields.role_definition.name) |
@@ -154,7 +154,7 @@
         state: absent
       when: >
             delete_objects | default(false) | bool and
-            gateway_objects_roles |
+            gateway_objects_roles | default([]) |
               selectattr("user", "defined") |
                 selectattr("user", "equalto", item.summary_fields.user.username) |
                   selectattr("role", "equalto", item.summary_fields.role_definition.name) |
@@ -175,7 +175,7 @@
         msg: "Shouldn't be there"
       when: >
             not delete_objects | default(false) | bool and
-            controller_objects_roles |
+            controller_objects_roles | default([]) |
               selectattr("team", "defined") |
                 selectattr("team", "equalto", item.summary_fields.team.name) |
                   selectattr("role", "equalto", item.summary_fields.role_definition.name) |
@@ -196,7 +196,7 @@
         state: absent
       when: >
             delete_objects | default(false) | bool and
-            controller_objects_roles |
+            controller_objects_roles | default([]) |
               selectattr("team", "defined") |
                 selectattr("team", "equalto", item.summary_fields.team.name) |
                   selectattr("role", "equalto", item.summary_fields.role_definition.name) |
@@ -218,7 +218,7 @@
       when: >
             not delete_objects | default(false) | bool and
             item.content_type and
-            controller_objects_roles |
+            controller_objects_roles | default([]) |
               selectattr("user", "defined") |
                 selectattr("user", "equalto", item.summary_fields.user.username) |
                   selectattr("role", "equalto", item.summary_fields.role_definition.name) |
@@ -240,7 +240,7 @@
       when: >
             delete_objects | default(false) | bool and
             item.content_type and
-            controller_objects_roles |
+            controller_objects_roles | default([]) |
               selectattr("user", "defined") |
                 selectattr("user", "equalto", item.summary_fields.user.username) |
                   selectattr("role", "equalto", item.summary_fields.role_definition.name) |

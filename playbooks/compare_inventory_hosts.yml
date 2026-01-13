@@ -60,4 +60,4 @@
         var: controller_objects_inventory_host_difference
       when: >
             controller_objects_inventory_host_difference is defined and
-            controller_objects_inventory_host_difference
+            controller_objects_inventory_host_difference | length > 0

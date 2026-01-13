@@ -54,7 +54,7 @@
         msg: "Continuing with automation. Check errors above."
 
 - name: PROJECTS - Synchronize projects
-  when: trigger_project_sync | default(false)
+  when: trigger_project_sync | default(false) | bool
   tags: controller_config_projects_sync
   ansible.controller.project_update:
     name: "{{ item.name }}"

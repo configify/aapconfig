@@ -20,5 +20,5 @@
       ansible.builtin.debug:
         var: controller_objects_schedules
       when: >
-            controller_objects_schedules | default('') and
-            not show_vars_at_the_end | default(false)
+            controller_objects_schedules | default('') | length > 0 and
+            not show_vars_at_the_end | default(false) | bool

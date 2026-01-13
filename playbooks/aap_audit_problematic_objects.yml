@@ -396,69 +396,69 @@
     - name: List duplicate teams
       ansible.builtin.debug:
         var: duplicate_teams
-      when: duplicate_teams | default('')
+      when: duplicate_teams | default('') | length > 0
 
     - name: List duplicate credentials
       ansible.builtin.debug:
         var: duplicate_credentials
-      when: duplicate_credentials | default('')
+      when: duplicate_credentials | default('') | length > 0
 
     - name: List duplicate inventories
       ansible.builtin.debug:
         var: duplicate_inventories
-      when: duplicate_inventories | default('')
+      when: duplicate_inventories | default('') | length > 0
 
     - name: List duplicate projects
       ansible.builtin.debug:
         var: duplicate_projects
-      when: duplicate_projects | default('')
+      when: duplicate_projects | default('') | length > 0
 
     - name: List duplicate templates
       ansible.builtin.debug:
         var: duplicate_templates
-      when: duplicate_templates | default('')
+      when: duplicate_templates | default('') | length > 0
 
     - name: List duplicate workflows
       ansible.builtin.debug:
         var: duplicate_workflows
-      when: duplicate_workflows | default('')
+      when: duplicate_workflows | default('') | length > 0
 
     - name: List duplicate notification profiles
       ansible.builtin.debug:
         var: duplicate_notification_profiles
-      when: duplicate_notification_profiles | default('')
+      when: duplicate_notification_profiles | default('') | length > 0
 
     - name: List projects without an organization
       ansible.builtin.debug:
         var: projects_without_org
-      when: projects_without_org | default('')
+      when: projects_without_org | default('') | length > 0
 
     - name: List templates without inventory or project
       ansible.builtin.debug:
         var: templates_without_inventory_or_project
-      when: templates_without_inventory_or_project | default('')
+      when: templates_without_inventory_or_project | default('') | length > 0
 
     - name: List credentials not used in credentials, templates, workflows, orgs and projects
       ansible.builtin.debug:
         var: unused_credentials
-      when: unused_credentials | default('')
+      when: unused_credentials | default('') | length > 0
 
     - name: List custom credential types not used by credentials
       ansible.builtin.debug:
         var: unused_credential_types
-      when: unused_credential_types | default('')
+      when: unused_credential_types | default('') | length > 0
 
     - name: List projects not used in templates, workflows and dynamic inventories
       ansible.builtin.debug:
         var: unused_projects
-      when: unused_projects | default('')
+      when: unused_projects | default('') | length > 0
 
     - name: List notification profiles not used in templates, workflows and projects
       ansible.builtin.debug:
         var: unused_notification_profiles
-      when: unused_notification_profiles | default('')
+      when: unused_notification_profiles | default('') | length > 0
 
     - name: List inventories not used in templates, workflows, workflow nodes and constructed inventories
       ansible.builtin.debug:
         var: unused_inventories
-      when: unused_inventories | default('')
+      when: unused_inventories | default('') | length > 0

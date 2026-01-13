@@ -25,7 +25,7 @@
                        password=lookup('ansible.builtin.env', 'GATEWAY_PASSWORD'),
                        oauth_token=lookup('ansible.builtin.env', 'GATEWAY_API_TOKEN'),
                        verify_ssl=lookup('ansible.builtin.env', 'GATEWAY_VERIFY_SSL'),
-                       errors='ignore').results }}"
+                       errors='ignore').results | default([]) }}"
       loop_control:
         label: " | authenticator: {{ item.name }}"
       when: >
@@ -54,7 +54,7 @@
                        password=lookup('ansible.builtin.env', 'GATEWAY_PASSWORD'),
                        oauth_token=lookup('ansible.builtin.env', 'GATEWAY_API_TOKEN'),
                        verify_ssl=lookup('ansible.builtin.env', 'GATEWAY_VERIFY_SSL'),
-                       errors='ignore').results }}"
+                       errors='ignore').results | default([]) }}"
       loop_control:
         label: " | authenticator map: {{ item.name }}"
       when: >
@@ -66,12 +66,12 @@
       ansible.builtin.debug:
         var: controller_authentication
       when: >
-            controller_authentication | default('') and
-            not show_vars_at_the_end | default(false)
+            controller_authentication | default('') | length > 0 and
+            not show_vars_at_the_end | default(false) | bool
 
     - name: AUTH - Show authenticator maps (2.5) (formatted)
       ansible.builtin.debug:
         var: controller_authenticator_maps
       when: >
-            controller_authenticator_maps | default('') and
-            not show_vars_at_the_end | default(false)
+            controller_authenticator_maps | default('') | length > 0 and
+            not show_vars_at_the_end | default(false) | bool

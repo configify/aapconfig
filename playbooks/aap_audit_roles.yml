@@ -44,7 +44,7 @@
             label: " | team: {{ item.0.team }} ->
                        role: {{ item.1.name }} ->
                        {{ object_type }}: {{ item.1.summary_fields.resource_name }}"
-          when: not format_for_25 | default(false)
+          when: not format_for_25 | default(false) | bool
           vars:
             object_type: "{{ item.1.summary_fields.resource_type | replace('_', '') }}"
 
@@ -69,7 +69,7 @@
                        role: {{ item.1.name }} ->
                        {{ object_type }}: {{ item.1.summary_fields.resource_name }}"
           when: >
-                format_for_25 | default(false) and
+                format_for_25 | default(false) | bool and
                 item.1.name != "Read"
           vars:
             object_type: "{{ item.1.summary_fields.resource_type | replace('_', '') }}"
@@ -98,7 +98,7 @@
                                             'object_name': item.1.summary_fields.resource_name} |
                                             regex_replace('\n', '')] }}"
           when: >
-                not format_for_25 | default(false) and
+                not format_for_25 | default(false) | bool and
                 item.1.summary_fields.resource_type is defined and
                 item.1.name != "Member" and
                 role != "Organization Admin"
@@ -120,7 +120,7 @@
                                             'object_name': item.1.summary_fields.resource_name} |
                                             regex_replace('\n', '')] }}"
           when: >
-                format_for_25 | default(false) and
+                format_for_25 | default(false) | bool and
                 item.1.summary_fields.resource_type is defined and
                 item.1.name != "Member" and
                 item.1.name != "Read" and
@@ -150,7 +150,7 @@
                                             'object_name': item.1.summary_fields.resource_name} |
                                             regex_replace('\n', '')] }}"
           when: >
-                not format_for_25 | default(false) and
+                not format_for_25 | default(false) | bool and
                 item.1.summary_fields.resource_type is defined and
                 (item.1.name == "Member" or
                  role == "Organization Admin")
@@ -172,7 +172,7 @@
                                          'object_name': item.1.summary_fields.resource_name} |
                                          regex_replace('\n', '')] }}"
           when: >
-                format_for_25 | default(false) and
+                format_for_25 | default(false) | bool and
                 item.1.summary_fields.resource_type is defined and
                 (item.1.name == "Member" or
                  role == "Organization Admin")
@@ -290,12 +290,12 @@
       ansible.builtin.debug:
         var: controller_objects_roles
       when: >
-            controller_objects_roles | default('') and
-            not show_vars_at_the_end | default(false)
+            controller_objects_roles | default('') | length > 0 and
+            not show_vars_at_the_end | default(false) | bool
 
     - name: ROLES - Show gateway roles (formatted)
       ansible.builtin.debug:
         var: gateway_objects_roles
       when: >
-            gateway_objects_roles | default('') and
-            not show_vars_at_the_end | default(false)
+            gateway_objects_roles | default('') | length > 0 and
+            not show_vars_at_the_end | default(false) | bool

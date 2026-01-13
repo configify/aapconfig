@@ -1,3 +1,25 @@
+## [2.4.5] - 2026-01-13
+
+### Added
+
+### Changed
+
+### Fixed
+- Bugfixes
+
+
+## [2.4.4] - 2025-12-18
+
+### Added
+
+### Changed
+
+### Fixed
+- Ansible 19 compatibility
+- Proper filtering of external users
+- Bugfixes
+
+
 ## [2.4.3] - 2025-09-04
 
 ### Added

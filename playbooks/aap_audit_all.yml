@@ -117,7 +117,7 @@
         var: hub_objects_collections
       when: >
             hub_objects_collections is defined and
-            hub_objects_collections
+            hub_objects_collections | length > 0
       tags: export_collections
 
     - name: REPOS - Show configured remote repositories (formatted)
@@ -125,7 +125,7 @@
         var: hub_objects_remotes
       when: >
             hub_objects_remotes is defined and
-            hub_objects_remotes
+            hub_objects_remotes | length > 0
       tags: export_repositories
 
     - name: SETTINGS - Show custom LDAP settings (formatted)
@@ -133,7 +133,7 @@
         var: controller_settings_ldap
       when: >
             controller_settings_ldap is defined and
-            controller_settings_ldap
+            controller_settings_ldap | length > 0
       tags: export_settings
 
     - name: SETTINGS - Show custom AUTH settings (formatted)
@@ -141,7 +141,7 @@
         var: controller_settings_authentication
       when: >
             controller_settings_authentication is defined and
-            controller_settings_authentication
+            controller_settings_authentication | length > 0
       tags: export_settings
 
     - name: SETTINGS - Show custom JOBS settings (formatted)
@@ -149,7 +149,7 @@
         var: controller_settings_jobs
       when: >
             controller_settings_jobs is defined and
-            controller_settings_jobs
+            controller_settings_jobs | length > 0
       tags: export_settings
 
     - name: AUTH - Show authenticators (2.5) (formatted)
@@ -157,7 +157,7 @@
         var: controller_authentication
       when: >
             controller_authentication is defined and
-            controller_authentication
+            controller_authentication | length > 0
       tags:
         - export_authenticators
         - export_settings
@@ -167,7 +167,7 @@
         var: controller_authenticator_maps
       when: >
             controller_authenticator_maps is defined and
-            controller_authenticator_maps
+            controller_authenticator_maps | length > 0
       tags:
         - export_authenticators
         - export_settings
@@ -177,7 +177,7 @@
         var: controller_objects_users
       when: >
             controller_objects_users is defined and
-            controller_objects_users
+            controller_objects_users | length > 0
       tags: export_users
 
     - name: EXECUTION ENVIRONMENTS - Show execution environments (formatted)
@@ -185,7 +185,7 @@
         var: controller_objects_execution_environments
       when: >
             controller_objects_execution_environments is defined and
-            controller_objects_execution_environments
+            controller_objects_execution_environments | length > 0
       tags: export_execution_environments
 
     - name: INSTANCE GROUPS - Show instance groups (formatted)
@@ -193,7 +193,7 @@
         var: controller_objects_instance_groups
       when: >
             controller_objects_instance_groups is defined and
-            controller_objects_instance_groups
+            controller_objects_instance_groups | length > 0
       tags: export_instance_groups
 
     - name: CREDENTIAL TYPES - Show credential types (formatted)
@@ -201,7 +201,7 @@
         var: controller_objects_credential_types
       when: >
             controller_objects_credential_types is defined and
-            controller_objects_credential_types
+            controller_objects_credential_types | length > 0
       tags: export_credential_types
 
     - name: CREDENTIALS - Show credentials (formatted)
@@ -209,7 +209,7 @@
         var: controller_objects_credentials
       when: >
             controller_objects_credentials is defined and
-            controller_objects_credentials
+            controller_objects_credentials | length > 0
       tags: export_credentials
 
     - name: ORGANIZATIONS - Show all organizations (formatted)
@@ -217,7 +217,7 @@
         var: controller_objects_organizations
       when: >
             controller_objects_organizations is defined and
-            controller_objects_organizations
+            controller_objects_organizations | length > 0
       tags: export_organizations
 
     - name: NOTIFICATIONS - Show all notification profiles (formatted)
@@ -225,7 +225,7 @@
         var: controller_objects_notification_profiles
       when: >
             controller_objects_notification_profiles is defined and
-            controller_objects_notification_profiles
+            controller_objects_notification_profiles | length > 0
       tags: export_notifications
 
     - name: TEAMS - Show all teams (formatted)
@@ -233,7 +233,7 @@
         var: controller_objects_teams
       when: >
             controller_objects_teams is defined and
-            controller_objects_teams
+            controller_objects_teams | length > 0
       tags: export_teams
 
     - name: PROJECTS - Show all projects (formatted)
@@ -241,7 +241,7 @@
         var: controller_objects_projects
       when: >
             controller_objects_projects is defined and
-            controller_objects_projects
+            controller_objects_projects | length > 0
       tags: export_projects
 
     - name: INVENTORIES - Show smart inventories (formatted)
@@ -249,7 +249,7 @@
         var: controller_objects_inventories_smart
       when: >
             controller_objects_inventories_smart is defined and
-            controller_objects_inventories_smart
+            controller_objects_inventories_smart | length > 0
       tags: export_inventories
 
     - name: INVENTORIES - Show constructed inventories (formatted)
@@ -257,7 +257,7 @@
         var: controller_objects_inventories_constructed
       when: >
             controller_objects_inventories_constructed is defined and
-            controller_objects_inventories_constructed
+            controller_objects_inventories_constructed | length > 0
       tags: export_inventories
 
     - name: INVENTORIES - Show dynamic inventories (formatted)
@@ -265,7 +265,7 @@
         var: controller_objects_inventories_dynamic
       when: >
             controller_objects_inventories_dynamic is defined and
-            controller_objects_inventories_dynamic
+            controller_objects_inventories_dynamic | length > 0
       tags: export_inventories
 
     - name: INVENTORIES - Show static inventories (formatted)
@@ -273,7 +273,7 @@
         var: controller_objects_inventories_static
       when: >
             controller_objects_inventories_static is defined and
-            controller_objects_inventories_static
+            controller_objects_inventories_static | length > 0
       tags: export_inventories
 
     - name: TEMPLATES - Show all templates (formatted)
@@ -281,7 +281,7 @@
         var: controller_objects_templates
       when: >
             controller_objects_templates is defined and
-            controller_objects_templates
+            controller_objects_templates | length > 0
       tags: export_templates
 
     - name: ROLES - Show controller roles (formatted)
@@ -289,7 +289,7 @@
         var: controller_objects_roles
       when: >
             controller_objects_roles is defined and
-            controller_objects_roles
+            controller_objects_roles | length > 0
       tags: export_roles
 
     - name: ROLES - Show gateway roles (formatted)
@@ -297,7 +297,7 @@
         var: gateway_objects_roles
       when: >
             gateway_objects_roles is defined and
-            gateway_objects_roles
+            gateway_objects_roles | length > 0
       tags:
         - export_roles
         - export_users
@@ -307,7 +307,7 @@
         var: controller_objects_schedules
       when: >
             controller_objects_schedules is defined and
-            controller_objects_schedules
+            controller_objects_schedules | length > 0
       tags: export_schedules
 
     - name: WORKFLOWS - Show all workflows (formatted)
@@ -315,5 +315,5 @@
         var: controller_objects_workflows
       when: >
             controller_objects_workflows is defined and
-            controller_objects_workflows
+            controller_objects_workflows | length > 0
       tags: export_workflows
