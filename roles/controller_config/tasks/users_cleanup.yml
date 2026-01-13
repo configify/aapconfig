@@ -1,13 +1,26 @@
-- name: USERS - Get all users from AAP
+- name: USERS - Get all users from AAP (pre 2.5)
   ansible.builtin.set_fact:
     aap_exiting_users: "{{ lookup('ansible.controller.controller_api', 'users', return_objects=false, return_all=true).results }}"
+  when: controller_ping.version is version_compare('4.6', '<') | bool
+
+- name: USERS - Get all users from AAP (2.5)
+  ansible.builtin.set_fact:
+    aap_exiting_users: "{{ lookup('ansible.platform.gateway_api', 'users',
+                          return_objects=false,
+                          host=lookup('ansible.builtin.env', 'GATEWAY_HOSTNAME'),
+                          username=lookup('ansible.builtin.env', 'GATEWAY_USERNAME'),
+                          password=lookup('ansible.builtin.env', 'GATEWAY_PASSWORD'),
+                          oauth_token=lookup('ansible.builtin.env', 'GATEWAY_API_TOKEN'),
+                          verify_ssl=lookup('ansible.builtin.env', 'GATEWAY_VERIFY_SSL')).results }}"
+  when: controller_ping.version is version_compare('4.6', '>=') | bool
 
 - name: USERS - Notify on rogue users
   ansible.builtin.debug:
     msg: "Shouldn't be there"
   when: >
         not delete_objects | default(false) | bool and
-        not item.external_account and
+        not item.external_account | default(false) and
+        item.password | defailt('') != 'Password Disabled' and
         controller_objects_users | selectattr("username", "equalto", item.username) | length == 0 and
         item.username != 'admin'
   changed_when: true
@@ -22,7 +35,7 @@
   when: >
         delete_objects | default(false) | bool and
         controller_ping.version is version_compare('4.6', '<') and
-        not item.external_account and
+        not item.external_account | default(false) and
         controller_objects_users | selectattr("username", "equalto", item.username) | length == 0 and
         item.username != 'admin'
   loop: "{{ aap_exiting_users | default([]) }}"
@@ -36,8 +49,8 @@
   when: >
         delete_objects | default(false) | bool and
         controller_ping.version is version_compare('4.6', '>=') and
-        not item.external_account and
-        item.password | defailt('') != 'Password Disabled' and
+        not item.external_account | default(false) and
+        item.password | default('') != 'Password Disabled' and
         controller_objects_users | selectattr("username", "equalto", item.username) | length == 0 and
         item.username != 'admin'
   loop: "{{ aap_exiting_users | default([]) }}"
