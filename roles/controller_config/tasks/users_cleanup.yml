@@ -20,7 +20,7 @@
   when: >
         not delete_objects | default(false) | bool and
         not item.external_account | default(false) and
-        item.password | defailt('') != 'Password Disabled' and
+        item.password | default('') != 'Password Disabled' and
         controller_objects_users | selectattr("username", "equalto", item.username) | length == 0 and
         item.username != 'admin'
   changed_when: true
