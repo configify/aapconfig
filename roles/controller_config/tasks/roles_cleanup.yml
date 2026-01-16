@@ -133,6 +133,8 @@
         msg: "Shouldn't be there"
       when: >
             not delete_objects | default(false) | bool and
+            item.summary_fields.created_by is defined and
+            item.summary_fields.created_by.username != '_system' and
             gateway_objects_roles | default([]) |
               selectattr("user", "defined") |
                 selectattr("user", "equalto", item.summary_fields.user.username) |
@@ -154,6 +156,8 @@
         state: absent
       when: >
             delete_objects | default(false) | bool and
+            item.summary_fields.created_by is defined and
+            item.summary_fields.created_by.username != '_system' and
             gateway_objects_roles | default([]) |
               selectattr("user", "defined") |
                 selectattr("user", "equalto", item.summary_fields.user.username) |
@@ -217,6 +221,7 @@
         msg: "Shouldn't be there"
       when: >
             not delete_objects | default(false) | bool and
+            item.summary_fields.created_by is defined and
             item.content_type and
             controller_objects_roles | default([]) |
               selectattr("user", "defined") |
@@ -239,6 +244,7 @@
         state: absent
       when: >
             delete_objects | default(false) | bool and
+            item.summary_fields.created_by is defined and
             item.content_type and
             controller_objects_roles | default([]) |
               selectattr("user", "defined") |

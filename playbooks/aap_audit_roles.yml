@@ -233,7 +233,7 @@
                        role: {{ item.summary_fields.role_definition.name }} ->
                        {{ (item.content_type | string).split('.')[1] | default('controller') }}:
                        {{ item.summary_fields.content_object.name | default('Controller') }}"
-          when: item.content_type
+          when: item.content_type and item.summary_fields.created_by is defined
 
         - name: ROLES - Get gateway team role assignments
           ansible.builtin.set_fact:
@@ -285,6 +285,9 @@
                        role: {{ item.summary_fields.role_definition.name }} ->
                        {{ (item.content_type | string).split('.')[1] | default('platform') }}:
                        {{ item.summary_fields.content_object.name | default('Platform') }}"
+          when: >
+                item.summary_fields.created_by is defined and
+                item.summary_fields.created_by.username != '_system'
 
     - name: ROLES - Show controller roles (formatted)
       ansible.builtin.debug:
