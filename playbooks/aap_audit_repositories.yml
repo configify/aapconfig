@@ -13,6 +13,7 @@
         force_basic_auth: true
         validate_certs: "{{ lookup('ansible.builtin.env', 'AH_VERIFY_SSL') }}"
       register: repositories_remote
+      check_mode: false
 
     - name: REPOS - Get detailed list of configured remote repositories
       ansible.builtin.uri:
@@ -26,6 +27,7 @@
       loop: "{{ repositories_remote.json.results }}"
       loop_control:
         label: " | remote repository: {{ item.name }}"
+      check_mode: false
 
     - name: Build list of configured remote repositories
       ansible.builtin.set_fact:
