@@ -36,7 +36,7 @@
 
     - name: SETTINGS - Export LDAP settings (pre 2.5)
       when: >
-            pre_25 | default('') | length > 0 or
+            pre_25 | default(false) or
             aap_platform | default('aap') == 'awx24'
       block:
         - name: SETTINGS - Compare current LDAP settings to defaults (pre 2.5)
