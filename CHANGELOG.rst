@@ -1,3 +1,15 @@
+## [2.4.6] - 2026-01-23
+
+### Added
+
+### Changed
+- Skip dynamic roles from export and config drift
+- Force check mode for Hub repo export
+
+### Fixed
+- Bugfixes
+
+
 ## [2.4.5] - 2026-01-13
 
 ### Added
