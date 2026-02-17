@@ -613,9 +613,6 @@ controller_authenticator_maps: [
 Note:
 
 * these configurations are applicable to 2.5 and later
-* **controller_authentication** objects will be created/changed even in check mode
-
-See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat PRs/tickets.
 
 
 ### Users
@@ -636,10 +633,8 @@ controller_objects_users: [
 
 Note:
 
-* currently there is no ability to modify users in AAP 2.5 using automation
 * password values are updated only if **replace_passwords** is set to true which will make the task not idempotent (most likely passwords will be stored in Ansible vault or pulled from external sources therefore the values in the example are empty)
 
-See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat PRs/tickets.
 
 ### Teams
 
@@ -695,11 +690,6 @@ gateway_objects_roles: [
 ]
 ```
 
-Note:
-
-* **gateway_objects_roles** settings will be created/changed even in check mode.
-
-See [Known issues](#Known-issues) for more details and upvote mentioned Red Hat PRs/tickets.
 
 ### Instance groups
 
@@ -1005,19 +995,11 @@ All the issues below are related to Red Hat certified collections. We opened tic
 - **Execution environments**: empty value in description is ignored
 (see https://github.com/ansible/awx/issues/15856 and https://github.com/ansible/awx/pull/15859)
 
-- **Users**: no ability to modify users in AAP 2.5 (see https://issues.redhat.com/browse/AAP-40035)
-
 - **Notifications**: custom messages that haven't been changed (i.e. still default) will show "None" during export. This is an issue with API
 (see https://issues.redhat.com/browse/AAP-40066)
 
 - **Notifications**: add update_secrets parameter
 (see https://github.com/ansible/awx/issues/15825 and https://github.com/ansible/awx/pull/15826)
-
-- **Authentication**: module ansible.platform.authenticator does not honor check mode
-(see https://issues.redhat.com/browse/AAP-40037)
-
-- **Roles**: module ansible.platform.role_user_assignment does not honor check mode
-(see https://issues.redhat.com/browse/AAP-40037)
 
 - **Inventories**: because of how variables are handled by ansible.controller collection, automation reports "changed" during the first run and each time after template "saved" in the GUI
 (see https://github.com/ansible/awx/issues/14918 and https://github.com/ansible/awx/pull/15232)
