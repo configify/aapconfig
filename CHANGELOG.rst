@@ -1,3 +1,14 @@
+## [2.4.7] - 2026-02-16
+
+### Added
+
+### Changed
+- Increased ansible.platform version in dependencies
+- Removed references to bugs that have been fixed from README
+
+### Fixed
+
+
 ## [2.4.6] - 2026-01-23
 
 ### Added

@@ -1,6 +1,6 @@
 namespace: configify
 name: aapconfig
-version: 2.4.6
+version: 2.4.7
 
 readme: README.md
 
@@ -16,7 +16,7 @@ tags: [tools]
 dependencies: {
   ansible.controller: ">=4.6.7",
   infra.ah_configuration: ">=2.1.0",
-  ansible.platform: ">=2.5.20241218",
+  ansible.platform: ">=2.5.20250702",
   ansible.utils: ">=3.1.0",
   ansible.hub: ">=1.0.0"
 }
